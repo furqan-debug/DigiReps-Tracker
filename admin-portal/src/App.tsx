@@ -43,7 +43,6 @@ function App() {
                   <Route path="/projects" element={<Projects />} />
                   <Route path="/schedules" element={<Schedules />} />
                   <Route path="/url-tracking" element={<UrlTracking />} />
-                  <Route path="/locations" element={<Locations />} />
                   <Route path="/financials" element={<Financials />} />
                   <Route path="/member-timeline" element={<MemberTimeline />} />
                   <Route path="/settings" element={<SettingsPage />} />
@@ -60,7 +59,8 @@ function App() {
                   <Route path="/insights/notifications" element={<PlaceholderPage title="Smart Notifications" />} />
                   <Route path="/insights/output" element={<PlaceholderPage title="Output" />} />
 
-                  <Route path="/locations/job-sites" element={<PlaceholderPage title="Job Sites" />} />
+                  {/* --- NEW LOCATIONS FEATURE --- */}
+                  <Route path="/locations/job-sites" element={<Locations />} />
 
                   <Route path="/projects/todos" element={<PlaceholderPage title="To-dos" />} />
                   <Route path="/projects/clients" element={<PlaceholderPage title="Clients" />} />

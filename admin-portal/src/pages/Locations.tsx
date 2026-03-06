@@ -4,6 +4,7 @@ import { MapPin, Globe2, Clock, Users } from 'lucide-react';
 
 interface LocationEntry {
     user_id: string;
+    full_name: string;
     ip: string;
     city: string;
     country: string;
@@ -82,11 +83,20 @@ export function Locations() {
             .order('started_at', { ascending: false })
             .limit(100);
 
+        const { data: members } = await supabase.from('members').select('id, full_name');
+        const memberMap: Record<string, string> = {};
+        (members || []).forEach(m => memberMap[m.id] = m.full_name);
+
         // Group by user to get unique users + session counts
-        const userMap: Record<string, { user_id: string; sessionCount: number; lastSeen: string }> = {};
+        const userMap: Record<string, { user_id: string; full_name: string; sessionCount: number; lastSeen: string }> = {};
         (sessions || []).forEach(s => {
             if (!userMap[s.user_id]) {
-                userMap[s.user_id] = { user_id: s.user_id, sessionCount: 0, lastSeen: s.started_at };
+                userMap[s.user_id] = {
+                    user_id: s.user_id,
+                    full_name: memberMap[s.user_id] || 'Unknown User',
+                    sessionCount: 0,
+                    lastSeen: s.started_at
+                };
             }
             userMap[s.user_id].sessionCount++;
         });
@@ -121,12 +131,12 @@ export function Locations() {
     const uniqueCountries = new Set(locations.map(l => l.country)).size;
 
     return (
-        <div className="p-8 max-w-[1600px] mx-auto w-full">
+        <div className="p-8 max-w-[1600px] mx-auto w-full fade-in">
             {/* Header */}
-            <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center justify-between mb-8 relative z-20">
                 <div>
-                    <h1 className="text-2xl font-semibold text-slate-900">Locations</h1>
-                    <p className="text-slate-500 text-sm mt-1">Where your team is working from (IP-based)</p>
+                    <h1 className="text-2xl font-bold text-slate-800 tracking-tight mb-2">Job Sites</h1>
+                    <p className="text-slate-500">Track where your team is working from via active IP addresses.</p>
                 </div>
                 {currentIpInfo && (
                     <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg px-4 py-2 text-sm text-blue-700">
@@ -167,7 +177,7 @@ export function Locations() {
                             <div key={i}
                                 className="absolute w-4 h-4 bg-blue-500 rounded-full border-2 border-white shadow-lg animate-pulse"
                                 style={{ left: `${x}%`, top: `${y}%`, transform: 'translate(-50%, -50%)' }}
-                                title={`${loc.user_id} — ${loc.city}, ${loc.country}`}
+                                title={`${loc.full_name} — ${loc.city}, ${loc.country}`}
                             />
                         );
                     })}
@@ -208,15 +218,15 @@ export function Locations() {
                         <tbody>
                             {locations.map(loc => {
                                 const flag = COUNTRY_FLAGS[loc.flag] || '🌐';
-                                const initials = loc.user_id.slice(0, 2).toUpperCase();
+                                const initials = (loc.full_name || '??').slice(0, 2).toUpperCase();
                                 return (
                                     <tr key={loc.user_id} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-bold">
+                                                <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 text-xs font-bold ring-1 ring-blue-100">
                                                     {initials}
                                                 </div>
-                                                <span className="font-medium text-slate-700 truncate max-w-[160px]">{loc.user_id}</span>
+                                                <span className="font-semibold text-slate-800 truncate max-w-[160px]">{loc.full_name}</span>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
