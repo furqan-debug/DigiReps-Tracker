@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import {
-    Users, Search, Download, Filter,
-    ChevronDown, CheckCircle, X, Mail, Copy,
-    Pencil, Trash2, MoreHorizontal, Check,
-    AlertCircle, RotateCcw, LayoutGrid, List,
+    Users, Search, Download,
+    ChevronDown, CheckCircle, X,
+    Pencil, Trash2,
+    AlertCircle, RotateCcw,
     Square, ExternalLink, Settings
 } from 'lucide-react';
 
@@ -180,34 +180,6 @@ export function People() {
         }
     }
 
-    async function handleBulkAction(action: 'Active' | 'Inactive' | 'Role_User' | 'Role_Manager') {
-        const ids = Array.from(selectedIds);
-        if (ids.length === 0) return;
-
-        setLoading(true);
-        const patches: Record<string, any> = {
-            Active: { status: 'Active' },
-            Inactive: { status: 'Inactive' },
-            Role_User: { role: 'User' },
-            Role_Manager: { role: 'Manager' }
-        };
-
-        const patch = patches[action];
-
-        try {
-            await Promise.all(ids.map(id =>
-                fetch(`${API}/api/members/${id}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(patch),
-                })
-            ));
-            setSelectedIds(new Set());
-            await fetchMembers();
-        } catch {
-            setLoading(false);
-        }
-    }
 
     function toggleSelection(id: string) {
         const next = new Set(selectedIds);
@@ -365,8 +337,6 @@ export function People() {
                                     isSelected={selectedIds.has(m.id)}
                                     onToggle={() => toggleSelection(m.id)}
                                     onEdit={() => setEditMember(m)}
-                                    onToggleTracking={() => handleUpdateMeta(m.id, { tracking_enabled: !m.tracking_enabled })}
-                                    onStatusChange={(status: Status) => handleUpdateMeta(m.id, { status })}
                                     onResendInvite={() => handleResendInvite(m.email)}
                                 />
                             ))
@@ -390,7 +360,7 @@ export function People() {
 
 // ─── Sub-Components ───────────────────────────────────────────────────────────
 
-function MemberRowItem({ m, isSelected, onToggle, onEdit, onToggleTracking, onStatusChange, onResendInvite }: any) {
+function MemberRowItem({ m, isSelected, onToggle, onEdit, onResendInvite }: any) {
     const [open, setOpen] = useState(false);
     const dropRef = useRef<HTMLTableDataCellElement>(null);
     const initials = m.full_name.split(' ').map((w: any) => w[0]).join('').slice(0, 2).toUpperCase();
