@@ -6,7 +6,8 @@ import {
     Pencil, Trash2, Power, PowerOff, Shield,
     Clock, Activity, MoreHorizontal, Check,
     AlertCircle, RotateCcw, LayoutGrid, List,
-    ChevronRight, MoreVertical
+    ChevronRight, MoreVertical, ExternalLink,
+    Upload, Settings, Square
 } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -32,6 +33,7 @@ interface MemberRow extends DbMember {
     activityPercent: number;
     lastSeen: string | null;
     sessionCount: number;
+    projectsCount: number;
 }
 
 const ROLE_COLORS: Record<Role, string> = {
@@ -48,6 +50,7 @@ export function People() {
     const [members, setMembers] = useState<MemberRow[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
+    const [activeTab, setActiveTab] = useState<'Members' | 'Invites'>('Members');
     const [statusFilter, setStatusFilter] = useState<Status | 'All'>('All');
 
     // Selection state
@@ -116,6 +119,7 @@ export function People() {
                 activityPercent: stats && stats.total > 0 ? Math.round((stats.active / stats.total) * 100) : 0,
                 lastSeen: stats?.last || null,
                 sessionCount: stats?.count || 0,
+                projectsCount: m.status === 'Active' ? 1 : 0, // Mock for display
             };
         });
 
@@ -237,149 +241,156 @@ export function People() {
     const filtered = members.filter(m => {
         const matchesSearch = m.full_name.toLowerCase().includes(search.toLowerCase()) ||
             m.email.toLowerCase().includes(search.toLowerCase());
+        const isInvite = m.status === 'Pending';
+        const matchesTab = activeTab === 'Invites' ? isInvite : !isInvite;
         const matchesStatus = statusFilter === 'All' || m.status === statusFilter;
-        return matchesSearch && matchesStatus;
+        return matchesSearch && matchesTab && matchesStatus;
     });
 
-    const activeCount = members.filter(m => m.status === 'Active').length;
-    const pendingCount = members.filter(m => m.status === 'Pending').length;
+    const membersCount = members.filter(m => m.status !== 'Pending').length;
+    const invitesCount = members.filter(m => m.status === 'Pending').length;
 
     return (
-        <div className="p-8 max-w-[1600px] mx-auto w-full fade-in">
-            {/* Header Section */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
-                <div>
-                    <h1 className="text-4xl font-black text-slate-900 tracking-tight flex items-center gap-4">
-                        <div className="bg-emerald-600 p-2.5 rounded-2xl shadow-xl shadow-emerald-100 ring-4 ring-emerald-50">
-                            <Users className="w-8 h-8 text-white" />
-                        </div>
-                        Team Members
-                    </h1>
-                    <p className="text-slate-500 mt-3 font-medium text-lg">Manage access, roles, and payment settings for your entire workforce.</p>
+        <div className="p-8 max-w-[1600px] mx-auto w-full fade-in font-sans">
+            {/* Top Row: Title & Link */}
+            <div className="flex items-center justify-between mb-8">
+                <h1 className="text-3xl font-medium text-[#2d2d2d]">Members</h1>
+                <button className="flex items-center gap-2 text-[#2a85ff] hover:underline text-sm font-medium">
+                    <Users className="w-4 h-4" />
+                    Onboarding status
+                </button>
+            </div>
+
+            {/* Tabs */}
+            <div className="flex items-center gap-8 border-b border-slate-200 mb-6">
+                <button
+                    onClick={() => setActiveTab('Members')}
+                    className={`pb-3 text-xs font-bold uppercase tracking-wider transition-all border-b-2 ${activeTab === 'Members' ? 'border-[#2a85ff] text-[#2a85ff]' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+                >
+                    Members ({membersCount})
+                </button>
+                <button
+                    onClick={() => setActiveTab('Invites')}
+                    className={`pb-3 text-xs font-bold uppercase tracking-wider transition-all border-b-2 ${activeTab === 'Invites' ? 'border-[#2a85ff] text-[#2a85ff]' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+                >
+                    Invites ({invitesCount})
+                </button>
+            </div>
+
+            {/* Pricing Info Shadow (Mock) */}
+            <div className="mb-4 flex items-center gap-2 text-xs text-slate-400">
+                <span>{membersCount} of 1 members count toward your pricing plan</span>
+                <AlertCircle className="w-3.5 h-3.5" />
+            </div>
+            <button className="text-[#2a85ff] text-xs font-medium hover:underline mb-8 block">Add more seats</button>
+
+            {/* Purple Info Banner */}
+            <div className="bg-[#f0e7ff] border border-[#d8b4fe]/50 p-4 rounded-lg flex items-center justify-between mb-8">
+                <p className="text-[#6b21a8] text-sm font-medium">Create teams to auto assign members to projects and delegate tasks to team leads</p>
+                <div className="flex items-center gap-4">
+                    <button className="text-[#6b21a8] hover:underline text-xs font-semibold uppercase tracking-wider">Don't show again</button>
+                    <button className="bg-[#9333ea] text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-[#7e22ce] transition-colors">Try it out now</button>
+                    <button className="text-[#6b21a8] hover:text-[#7e22ce]"><X className="w-4 h-4" /></button>
+                </div>
+            </div>
+
+            {/* Action Bar */}
+            <div className="flex flex-col lg:flex-row items-center justify-between gap-4 mb-6">
+                <div className="flex items-center gap-4 w-full lg:w-auto">
+                    <div className="relative flex-1 lg:w-80">
+                        <Search className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                        <input
+                            type="text"
+                            placeholder="Search members"
+                            value={search}
+                            onChange={e => setSearch(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-700 focus:ring-2 focus:ring-[#2a85ff]/20 focus:border-[#2a85ff] outline-none transition-all placeholder:text-slate-400"
+                        />
+                    </div>
+                    <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors">
+                        Batch actions <ChevronDown className="w-4 h-4" />
+                    </button>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 w-full lg:w-auto justify-end">
+                    <button className="flex items-center gap-2 px-4 py-2 text-slate-500 hover:text-slate-700 text-sm font-medium">
+                        <Download className="w-4 h-4" /> Export
+                    </button>
+                    <button className="px-6 py-2 bg-white border border-[#2a85ff] text-[#2a85ff] rounded-lg text-sm font-medium hover:bg-[#2a85ff]/5 transition-colors">
+                        Import members
+                    </button>
                     <button onClick={() => { resetAddForm(); setShowAddModal(true); }}
-                        className="flex items-center gap-2 bg-slate-900 text-white px-8 py-3.5 rounded-2xl text-sm font-black uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-xl shadow-slate-200 hover:shadow-emerald-200 active:scale-95">
-                        <UserPlus className="w-5 h-5" />
-                        Invite Member
+                        className="px-6 py-2 bg-[#2a85ff] text-white rounded-lg text-sm font-semibold hover:bg-[#0052cc] transition-colors">
+                        Add members
+                    </button>
+                    <button className="px-6 py-2 bg-white border border-[#2a85ff] text-[#2a85ff] rounded-lg text-sm font-medium hover:bg-[#2a85ff]/5 transition-colors flex items-center gap-2">
+                        Filters
+                    </button>
+                    <button className="p-2 border border-slate-300 rounded-lg text-slate-400">
+                        <Square className="w-4 h-4" />
                     </button>
                 </div>
             </div>
 
-            {/* Quick Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
-                <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex items-center gap-4 border-l-[12px] border-l-emerald-500">
-                    <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600">
-                        <CheckCircle className="w-6 h-6" />
-                    </div>
-                    <div>
-                        <p className="text-slate-400 font-black uppercase tracking-widest text-[10px]">Active</p>
-                        <h2 className="text-2xl font-black text-slate-900 leading-none">{activeCount}</h2>
-                    </div>
-                </div>
-                <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex items-center gap-4 border-l-[12px] border-l-amber-500">
-                    <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-600">
-                        <Clock className="w-6 h-6" />
-                    </div>
-                    <div>
-                        <p className="text-slate-400 font-black uppercase tracking-widest text-[10px]">Pending</p>
-                        <h2 className="text-2xl font-black text-slate-900 leading-none">{pendingCount}</h2>
-                    </div>
-                </div>
-                <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex items-center gap-4 border-l-[12px] border-l-indigo-500">
-                    <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600">
-                        <Activity className="w-6 h-6" />
-                    </div>
-                    <div>
-                        <p className="text-slate-400 font-black uppercase tracking-widest text-[10px]">Tracked Today</p>
-                        <h2 className="text-2xl font-black text-slate-900 leading-none">{members.filter(m => m.lastSeen && new Date(m.lastSeen).toDateString() === new Date().toDateString()).length}</h2>
-                    </div>
-                </div>
-                <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex items-center gap-4 border-l-[12px] border-l-slate-800">
-                    <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-800">
-                        <Users className="w-6 h-6" />
-                    </div>
-                    <div>
-                        <p className="text-slate-400 font-black uppercase tracking-widest text-[10px]">Total Workforce</p>
-                        <h2 className="text-2xl font-black text-slate-900 leading-none">{members.length}</h2>
-                    </div>
-                </div>
-            </div>
-
-            {/* Controls & Bulk Actions */}
-            <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden mb-8">
-                <div className="p-6 border-b border-slate-100 bg-slate-50/30 flex flex-col lg:flex-row items-center justify-between gap-6">
-                    <div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto">
-                        <div className="relative w-full sm:w-80">
-                            <Search className="w-5 h-5 text-slate-400 absolute left-5 top-1/2 -translate-y-1/2" />
-                            <input type="text" placeholder="Search members..." value={search} onChange={e => setSearch(e.target.value)}
-                                className="w-full pl-12 pr-6 py-4 bg-white border border-slate-200 rounded-2xl text-sm font-bold text-slate-700 outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500/50 transition-all shadow-sm" />
-                        </div>
-                        <div className="flex bg-white border border-slate-200 p-1.5 rounded-2xl shadow-sm w-full sm:w-auto">
-                            {(['All', 'Active', 'Pending', 'Inactive'] as const).map(f => (
-                                <button key={f} onClick={() => setStatusFilter(f)}
-                                    className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${statusFilter === f ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}>
-                                    {f}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    {selectedIds.size > 0 && (
-                        <div className="flex items-center gap-3 animate-in slide-in-from-right duration-300 w-full lg:w-auto overflow-x-auto pb-2 lg:pb-0">
-                            <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest px-3">{selectedIds.size} Selected</span>
-                            <div className="h-4 w-px bg-slate-200 hidden lg:block mr-2" />
-                            <BulkActionBtn icon={<Check className="w-4 h-4" />} label="Activate" onClick={() => handleBulkAction('Active')} />
-                            <BulkActionBtn icon={<PowerOff className="w-4 h-4" />} label="Deactivate" onClick={() => handleBulkAction('Inactive')} danger />
-                            <BulkActionBtn icon={<Shield className="w-4 h-4" />} label="Make Manager" onClick={() => handleBulkAction('Role_Manager')} />
-                            <BulkActionBtn icon={<Users className="w-4 h-4" />} label="Make User" onClick={() => handleBulkAction('Role_User')} />
-                        </div>
-                    )}
-                </div>
-
-                {loading ? (
-                    <div className="p-24 text-center">
-                        <div className="w-12 h-12 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                        <p className="text-slate-400 font-black uppercase tracking-widest text-[10px]">Refining Workforce Data...</p>
-                    </div>
-                ) : filtered.length === 0 ? (
-                    <div className="p-24 text-center">
-                        <Users className="w-16 h-16 text-slate-200 mx-auto mb-6" />
-                        <p className="text-slate-400 font-black uppercase tracking-widest text-[10px]">No members found matching criteria</p>
-                    </div>
-                ) : (
-                    <table className="w-full">
-                        <thead>
-                            <tr className="border-b border-slate-100/60 bg-slate-50/50">
-                                <th className="pl-8 py-5 text-left w-10">
-                                    <input type="checkbox" checked={selectedIds.size === filtered.length && filtered.length > 0} onChange={toggleSelectAll}
-                                        className="w-5 h-5 rounded-lg border-slate-300 text-emerald-600 focus:ring-emerald-500/20 cursor-pointer" />
-                                </th>
-                                {['Member Profile', 'Status & Activities', 'Role', 'Compensation', 'Limits', 'Tracking', ''].map(h => (
-                                    <th key={h} className="px-6 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{h}</th>
-                                ))}
+            {/* Table */}
+            <div className="bg-white rounded-lg border border-slate-200 overflow-visible">
+                <table className="w-full text-left border-collapse">
+                    <thead>
+                        <tr className="border-b border-slate-200 bg-slate-50/10">
+                            <th className="pl-6 py-4 w-10">
+                                <input
+                                    type="checkbox"
+                                    checked={selectedIds.size === filtered.length && filtered.length > 0}
+                                    onChange={toggleSelectAll}
+                                    className="w-4 h-4 rounded border-slate-300"
+                                />
+                            </th>
+                            <th className="px-4 py-4 text-[13px] font-bold text-slate-700">Member <ChevronDown className="w-3 h-3 inline ml-1" /></th>
+                            <th className="px-4 py-4 text-[13px] font-bold text-slate-700">Status</th>
+                            <th className="px-4 py-4 text-[13px] font-bold text-slate-700">Role</th>
+                            <th className="px-4 py-4 text-[13px] font-bold text-slate-700">Projects</th>
+                            <th className="px-4 py-4 text-[13px] font-bold text-slate-700">Payment</th>
+                            <th className="px-4 py-4 text-[13px] font-bold text-slate-700">Limits</th>
+                            <th className="px-4 py-4 text-[13px] font-bold text-slate-700">Time tracking status</th>
+                            <th className="px-4 py-4 text-[13px] font-bold text-slate-700">Date added</th>
+                            <th className="px-6 py-4"></th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                        {loading ? (
+                            <tr>
+                                <td colSpan={10} className="py-20 text-center text-slate-400">Loading members...</td>
                             </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-50">
-                            {filtered.map(m => (
-                                <MemberListItem key={m.id} m={m}
+                        ) : filtered.length === 0 ? (
+                            <tr>
+                                <td colSpan={10} className="py-20 text-center text-slate-400">No members found.</td>
+                            </tr>
+                        ) : (
+                            filtered.map(m => (
+                                <MemberRowItem
+                                    key={m.id}
+                                    m={m}
                                     isSelected={selectedIds.has(m.id)}
                                     onToggle={() => toggleSelection(m.id)}
                                     onEdit={() => setEditMember(m)}
                                     onToggleTracking={() => handleUpdateMeta(m.id, { tracking_enabled: !m.tracking_enabled })}
-                                    onStatusChange={(status) => handleUpdateMeta(m.id, { status })}
+                                    onStatusChange={(status: Status) => handleUpdateMeta(m.id, { status })}
                                     onResendInvite={() => handleResendInvite(m.email)}
                                 />
-                            ))}
-                        </tbody>
-                    </table>
-                )}
+                            ))
+                        )}
+                    </tbody>
+                </table>
+            </div>
+
+            {/* Pagination Mock */}
+            <div className="mt-4 text-xs text-slate-500 font-medium">
+                Showing {filtered.length} of {filtered.length} {activeTab === 'Members' ? 'member' : 'invite'}{filtered.length !== 1 ? 's' : ''}
             </div>
 
             {/* MODALS */}
             {showAddModal && <InviteModal onClose={() => setShowAddModal(false)} onInvite={handleAddMember} form={{ addEmail, setAddEmail, addRole, setAddRole, addPayRate, setAddPayRate, addBillRate, setAddBillRate, addWeekly, setAddWeekly, addDaily, setAddDaily, adding, addError }} />}
-            {editMember && <EditModal member={editMember} onClose={() => setEditMember(null)} onSave={(patch) => handleUpdateMeta(editMember.id, patch)} />}
+            {editMember && <EditModal member={editMember} onClose={() => setEditMember(null)} onSave={(patch: any) => handleUpdateMeta(editMember.id, patch)} />}
             {inviteSentTo && <InviteSentPopup email={inviteSentTo} onClose={() => setInviteSentTo(null)} />}
         </div>
     );
