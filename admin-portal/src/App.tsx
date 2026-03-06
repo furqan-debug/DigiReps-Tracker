@@ -28,6 +28,8 @@ import { SettingsPage } from './pages/Settings';
 import { AcceptInvite } from './pages/AcceptInvite';
 import { MemberTimeline } from './pages/MemberTimeline';
 import { Teams } from './pages/Teams';
+import { Calendar } from './pages/Calendar';
+import { TimeOff } from './pages/TimeOff';
 import { PlaceholderPage } from './pages/PlaceholderPage';
 
 function App() {
@@ -76,7 +78,8 @@ function App() {
                   <Route path="/projects/todos" element={<Todos />} />
                   <Route path="/projects/clients" element={<Clients />} />
 
-                  <Route path="/calendar/time-off" element={<PlaceholderPage title="Time Off Requests" />} />
+                  <Route path="/calendar" element={<Calendar />} />
+                  <Route path="/calendar/requests" element={<TimeOff />} />
 
                   <Route path="/reports" element={<Reports />} />
                   <Route path="/reports/legacy" element={<ReportsLegacy />} />

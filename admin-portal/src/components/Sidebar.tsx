@@ -93,8 +93,9 @@ const navStructure: NavGroup[] = [
         name: 'Calendar',
         icon: CalendarDays,
         children: [
+            { name: 'View calendar', path: '/calendar' },
             { name: 'Schedules', path: '/schedules' },
-            { name: 'Time off requests', path: '/calendar/time-off' }
+            { name: 'Time off requests', path: '/calendar/requests' }
         ]
     },
     {
