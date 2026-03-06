@@ -218,16 +218,16 @@ export function Performance() {
                                     <td className="px-6 py-4 text-right">
                                         <div className="flex flex-col items-end justify-center">
                                             <span className={`text-sm font-bold ${m.avgActivity >= 75 ? 'text-emerald-600' :
-                                                    m.avgActivity >= 45 ? 'text-amber-600' :
-                                                        'text-rose-600'
+                                                m.avgActivity >= 45 ? 'text-amber-600' :
+                                                    'text-rose-600'
                                                 }`}>
                                                 {m.avgActivity.toFixed(0)}%
                                             </span>
                                             <div className="w-16 h-1 mt-1 bg-slate-100 rounded-full overflow-hidden">
                                                 <div
                                                     className={`h-full ${m.avgActivity >= 75 ? 'bg-emerald-500' :
-                                                            m.avgActivity >= 45 ? 'bg-amber-500' :
-                                                                'bg-rose-500'
+                                                        m.avgActivity >= 45 ? 'bg-amber-500' :
+                                                            'bg-rose-500'
                                                         }`}
                                                     style={{ width: `${m.avgActivity}%` }}
                                                 />
