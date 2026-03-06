@@ -97,6 +97,17 @@ CREATE TABLE IF NOT EXISTS project_members (
 -- ── Indexes ──────────────────────────────────────────────────────────────────
 CREATE INDEX IF NOT EXISTS idx_project_members_member ON project_members(member_id);
 
+-- ── Job Sites ─────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS job_sites (
+  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name             TEXT NOT NULL,
+  address          TEXT NOT NULL,
+  radius           INTEGER NOT NULL DEFAULT 150,
+  status           TEXT NOT NULL DEFAULT 'Active',
+  assigned_members INTEGER NOT NULL DEFAULT 0,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 -- ── Member migrations ─────────────────────────────────────────────────────────
 -- v1.2: Add phone column for member onboarding
 ALTER TABLE members ADD COLUMN IF NOT EXISTS phone TEXT;
