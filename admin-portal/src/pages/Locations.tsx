@@ -135,8 +135,8 @@ export function Locations() {
             {/* Header */}
             <div className="flex items-center justify-between mb-8 relative z-20">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-800 tracking-tight mb-2">Job Sites</h1>
-                    <p className="text-slate-500">Track where your team is working from via active IP addresses.</p>
+                    <h1 className="text-2xl font-bold text-slate-800 tracking-tight mb-2">Locations Map</h1>
+                    <p className="text-slate-500">Track where your team is working from in real-time.</p>
                 </div>
                 {currentIpInfo && (
                     <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg px-4 py-2 text-sm text-blue-700">

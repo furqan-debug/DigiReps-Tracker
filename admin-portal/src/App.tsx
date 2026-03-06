@@ -10,6 +10,7 @@ import { Projects } from './pages/Projects';
 import { Schedules } from './pages/Schedules';
 import { UrlTracking } from './pages/UrlTracking';
 import { Locations } from './pages/Locations';
+import { JobSites } from './pages/JobSites';
 import { Financials } from './pages/Financials';
 import { Approvals } from './pages/Approvals';
 import { AppUsage } from './pages/AppUsage';
@@ -60,7 +61,8 @@ function App() {
                   <Route path="/insights/output" element={<PlaceholderPage title="Output" />} />
 
                   {/* --- NEW LOCATIONS FEATURE --- */}
-                  <Route path="/locations/job-sites" element={<Locations />} />
+                  <Route path="/locations" element={<Locations />} />
+                  <Route path="/locations/job-sites" element={<JobSites />} />
 
                   <Route path="/projects/todos" element={<PlaceholderPage title="To-dos" />} />
                   <Route path="/projects/clients" element={<PlaceholderPage title="Clients" />} />
