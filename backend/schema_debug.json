@@ -1,0 +1,24 @@
+{
+  "members": [
+    "id",
+    "email",
+    "full_name",
+    "role",
+    "status",
+    "pay_rate",
+    "bill_rate",
+    "weekly_limit",
+    "daily_limit",
+    "tracking_enabled",
+    "auth_user_id",
+    "created_at",
+    "phone"
+  ],
+  "screenshots": [
+    "id",
+    "session_id",
+    "recorded_at",
+    "file_url",
+    "created_at"
+  ]
+}

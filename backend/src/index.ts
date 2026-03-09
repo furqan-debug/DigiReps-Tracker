@@ -227,11 +227,9 @@ app.post('/api/members', async (req, res) => {
         });
 
         if (inviteError) {
-            // If already registered, still proceed to create the member row
-            if (!inviteError.message.toLowerCase().includes('already registered') &&
-                !inviteError.message.toLowerCase().includes('already been invited')) {
-                throw inviteError;
-            }
+            console.warn(`⚠️ Supabase Auth Invite failed: ${inviteError.message}`);
+            // In local development or if SMTP is not configured, this will fail.
+            // We still proceed to create the member record in the DB so that the UI works.
         }
 
         const authUserId = inviteData?.user?.id || null;
@@ -372,8 +370,6 @@ app.post('/api/projects', async (req, res) => {
     try {
         const {
             name, description, color = '#3b82f6', client_id,
-            billable = true, disable_activity = false, allow_tracking = true, disable_idle_time = false,
-            budget_type = 'No budget', budget_limit, budget_notifications = true,
             member_ids = [], team_ids = []
         } = req.body;
 
@@ -383,9 +379,7 @@ app.post('/api/projects', async (req, res) => {
 
         // 1. Insert Project
         const { data: project, error: projectError } = await db.from('projects').insert([{
-            name, description, color, client_id,
-            billable, disable_activity, allow_tracking, disable_idle_time,
-            budget_type, budget_limit, budget_notifications
+            name, description, color, client_id
         }]).select().single();
 
         if (projectError) throw projectError;
@@ -418,21 +412,12 @@ app.put('/api/projects/:id', async (req, res) => {
         const { id } = req.params;
         const {
             name, description, color, status, client_id,
-            billable, disable_activity, allow_tracking, disable_idle_time,
-            budget_type, budget_limit, budget_notifications,
             member_ids, team_ids
         } = req.body;
 
         const db = getDb();
 
         const updateData: any = { name, description, color, status, client_id };
-        if (billable !== undefined) updateData.billable = billable;
-        if (disable_activity !== undefined) updateData.disable_activity = disable_activity;
-        if (allow_tracking !== undefined) updateData.allow_tracking = allow_tracking;
-        if (disable_idle_time !== undefined) updateData.disable_idle_time = disable_idle_time;
-        if (budget_type !== undefined) updateData.budget_type = budget_type;
-        if (budget_limit !== undefined) updateData.budget_limit = budget_limit;
-        if (budget_notifications !== undefined) updateData.budget_notifications = budget_notifications;
 
         // 1. Update Project
         const { data, error } = await db.from('projects').update(updateData).eq('id', id).select().single();

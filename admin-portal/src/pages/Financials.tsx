@@ -41,9 +41,9 @@ export function Financials() {
         const { start, end } = getDateRange();
 
         try {
-            // Fetch members with real pay/bill rates from the members table
+            // Fetch members with real pay/bill rates from the members table (include auth_user_id for legacy session fallback)
             const [{ data: membersData, error: memberErr }, { data: sessions, error: sessionErr }] = await Promise.all([
-                supabase.from('members').select('id, full_name, pay_rate, bill_rate'),
+                supabase.from('members').select('id, full_name, pay_rate, bill_rate, auth_user_id'),
                 supabase.from('sessions')
                     .select('id, user_id, started_at, ended_at')
                     .gte('started_at', start)
@@ -53,11 +53,14 @@ export function Financials() {
             if (memberErr) throw memberErr;
             if (sessionErr) throw sessionErr;
 
-            // Map sessions.user_id → member info
+            // Map sessions.user_id → member info (supporting both member.id and legacy member.auth_user_id)
             const memberMap: Record<string, { name: string; pay_rate: number; bill_rate: number }> = {};
             (membersData || []).forEach(m => {
-                const key = m.id;
-                memberMap[key] = { name: m.full_name, pay_rate: m.pay_rate ?? 0, bill_rate: m.bill_rate ?? 0 };
+                const info = { name: m.full_name, pay_rate: m.pay_rate ?? 0, bill_rate: m.bill_rate ?? 0 };
+                memberMap[m.id] = info;
+                if (m.auth_user_id) {
+                    memberMap[m.auth_user_id] = info;
+                }
             });
 
             const statsMap: Record<string, { minutes: number; sessions: number }> = {};
@@ -72,14 +75,16 @@ export function Financials() {
             });
 
             const result: MemberFinancial[] = Object.entries(statsMap).map(([uid, data]) => {
-                const info = memberMap[uid] ?? { name: uid.slice(0, 8) + '…', pay_rate: 0, bill_rate: 0 };
+                // Find member data using the user_id from sessions
+                const info = memberMap[uid];
                 return {
                     member_id: uid,
-                    full_name: info.name,
-                    pay_rate: info.pay_rate,
-                    bill_rate: info.bill_rate,
+                    full_name: info ? info.name : (uid.slice(0, 8) + '…'),
+                    pay_rate: info ? info.pay_rate : 0,
+                    bill_rate: info ? info.bill_rate : 0,
                     totalMinutes: data.minutes,
-                    totalCost: Math.round((data.minutes / 60) * info.pay_rate * 100) / 100,
+                    // calculate cost only if rate exists
+                    totalCost: info ? Math.round((data.minutes / 60) * info.pay_rate * 100) / 100 : 0,
                     sessions: data.sessions,
                 };
             }).sort((a, b) => b.totalCost - a.totalCost);

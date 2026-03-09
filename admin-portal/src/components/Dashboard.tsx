@@ -45,100 +45,114 @@ export function Dashboard() {
     useEffect(() => { fetchDashboard(); }, []);
 
     async function fetchDashboard() {
-        setLoading(true);
+        try {
+            setLoading(true);
 
-        const now = new Date();
-        const todayStart = new Date(now); todayStart.setHours(0, 0, 0, 0);
-        const weekStart = new Date(now); weekStart.setDate(now.getDate() - now.getDay()); weekStart.setHours(0, 0, 0, 0);
+            const now = new Date();
+            const todayStart = new Date(now); todayStart.setHours(0, 0, 0, 0);
+            const weekStart = new Date(now); weekStart.setDate(now.getDate() - now.getDay()); weekStart.setHours(0, 0, 0, 0);
 
-        const [
-            { data: todaySessions },
-            { data: weekSessions },
-            { data: projectsData },
-            { data: membersData },
-            { count: ssCount },
-        ] = await Promise.all([
-            supabase.from('sessions').select('id, started_at, ended_at').gte('started_at', todayStart.toISOString()),
-            supabase.from('sessions').select('id, user_id, project_id, started_at, ended_at').gte('started_at', weekStart.toISOString()),
-            supabase.from('projects').select('id, name, color'),
-            supabase.from('members').select('id, pay_rate'),
-            supabase.from('screenshots').select('id', { count: 'exact', head: true }).gte('recorded_at', weekStart.toISOString()),
-        ]);
+            // Fetch all recent data first to avoid timezone timezone stripping issues in Supabase queries.
+            // We will filter exactly on the client side to guarantee correctness.
+            const [
+                { data: rawSessions, error: sessionErr },
+                { data: projectsData, error: projErr },
+                { data: membersData, error: memErr },
+                { count: ssCount, error: ssErr },
+            ] = await Promise.all([
+                // Get past 14 days of sessions to guarantee we have all 'this week' data regardless of TZ diff
+                supabase.from('sessions').select('id, user_id, project_id, started_at, ended_at').gte('started_at', new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000).toISOString()),
+                supabase.from('projects').select('id, name, color'),
+                supabase.from('members').select('id, pay_rate'),
+                supabase.from('screenshots').select('id', { count: 'exact', head: true }).gte('recorded_at', weekStart.toISOString()),
+            ]);
 
-        // Today minutes
-        const todayMins = (todaySessions || []).reduce((acc, s) => {
-            const start = new Date(s.started_at).getTime();
-            const end = s.ended_at ? new Date(s.ended_at).getTime() : Date.now();
-            return acc + Math.max(0, Math.round((end - start) / 60000));
-        }, 0);
+            if (sessionErr) console.error("Session Error:", sessionErr);
+            if (projErr) console.error("Project Error:", projErr);
+            if (memErr) console.error("Member Error:", memErr);
+            if (ssErr) console.error("Screenshot Error:", ssErr);
 
-        // Week minutes + cost per member
-        const memberRateMap: Record<string, number> = {};
-        (membersData || []).forEach(m => { memberRateMap[m.id] = m.pay_rate ?? 0; });
+            const todaySessions = (rawSessions || []).filter(s => new Date(s.started_at) >= todayStart);
+            const weekSessions = (rawSessions || []).filter(s => new Date(s.started_at) >= weekStart);
 
-        let weekMins = 0;
-        let weekCost = 0;
-        const projectMinMap: Record<string, number> = {};
-        const dayMinMap: number[] = Array(7).fill(0);
-        const uniqueMembers = new Set<string>();
-        const uniqueProjects = new Set<string>();
+            // Today minutes
+            const todayMins = (todaySessions || []).reduce((acc, s) => {
+                const start = new Date(s.started_at).getTime();
+                const end = s.ended_at ? new Date(s.ended_at).getTime() : Date.now();
+                return acc + Math.max(0, Math.round((end - start) / 60000));
+            }, 0);
 
-        (weekSessions || []).forEach(s => {
-            const start = new Date(s.started_at).getTime();
-            const end = s.ended_at ? new Date(s.ended_at).getTime() : Date.now();
-            const mins = Math.max(0, Math.round((end - start) / 60000));
-            weekMins += mins;
+            // Week minutes + cost per member
+            const memberRateMap: Record<string, number> = {};
+            (membersData || []).forEach(m => { memberRateMap[m.id] = m.pay_rate ?? 0; });
 
-            if (s.user_id) {
-                uniqueMembers.add(s.user_id);
-                const rate = memberRateMap[s.user_id] ?? 0;
-                weekCost += (mins / 60) * rate;
-            }
+            let weekMins = 0;
+            let weekCost = 0;
+            const projectMinMap: Record<string, number> = {};
+            const dayMinMap: number[] = Array(7).fill(0);
+            const uniqueMembers = new Set<string>();
+            const uniqueProjects = new Set<string>();
 
-            if (s.project_id) {
-                uniqueProjects.add(s.project_id);
-                projectMinMap[s.project_id] = (projectMinMap[s.project_id] || 0) + mins;
-            }
+            (weekSessions || []).forEach(s => {
+                const start = new Date(s.started_at).getTime();
+                const end = s.ended_at ? new Date(s.ended_at).getTime() : Date.now();
+                const mins = Math.max(0, Math.round((end - start) / 60000));
+                weekMins += mins;
 
-            const dayIdx = new Date(s.started_at).getDay();
-            dayMinMap[dayIdx] = (dayMinMap[dayIdx] || 0) + mins;
-        });
+                if (s.user_id) {
+                    uniqueMembers.add(s.user_id);
+                    const rate = memberRateMap[s.user_id] ?? 0;
+                    weekCost += (mins / 60) * rate;
+                }
 
-        // Project breakdown
-        const projectMap: Record<string, string> = {};
-        const projectColorMap: Record<string, string> = {};
-        (projectsData || []).forEach((p, i) => {
-            projectMap[p.id] = p.name;
-            projectColorMap[p.id] = p.color || PROJECT_COLORS[i % PROJECT_COLORS.length]!;
-        });
+                if (s.project_id) {
+                    uniqueProjects.add(s.project_id);
+                    projectMinMap[s.project_id] = (projectMinMap[s.project_id] || 0) + mins;
+                }
 
-        const projectStats: ProjectStat[] = Object.entries(projectMinMap)
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 6)
-            .map(([id, minutes], i) => ({
-                id,
-                name: projectMap[id] || 'Unknown',
-                minutes,
-                color: projectColorMap[id] || PROJECT_COLORS[i % PROJECT_COLORS.length]!,
+                const dayIdx = new Date(s.started_at).getDay();
+                dayMinMap[dayIdx] = (dayMinMap[dayIdx] || 0) + mins;
+            });
+
+            // Project breakdown
+            const projectMap: Record<string, string> = {};
+            const projectColorMap: Record<string, string> = {};
+            (projectsData || []).forEach((p, i) => {
+                projectMap[p.id] = p.name;
+                projectColorMap[p.id] = p.color || PROJECT_COLORS[i % PROJECT_COLORS.length]!;
+            });
+
+            const projectStats: ProjectStat[] = Object.entries(projectMinMap)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 6)
+                .map(([id, minutes], i) => ({
+                    id,
+                    name: projectMap[id] || 'Unknown',
+                    minutes,
+                    color: projectColorMap[id] || PROJECT_COLORS[i % PROJECT_COLORS.length]!,
+                }));
+
+            // Week bar chart — reorder to Mon–Sun with today highlighted
+            const bars: DayBar[] = DAYS_SHORT.map((day, i) => ({
+                day,
+                minutes: dayMinMap[i] || 0,
             }));
 
-        // Week bar chart — reorder to Mon–Sun with today highlighted
-        const bars: DayBar[] = DAYS_SHORT.map((day, i) => ({
-            day,
-            minutes: dayMinMap[i] || 0,
-        }));
-
-        setStats({
-            todayMinutes: todayMins,
-            weekMinutes: weekMins,
-            weekCost: Math.round(weekCost * 100) / 100,
-            activeMembers: uniqueMembers.size,
-            activeProjects: uniqueProjects.size,
-            screenshotCount: ssCount || 0,
-        });
-        setProjects(projectStats);
-        setWeekBars(bars);
-        setLoading(false);
+            setStats({
+                todayMinutes: todayMins,
+                weekMinutes: weekMins,
+                weekCost: Math.round(weekCost * 100) / 100,
+                activeMembers: uniqueMembers.size,
+                activeProjects: uniqueProjects.size,
+                screenshotCount: ssCount || 0,
+            });
+            setProjects(projectStats);
+            setWeekBars(bars);
+        } catch (error) {
+            console.error("fetchDashboard unhandled error:", error);
+        } finally {
+            setLoading(false);
+        }
     }
 
     const maxProjectMins = projects[0]?.minutes || 1;
@@ -247,11 +261,21 @@ function RecentSessions() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        supabase.from('sessions')
-            .select('id, user_id, project_id, started_at, ended_at')
-            .order('started_at', { ascending: false })
-            .limit(8)
-            .then(({ data }) => { setSessions(data || []); setLoading(false); });
+        async function load() {
+            try {
+                const { data, error } = await supabase.from('sessions')
+                    .select('id, user_id, project_id, started_at, ended_at')
+                    .order('started_at', { ascending: false })
+                    .limit(8);
+                if (error) console.error("RecentSessions Error:", error);
+                setSessions(data || []);
+            } catch (err) {
+                console.error("RecentSessions unhandled error:", err);
+            } finally {
+                setLoading(false);
+            }
+        }
+        load();
     }, []);
 
     if (loading) return <div className="text-slate-400 text-sm py-4">Loading…</div>;
