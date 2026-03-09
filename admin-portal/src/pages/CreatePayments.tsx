@@ -54,7 +54,7 @@ export function CreatePayments() {
             setLoading(false);
         }
     }
-
+    
     return (
         <div className="p-8 max-w-[800px] mx-auto w-full">
             <div className="mb-8">
