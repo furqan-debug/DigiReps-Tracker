@@ -31,6 +31,10 @@ import { Teams } from './pages/Teams';
 import { Calendar } from './pages/Calendar';
 import { TimeOff } from './pages/TimeOff';
 import { PlaceholderPage } from './pages/PlaceholderPage';
+import { CreatePayments } from './pages/CreatePayments';
+import { PastPayments } from './pages/PastPayments';
+import { Invoices } from './pages/Invoices';
+import { Expenses } from './pages/Expenses';
 
 import { FavoritesProvider } from './context/FavoritesContext';
 
@@ -94,10 +98,10 @@ function App() {
 
                     <Route path="/people/teams" element={<Teams />} />
 
-                    <Route path="/financials/create" element={<PlaceholderPage title="Create Payments" />} />
-                    <Route path="/financials/past" element={<PlaceholderPage title="Past Payments" />} />
-                    <Route path="/financials/invoices" element={<PlaceholderPage title="Invoices" />} />
-                    <Route path="/financials/expenses" element={<PlaceholderPage title="Expenses" />} />
+                    <Route path="/financials/create" element={<CreatePayments />} />
+                    <Route path="/financials/past" element={<PastPayments />} />
+                    <Route path="/financials/invoices" element={<Invoices />} />
+                    <Route path="/financials/expenses" element={<Expenses />} />
 
                     <Route path="/silent/how-it-works" element={<PlaceholderPage title="Silent App: How it works" />} />
 

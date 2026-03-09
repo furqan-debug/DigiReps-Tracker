@@ -232,3 +232,31 @@ CREATE TABLE IF NOT EXISTS team_members (
 );
 
 CREATE INDEX IF NOT EXISTS idx_team_members_member ON team_members(member_id);
+
+-- -----------------------------------------------------------------------------
+-- Invoices
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS invoices (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  client_id   UUID NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+  amount      NUMERIC(10,2) NOT NULL,
+  status      TEXT NOT NULL DEFAULT 'Draft', -- Draft | Sent | Paid | Overdue
+  issue_date  DATE NOT NULL DEFAULT CURRENT_DATE,
+  due_date    DATE NOT NULL,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- -----------------------------------------------------------------------------
+-- Expenses
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS expenses (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  member_id   UUID NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+  project_id  UUID REFERENCES projects(id) ON DELETE SET NULL,
+  amount      NUMERIC(10,2) NOT NULL,
+  category    TEXT NOT NULL,
+  description TEXT,
+  date        DATE NOT NULL DEFAULT CURRENT_DATE,
+  status      TEXT NOT NULL DEFAULT 'Pending', -- Pending | Approved | Rejected
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);

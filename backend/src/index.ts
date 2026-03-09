@@ -721,6 +721,150 @@ function calculateActivity(mouseCount: number = 0, keyboardCount: number = 0): n
     return Math.min(100, Math.round((total / 100) * 100));
 }
 
+// ─────────────────────────────────────────
+// Financials Module Endpoints
+// ─────────────────────────────────────────
+
+// --- Payments ---
+app.post('/api/payments', async (req, res) => {
+    try {
+        const { member_id, amount, method, reference } = req.body;
+        if (!member_id || !amount || !method) return res.status(400).json({ error: 'Missing required fields' });
+
+        const { data, error } = await getDb().from('payments').insert([{
+            member_id, amount, method, reference, status: 'Completed', paid_at: new Date().toISOString()
+        }]).select().single();
+
+        if (error) throw error;
+        res.status(201).json(data);
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.get('/api/payments', async (req, res) => {
+    try {
+        const { data, error } = await getDb().from('payments')
+            .select('*, members(full_name)')
+            .order('created_at', { ascending: false });
+        if (error) throw error;
+        res.json(data);
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// --- Invoices ---
+app.post('/api/invoices', async (req, res) => {
+    try {
+        const { client_id, amount, status, issue_date, due_date } = req.body;
+        if (!client_id || !amount || !due_date) return res.status(400).json({ error: 'Missing required fields' });
+
+        const { data, error } = await getDb().from('invoices').insert([{
+            client_id, amount, status: status || 'Draft', issue_date, due_date
+        }]).select().single();
+
+        if (error) throw error;
+        res.status(201).json(data);
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.get('/api/invoices', async (req, res) => {
+    try {
+        // Assume clients table exists, or we drop the join for now. We will join clients(name) assuming it exists.
+        const { data, error } = await getDb().from('invoices')
+            .select('*, clients(name)')
+            .order('created_at', { ascending: false });
+        if (error) {
+            // Fallback if clients join fails
+            const { data: d2, error: e2 } = await getDb().from('invoices').select('*').order('created_at', { ascending: false });
+            if (e2) throw e2;
+            return res.json(d2);
+        }
+        res.json(data);
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.put('/api/invoices/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const updates = req.body;
+        const { data, error } = await getDb().from('invoices').update(updates).eq('id', id).select().single();
+        if (error) throw error;
+        res.json(data);
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.delete('/api/invoices/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { error } = await getDb().from('invoices').delete().eq('id', id);
+        if (error) throw error;
+        res.status(204).send();
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// --- Expenses ---
+app.post('/api/expenses', async (req, res) => {
+    try {
+        const { member_id, project_id, amount, category, description, date } = req.body;
+        if (!member_id || !amount || !category) return res.status(400).json({ error: 'Missing required fields' });
+
+        const { data, error } = await getDb().from('expenses').insert([{
+            member_id, project_id, amount, category, description, date, status: 'Pending'
+        }]).select().single();
+
+        if (error) throw error;
+        res.status(201).json(data);
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.get('/api/expenses', async (req, res) => {
+    try {
+        const { data, error } = await getDb().from('expenses')
+            .select('*, members(full_name), projects(name)')
+            .order('created_at', { ascending: false });
+        if (error) throw error;
+        res.json(data);
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.put('/api/expenses/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const updates = req.body;
+        const { data, error } = await getDb().from('expenses').update(updates).eq('id', id).select().single();
+        if (error) throw error;
+        res.json(data);
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.delete('/api/expenses/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { error } = await getDb().from('expenses').delete().eq('id', id);
+        if (error) throw error;
+        res.status(204).send();
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+
 app.listen(PORT, () => {
     console.log(`🚀 DigiReps Ingestion API running on http://localhost:${PORT}`);
 });
