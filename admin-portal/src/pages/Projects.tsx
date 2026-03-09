@@ -2,10 +2,9 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import {
     Search, Plus, Download, Filter, MoreHorizontal,
-    X, Check, Users, LayoutGrid, List,
-    Settings, Info, Shield, CreditCard, Users2,
-    ChevronDown, Trash2, Archive, Copy, Pencil,
-    Building2, Square, ExternalLink, AlertCircle
+    X, Check, Users, Info, CreditCard, Users2,
+    ChevronDown, Trash2, Archive, Pencil,
+    Building2, Square, AlertCircle
 } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -214,8 +213,8 @@ export function Projects() {
                                     <button
                                         onClick={toggleSelectAll}
                                         className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${selectedIds.size === filteredProjects.length && filteredProjects.length > 0
-                                                ? 'bg-blue-600 border-blue-600 text-white'
-                                                : 'bg-white border-slate-300'
+                                            ? 'bg-blue-600 border-blue-600 text-white'
+                                            : 'bg-white border-slate-300'
                                             }`}
                                     >
                                         {selectedIds.size === filteredProjects.length && filteredProjects.length > 0 && <Check className="w-3.5 h-3.5" />}
@@ -448,7 +447,7 @@ function ProjectModal({ project, onClose, onSuccess }: { project: Project | null
 
     // Form Stats
     const [name, setName] = useState(project?.name || '');
-    const [desc, setDesc] = useState(project?.description || '');
+    const [desc] = useState(project?.description || ''); // Kept value, removed unused setter
     const [billable, setBillable] = useState(project?.billable ?? true);
     const [disableActivity, setDisableActivity] = useState(project?.disable_activity ?? false);
     const [allowTracking, setAllowTracking] = useState(project?.allow_tracking ?? true);
@@ -765,8 +764,4 @@ function ToggleItem({ label, active, onToggle, icon }: { label: string; active: 
             </button>
         </div>
     );
-}
-
-function capitalizeId(id: string): string {
-    return id.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
