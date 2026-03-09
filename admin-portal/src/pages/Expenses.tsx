@@ -129,7 +129,7 @@ export function Expenses() {
                     <table className="w-full text-sm text-left">
                         <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-200">
                             <tr>
-                                <th className="px-6 py-4 font-semibold text-xs tracking-wider uppercase">Date</th>
+                                <th className="px-6 py-4 font-semibold text-xs tracking-wider uppercase"></th>
                                 <th className="px-6 py-4 font-semibold text-xs tracking-wider uppercase">Member</th>
                                 <th className="px-6 py-4 font-semibold text-xs tracking-wider uppercase">Amount</th>
                                 <th className="px-6 py-4 font-semibold text-xs tracking-wider uppercase">Category / Desc</th>
