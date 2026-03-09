@@ -199,6 +199,6 @@ export function Expenses() {
                     </table>
                 </div>
             </div>
-        </div>
+        </div >
     );
 }
