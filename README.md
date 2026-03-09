@@ -1,73 +1,73 @@
-# React + TypeScript + Vite
+# DigiReps Tracker
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+DigiReps Tracker is a comprehensive time and productivity tracking solution designed for modern teams. It combines a powerful desktop monitoring client, a feature-rich admin portal, and a robust backend integration with Supabase.
 
-Currently, two official plugins are available:
+## 🏗️ Architecture
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+The project is divided into three main components:
 
-## React Compiler
+- **Desktop Client (Root)**: An Electron-based application that runs in the background to track user activity, take screenshots, and monitor application/URL usage.
+- **Admin Portal (`/admin-portal`)**: A React-based web interface for managers to oversee projects, members, budgets, and detailed productivity reports.
+- **Backend (`/backend`)**: An Express server that handles data aggregation, member invitations, and complex business logic, sitting on top of a Supabase database.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the ESLint configuration
+## ✨ Key Features
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- **Activity Tracking**: Real-time monitoring of active windows, URLs, and screenshots.
+- **Project Management**: Detailed project configurations including budgets, billable hours, and team assignments.
+- **Member Management**: Streamlined invite flow with custom roles, pay rates, and billing limits.
+- **Favorites System**: Customizable sidebar navigation allowing users to star frequently used sections.
+- **Detailed Reporting**: Comprehensive productivity reports, including session logs and activity percentages.
+- **Calendar & Time Off**: Management of holidays and team time-off requests.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+---
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## 🛠️ Tech Stack
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+- **Frontend**: React, TypeScript, Vite, Tailwind CSS, Lucide Icons.
+- **Desktop**: Electron.
+- **Backend**: Express, Node.js.
+- **Database**: Supabase (PostgreSQL).
+- **Authentication**: Supabase Auth.
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+---
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## 🚀 Getting Started
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+### Prerequisites
+
+- Node.js (v18+)
+- Supabase Project
+
+### Installation
+
+1.  **Clone the repository**
+2.  **Setup Backend**:
+    - `cd backend`
+    - `npm install`
+    - Create a `.env` file based on `.env.example` with your Supabase credentials.
+    - `npm run dev`
+3.  **Setup Admin Portal**:
+    - `cd admin-portal`
+    - `npm install`
+    - Create a `.env` file with `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, and `VITE_API_BASE_URL`.
+    - `npm run dev`
+4.  **Setup Desktop Client**:
+    - `cd .. (back to root)`
+    - `npm install`
+    - Create a `.env` with Supabase credentials.
+    - `npm run dev`
+
+---
+
+## 📝 Database Schema
+
+The database schema is managed via Supabase. Key tables include:
+- `projects`: Project details and budget settings.
+- `members`: User profiles and compensation details.
+- `sessions`: Recorded time tracking sessions.
+- `activity_samples`: Sampled data for activity levels and idling.
+- `project_teams` & `project_members`: Relationship mapping for access control.
+
+Refer to `backend/supabase_schema.sql` for the full definition.
