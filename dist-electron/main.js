@@ -339,8 +339,10 @@ let activeSessionId = null;
 const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL;
 function createWindow() {
   win = new BrowserWindow({
-    width: 800,
+    width: 400,
     height: 600,
+    minWidth: 350,
+    minHeight: 500,
     webPreferences: {
       preload: path.join(__dirname$1, "preload.mjs"),
       // Ensure webSecurity is on unless specifically disabled!
