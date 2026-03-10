@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import {
-    Search, Plus, Download, Filter, MoreHorizontal,
+    Search, Plus, Filter, MoreHorizontal,
     X, Check, Users, Info, CreditCard, Users2,
     ChevronDown, Trash2, Archive, Pencil,
     Building2, Square, AlertCircle
@@ -192,9 +192,6 @@ export function Projects() {
                     </div>
 
                     <div className="flex items-center gap-2">
-                        <button className="px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50 flex items-center gap-2 transition-colors shadow-sm">
-                            <Download className="w-4 h-4" /> Import projects
-                        </button>
                         <button
                             onClick={() => { setEditingProject(null); setShowModal(true); }}
                             className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 flex items-center gap-2 transition-colors shadow-sm shadow-blue-200"
