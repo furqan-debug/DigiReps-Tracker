@@ -1,1 +1,9 @@
-"use strict";const e=require("electron");e.contextBridge.exposeInMainWorld("trackerAPI",{startTracking:r=>e.ipcRenderer.invoke("start-tracking",r),stopTracking:()=>e.ipcRenderer.invoke("stop-tracking"),onTrackingSample:r=>{e.ipcRenderer.on("tracking-sample",(t,n)=>r(n))}});
+"use strict";
+const electron = require("electron");
+electron.contextBridge.exposeInMainWorld("trackerAPI", {
+  startTracking: (projectId) => electron.ipcRenderer.invoke("start-tracking", projectId),
+  stopTracking: () => electron.ipcRenderer.invoke("stop-tracking"),
+  onTrackingSample: (callback) => {
+    electron.ipcRenderer.on("tracking-sample", (_event, data) => callback(data));
+  }
+});
