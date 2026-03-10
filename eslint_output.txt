@@ -1,0 +1,847 @@
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\components\Dashboard.tsx
+  260:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\components\Sidebar.tsx
+   33:11  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           @typescript-eslint/no-explicit-any
+  154:13  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\components\Sidebar.tsx:154:13
+  152 |
+  153 |         if (changed) {
+> 154 |             setExpandedGroups(newExpanded);
+      |             ^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  155 |         }
+  156 |     }, [location.pathname]);
+  157 |  react-hooks/set-state-in-effect
+  156:8   warning  React Hook useEffect has a missing dependency: 'expandedGroups'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  react-hooks/exhaustive-deps
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\context\FavoritesContext.tsx
+  23:17  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\context\FavoritesContext.tsx:23:17
+  21 |         if (saved) {
+  22 |             try {
+> 23 |                 setFavorites(JSON.parse(saved));
+     |                 ^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  24 |             } catch (e) {
+  25 |                 console.error('Failed to parse favorites from localStorage', e);
+  26 |             }  react-hooks/set-state-in-effect
+  57:14  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         react-refresh/only-export-components
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\AcceptInvite.tsx
+  66:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\Activity.tsx
+  32:23  error    Error: Cannot access variable before it is declared
+
+`fetchData` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\Activity.tsx:32:23
+  30 |     const [enlarged, setEnlarged] = useState<Screenshot | null>(null);
+  31 |
+> 32 |     useEffect(() => { fetchData(); }, [selectedDate]);
+     |                       ^^^^^^^^^ `fetchData` accessed before it is declared
+  33 |
+  34 |     async function fetchData() {
+  35 |         setLoading(true);
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\Activity.tsx:34:5
+  32 |     useEffect(() => { fetchData(); }, [selectedDate]);
+  33 |
+> 34 |     async function fetchData() {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 35 |         setLoading(true);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 36 |         const start = `${selectedDate}T00:00:00`;
+     …
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 46 |         setLoading(false);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 47 |     }
+     | ^^^^^^ `fetchData` is declared here
+  48 |
+  49 |     const chartData = Array.from({ length: 24 }, (_, hour) => {
+  50 |         const hourSamples = samples.filter(s => new Date(s.recorded_at).getHours() === hour);  react-hooks/immutability
+  32:39  warning  React Hook useEffect has a missing dependency: 'fetchData'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      react-hooks/exhaustive-deps
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\AllReports.tsx
+  11:11  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\AmountsOwed.tsx
+  20:9   error    Error: Cannot access variable before it is declared
+
+`fetchAmountsOwed` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\AmountsOwed.tsx:20:9
+  18 |
+  19 |     useEffect(() => {
+> 20 |         fetchAmountsOwed();
+     |         ^^^^^^^^^^^^^^^^ `fetchAmountsOwed` accessed before it is declared
+  21 |     }, [range]);
+  22 |
+  23 |     async function fetchAmountsOwed() {
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\AmountsOwed.tsx:23:5
+  21 |     }, [range]);
+  22 |
+> 23 |     async function fetchAmountsOwed() {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 24 |         setLoading(true);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 25 |         const now = new Date();
+     …
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 82 |         setLoading(false);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 83 |     }
+     | ^^^^^^ `fetchAmountsOwed` is declared here
+  84 |
+  85 |     const totalOwed = data.reduce((acc, row) => acc + row.amountOwed, 0);
+  86 |  react-hooks/immutability
+  21:8   warning  React Hook useEffect has a missing dependency: 'fetchAmountsOwed'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      react-hooks/exhaustive-deps
+  51:34  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\AppUsage.tsx
+  52:8  warning  React Hook useEffect has a missing dependency: 'fetchData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\Approvals.tsx
+  56:9  error    Error: Cannot access variable before it is declared
+
+`fetchData` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\Approvals.tsx:56:9
+  54 |
+  55 |     useEffect(() => {
+> 56 |         fetchData();
+     |         ^^^^^^^^^ `fetchData` accessed before it is declared
+  57 |     }, [currentDate]);
+  58 |
+  59 |     async function fetchData() {
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\Approvals.tsx:59:5
+   57 |     }, [currentDate]);
+   58 |
+>  59 |     async function fetchData() {
+      |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  60 |         setLoading(true);
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^
+>  61 |
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 119 |         setLoading(false);
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 120 |     }
+      | ^^^^^^ `fetchData` is declared here
+  121 |
+  122 |     const handleAction = async (memberId: string, action: 'Approved' | 'Rejected') => {
+  123 |         const timesheet = timesheets.find(t => t.id === memberId);  react-hooks/immutability
+  57:8  warning  React Hook useEffect has a missing dependency: 'fetchData'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              react-hooks/exhaustive-deps
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\Calendar.tsx
+  31:9  error    Error: Cannot access variable before it is declared
+
+`fetchData` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\Calendar.tsx:31:9
+  29 |
+  30 |     useEffect(() => {
+> 31 |         fetchData();
+     |         ^^^^^^^^^ `fetchData` accessed before it is declared
+  32 |     }, [currentDate]);
+  33 |
+  34 |     async function fetchData() {
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\Calendar.tsx:34:5
+  32 |     }, [currentDate]);
+  33 |
+> 34 |     async function fetchData() {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 35 |         setLoading(true);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 36 |         // Start range; 1st day of current month
+     …
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 66 |         setLoading(false);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 67 |     }
+     | ^^^^^^ `fetchData` is declared here
+  68 |
+  69 |     const nextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+  70 |     const prevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));  react-hooks/immutability
+  32:8  warning  React Hook useEffect has a missing dependency: 'fetchData'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  react-hooks/exhaustive-deps
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\Clients.tsx
+   26:9   error  Error: Cannot access variable before it is declared
+
+`fetchClients` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\Clients.tsx:26:9
+  24 |
+  25 |     useEffect(() => {
+> 26 |         fetchClients();
+     |         ^^^^^^^^^^^^ `fetchClients` accessed before it is declared
+  27 |     }, []);
+  28 |
+  29 |     async function fetchClients() {
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\Clients.tsx:29:5
+  27 |     }, []);
+  28 |
+> 29 |     async function fetchClients() {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 30 |         setLoading(true);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 31 |         const { data, error } = await supabase
+     …
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 39 |         setLoading(false);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 40 |     }
+     | ^^^^^^ `fetchClients` is declared here
+  41 |
+  42 |     async function handleCreate(e: React.FormEvent) {
+  43 |         e.preventDefault();  react-hooks/immutability
+  120:55  error  Error: Cannot call impure function during render
+
+`Date.now` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\Clients.tsx:120:55
+  118 |                             {loading ? '-' : clients.filter(c => {
+  119 |                                 const created = new Date(c.created_at).getTime();
+> 120 |                                 const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
+      |                                                       ^^^^^^^^^^ Cannot call impure function
+  121 |                                 return created > thirtyDaysAgo;
+  122 |                             }).length}
+  123 |                         </p>                                                                                                                            react-hooks/purity
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\CreatePayments.tsx
+   3:10  error  'Plus' is defined but never used          @typescript-eslint/no-unused-vars
+  52:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\CustomizedReports.tsx
+   20:9   error  Error: Cannot access variable before it is declared
+
+`fetchCustomReports` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\CustomizedReports.tsx:20:9
+  18 |
+  19 |     useEffect(() => {
+> 20 |         fetchCustomReports();
+     |         ^^^^^^^^^^^^^^^^^^ `fetchCustomReports` accessed before it is declared
+  21 |     }, []);
+  22 |
+  23 |     async function fetchCustomReports() {
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\CustomizedReports.tsx:23:5
+  21 |     }, []);
+  22 |
+> 23 |     async function fetchCustomReports() {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 24 |         setLoading(true);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 25 |         const { data, error } = await supabase
+     …
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 41 |         setLoading(false);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 42 |     }
+     | ^^^^^^ `fetchCustomReports` is declared here
+  43 |
+  44 |     const filtered = reports.filter(r =>
+  45 |         r.name.toLowerCase().includes(searchTerm.toLowerCase()) ||  react-hooks/immutability
+   31:60  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    @typescript-eslint/no-explicit-any
+  164:60  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    @typescript-eslint/no-explicit-any
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\DailyTotals.tsx
+  24:9   error    Error: Cannot access variable before it is declared
+
+`fetchDailyTotals` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\DailyTotals.tsx:24:9
+  22 |
+  23 |     useEffect(() => {
+> 24 |         fetchDailyTotals();
+     |         ^^^^^^^^^^^^^^^^ `fetchDailyTotals` accessed before it is declared
+  25 |     }, [weekOffset]);
+  26 |
+  27 |     async function fetchDailyTotals() {
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\DailyTotals.tsx:27:5
+  25 |     }, [weekOffset]);
+  26 |
+> 27 |     async function fetchDailyTotals() {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 28 |         setLoading(true);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 29 |         const start = new Date(weekDates[0]);
+     …
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 68 |         setLoading(false);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 69 |     }
+     | ^^^^^^ `fetchDailyTotals` is declared here
+  70 |
+  71 |     const fmtDate = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  72 |  react-hooks/immutability
+  25:8   warning  React Hook useEffect has a missing dependency: 'fetchDailyTotals'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        react-hooks/exhaustive-deps
+  50:33  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   @typescript-eslint/no-explicit-any
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\Financials.tsx
+  23:45  warning  React Hook useEffect has a missing dependency: 'fetchFinancials'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\Highlights.tsx
+  25:9   error    Error: Cannot access variable before it is declared
+
+`fetchData` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\Highlights.tsx:25:9
+  23 |
+  24 |     useEffect(() => {
+> 25 |         fetchData();
+     |         ^^^^^^^^^ `fetchData` accessed before it is declared
+  26 |     }, [selectedDate]);
+  27 |
+  28 |     async function fetchData() {
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\Highlights.tsx:28:5
+  26 |     }, [selectedDate]);
+  27 |
+> 28 |     async function fetchData() {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 29 |         setLoading(true);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 30 |
+     …
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 92 |         setLoading(false);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 93 |     }
+     | ^^^^^^ `fetchData` is declared here
+  94 |
+  95 |     const formatHours = (ms: number) => {
+  96 |         const h = Math.floor(ms / (1000 * 60 * 60));  react-hooks/immutability
+  26:8   warning  React Hook useEffect has a missing dependency: 'fetchData'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      react-hooks/exhaustive-deps
+  52:22  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          @typescript-eslint/no-explicit-any
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\JobSites.tsx
+  29:9  error  Error: Cannot access variable before it is declared
+
+`fetchSites` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\JobSites.tsx:29:9
+  27 |
+  28 |     useEffect(() => {
+> 29 |         fetchSites();
+     |         ^^^^^^^^^^ `fetchSites` accessed before it is declared
+  30 |     }, []);
+  31 |
+  32 |     async function fetchSites() {
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\JobSites.tsx:32:5
+  30 |     }, []);
+  31 |
+> 32 |     async function fetchSites() {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 33 |         setLoading(true);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 34 |         const { data, error } = await supabase
+     …
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 42 |         setLoading(false);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 43 |     }
+     | ^^^^^^ `fetchSites` is declared here
+  44 |
+  45 |     async function handleCreate(e: React.FormEvent) {
+  46 |         e.preventDefault();  react-hooks/immutability
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\Locations.tsx
+  65:9  error    Error: Cannot access variable before it is declared
+
+`fetchLocations` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\Locations.tsx:65:9
+  63 |
+  64 |     useEffect(() => {
+> 65 |         fetchLocations();
+     |         ^^^^^^^^^^^^^^ `fetchLocations` accessed before it is declared
+  66 |         fetchCurrentIp();
+  67 |     }, []);
+  68 |
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\Locations.tsx:77:5
+   75 |     }
+   76 |
+>  77 |     async function fetchLocations() {
+      |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  78 |         setLoading(true);
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^
+>  79 |
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 128 |         setLoading(false);
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 129 |     }
+      | ^^^^^^ `fetchLocations` is declared here
+  130 |
+  131 |     const uniqueCountries = new Set(locations.map(l => l.country)).size;
+  132 |                                                                                                                                                                                                                      react-hooks/immutability
+  66:9  error    Error: Cannot access variable before it is declared
+
+`fetchCurrentIp` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\Locations.tsx:66:9
+  64 |     useEffect(() => {
+  65 |         fetchLocations();
+> 66 |         fetchCurrentIp();
+     |         ^^^^^^^^^^^^^^ `fetchCurrentIp` accessed before it is declared
+  67 |     }, []);
+  68 |
+  69 |     async function fetchCurrentIp() {
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\Locations.tsx:69:5
+  67 |     }, []);
+  68 |
+> 69 |     async function fetchCurrentIp() {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 70 |         try {
+     | ^^^^^^^^^^^^^
+> 71 |             const res = await fetch('https://ipapi.co/json/');
+     | ^^^^^^^^^^^^^
+> 72 |             const d = await res.json();
+     | ^^^^^^^^^^^^^
+> 73 |             setCurrentIpInfo({ city: d.city, country: d.country_name, ip: d.ip });
+     | ^^^^^^^^^^^^^
+> 74 |         } catch { /* silent */ }
+     | ^^^^^^^^^^^^^
+> 75 |     }
+     | ^^^^^^ `fetchCurrentIp` is declared here
+  76 |
+  77 |     async function fetchLocations() {
+  78 |         setLoading(true);  react-hooks/immutability
+  67:8  warning  React Hook useEffect has a missing dependency: 'fetchLocations'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           react-hooks/exhaustive-deps
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\MemberTimeline.tsx
+  15:11  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  @typescript-eslint/no-explicit-any
+  36:29  error    Error: Cannot access variable before it is declared
+
+`fetchTimeline` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\MemberTimeline.tsx:36:29
+  34 |     // Fetch timeline when member or date changes
+  35 |     useEffect(() => {
+> 36 |         if (selectedMember) fetchTimeline();
+     |                             ^^^^^^^^^^^^^ `fetchTimeline` accessed before it is declared
+  37 |         else setTimeline([]);
+  38 |     }, [selectedMember, selectedDate]);
+  39 |
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\MemberTimeline.tsx:40:5
+   38 |     }, [selectedMember, selectedDate]);
+   39 |
+>  40 |     async function fetchTimeline() {
+      |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  41 |         setLoading(true);
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^
+>  42 |         const start = `${selectedDate}T00:00:00`;
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 122 |         setLoading(false);
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 123 |     }
+      | ^^^^^^ `fetchTimeline` is declared here
+  124 |
+  125 |     const filteredMembers = members.filter(m =>
+  126 |         m.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||  react-hooks/immutability
+  38:8   warning  React Hook useEffect has a missing dependency: 'fetchTimeline'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          react-hooks/exhaustive-deps
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\PaymentsReport.tsx
+  22:9   error  Error: Cannot access variable before it is declared
+
+`fetchPayments` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\PaymentsReport.tsx:22:9
+  20 |
+  21 |     useEffect(() => {
+> 22 |         fetchPayments();
+     |         ^^^^^^^^^^^^^ `fetchPayments` accessed before it is declared
+  23 |     }, []);
+  24 |
+  25 |     async function fetchPayments() {
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\PaymentsReport.tsx:25:5
+  23 |     }, []);
+  24 |
+> 25 |     async function fetchPayments() {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 26 |         setLoading(true);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 27 |         const [{ data: payData }, { data: members }] = await Promise.all([
+     …
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 49 |         setLoading(false);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 50 |     }
+     | ^^^^^^ `fetchPayments` is declared here
+  51 |
+  52 |     const filtered = payments.filter(p =>
+  53 |         (filterStatus === 'All' || p.status === filterStatus) &&  react-hooks/immutability
+  38:58  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  43:37  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  44:37  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  75:69  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\People.tsx
+   76:17   error  Empty block statement                     no-empty
+  148:21   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  330:91   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  400:111  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  408:87   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  411:53   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  485:53   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  496:51   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  527:49   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  574:76   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  589:46   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\Performance.tsx
+  33:9   error    Error: Cannot access variable before it is declared
+
+`fetchData` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\Performance.tsx:33:9
+  31 |
+  32 |     useEffect(() => {
+> 33 |         fetchData();
+     |         ^^^^^^^^^ `fetchData` accessed before it is declared
+  34 |     }, [selectedDate]);
+  35 |
+  36 |     async function fetchData() {
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\Performance.tsx:36:5
+   34 |     }, [selectedDate]);
+   35 |
+>  36 |     async function fetchData() {
+      |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  37 |         setLoading(true);
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^
+>  38 |
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 100 |         setLoading(false);
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 101 |     }
+      | ^^^^^^ `fetchData` is declared here
+  102 |
+  103 |     const formatHours = (ms: number) => {
+  104 |         const h = Math.floor(ms / (1000 * 60 * 60));  react-hooks/immutability
+  34:8   warning  React Hook useEffect has a missing dependency: 'fetchData'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        react-hooks/exhaustive-deps
+  60:22  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            @typescript-eslint/no-explicit-any
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\PlaceholderPage.tsx
+  17:31  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\Projects.tsx
+   71:8   warning  React Hook useEffect has a missing dependency: 'fetchProjects'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  304:17  error    Empty block statement                                                                                             no-empty
+  314:17  error    Empty block statement                                                                                             no-empty
+  481:17  error    Empty block statement                                                                                             no-empty
+  512:23  error    Unexpected any. Specify a different type                                                                          @typescript-eslint/no-explicit-any
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\Reports.tsx
+   33:8   warning  React Hook useEffect has a missing dependency: 'fetchReports'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  470:58  error    Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\ReportsLegacy.tsx
+  20:9   error    Error: Cannot access variable before it is declared
+
+`fetchLegacyData` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\ReportsLegacy.tsx:20:9
+  18 |
+  19 |     useEffect(() => {
+> 20 |         fetchLegacyData();
+     |         ^^^^^^^^^^^^^^^ `fetchLegacyData` accessed before it is declared
+  21 |     }, [range]);
+  22 |
+  23 |     async function fetchLegacyData() {
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\ReportsLegacy.tsx:23:5
+  21 |     }, [range]);
+  22 |
+> 23 |     async function fetchLegacyData() {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 24 |         setLoading(true);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 25 |         const now = new Date();
+     …
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 62 |         setLoading(false);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 63 |     }
+     | ^^^^^^ `fetchLegacyData` is declared here
+  64 |
+  65 |     const filtered = data.filter(d =>
+  66 |         d.member.toLowerCase().includes(searchTerm.toLowerCase()) ||  react-hooks/immutability
+  21:8   warning  React Hook useEffect has a missing dependency: 'fetchLegacyData'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    react-hooks/exhaustive-deps
+  53:47  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              @typescript-eslint/no-explicit-any
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\Schedules.tsx
+  28:9  error    Error: Cannot access variable before it is declared
+
+`fetchSchedules` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\Schedules.tsx:28:9
+  26 |
+  27 |     useEffect(() => {
+> 28 |         fetchSchedules();
+     |         ^^^^^^^^^^^^^^ `fetchSchedules` accessed before it is declared
+  29 |     }, [weekOffset]);
+  30 |
+  31 |     async function fetchSchedules() {
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\Schedules.tsx:31:5
+  29 |     }, [weekOffset]);
+  30 |
+> 31 |     async function fetchSchedules() {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 32 |         setLoading(true);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 33 |
+     …
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 55 |         setLoading(false);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 56 |     }
+     | ^^^^^^ `fetchSchedules` is declared here
+  57 |
+  58 |     // Build week days array
+  59 |     const weekDays = Array.from({ length: 7 }, (_, i) => {  react-hooks/immutability
+  29:8  warning  React Hook useEffect has a missing dependency: 'fetchSchedules'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            react-hooks/exhaustive-deps
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\Teams.tsx
+  43:9  error  Error: Cannot access variable before it is declared
+
+`fetchData` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\Teams.tsx:43:9
+  41 |
+  42 |     useEffect(() => {
+> 43 |         fetchData();
+     |         ^^^^^^^^^ `fetchData` accessed before it is declared
+  44 |     }, []);
+  45 |
+  46 |     async function fetchData() {
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\Teams.tsx:46:5
+  44 |     }, []);
+  45 |
+> 46 |     async function fetchData() {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 47 |         setLoading(true);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 48 |         const [
+     …
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 75 |         setLoading(false);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 76 |     }
+     | ^^^^^^ `fetchData` is declared here
+  77 |
+  78 |     function openCreateModal() {
+  79 |         setEditingTeam(null);  react-hooks/immutability
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\TimeOff.tsx
+  46:9  error  Error: Cannot access variable before it is declared
+
+`fetchData` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\TimeOff.tsx:46:9
+  44 |
+  45 |     useEffect(() => {
+> 46 |         fetchData();
+     |         ^^^^^^^^^ `fetchData` accessed before it is declared
+  47 |     }, []);
+  48 |
+  49 |     async function fetchData() {
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\TimeOff.tsx:49:5
+  47 |     }, []);
+  48 |
+> 49 |     async function fetchData() {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 50 |         setLoading(true);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 51 |         const [
+     …
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 68 |         setLoading(false);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 69 |     }
+     | ^^^^^^ `fetchData` is declared here
+  70 |
+  71 |     async function handleStatusUpdate(id: string, status: 'Approved' | 'Rejected') {
+  72 |         setProcessingId(id);  react-hooks/immutability
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\Timesheets.tsx
+  45:45  warning  React Hook useEffect has a missing dependency: 'fetchTimesheets'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\Todos.tsx
+  50:9  error  Error: Cannot access variable before it is declared
+
+`fetchInitialData` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\Todos.tsx:50:9
+  48 |
+  49 |     useEffect(() => {
+> 50 |         fetchInitialData();
+     |         ^^^^^^^^^^^^^^^^ `fetchInitialData` accessed before it is declared
+  51 |     }, []);
+  52 |
+  53 |     async function fetchInitialData() {
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\Todos.tsx:53:5
+  51 |     }, []);
+  52 |
+> 53 |     async function fetchInitialData() {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 54 |         setLoading(true);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 55 |
+     …
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 82 |         setLoading(false);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 83 |     }
+     | ^^^^^^ `fetchInitialData` is declared here
+  84 |
+  85 |     async function handleCreate(e: React.FormEvent) {
+  86 |         e.preventDefault();  react-hooks/immutability
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\UrlTracking.tsx
+  41:23  error    Error: Cannot access variable before it is declared
+
+`fetchDomains` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\UrlTracking.tsx:41:23
+  39 |     const [search, setSearch] = useState('');
+  40 |
+> 41 |     useEffect(() => { fetchDomains(); }, [range]);
+     |                       ^^^^^^^^^^^^ `fetchDomains` accessed before it is declared
+  42 |
+  43 |     function getDateRange() {
+  44 |         const end = new Date().toISOString();
+
+H:\DigiReps\DigiReps Tracker\admin-portal\src\pages\UrlTracking.tsx:52:5
+  50 |     }
+  51 |
+> 52 |     async function fetchDomains() {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 53 |         setLoading(true);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 54 |         const { start, end } = getDateRange();
+     …
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 89 |         setLoading(false);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 90 |     }
+     | ^^^^^^ `fetchDomains` is declared here
+  91 |
+  92 |     const filtered = domains.filter(d =>
+  93 |         d.domain.toLowerCase().includes(search.toLowerCase())  react-hooks/immutability
+  41:42  warning  React Hook useEffect has a missing dependency: 'fetchDomains'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    react-hooks/exhaustive-deps
+
+H:\DigiReps\DigiReps Tracker\backend\src\index.ts
+   44:14  error  'e' is defined but never used                      @typescript-eslint/no-unused-vars
+   51:7   error  'supabaseAuth' is assigned a value but never used  @typescript-eslint/no-unused-vars
+   77:17  error  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+   79:17  error  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  119:15  error  'authUserId' is assigned a value but never used    @typescript-eslint/no-unused-vars
+  145:22  error  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  146:25  error  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  163:17  error  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  175:34  error  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  186:54  error  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  186:85  error  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  189:17  error  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  206:17  error  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  235:15  error  'authUserId' is assigned a value but never used    @typescript-eslint/no-unused-vars
+  259:17  error  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  297:17  error  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  315:17  error  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  329:17  error  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  362:47  error  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  369:52  error  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  370:48  error  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  374:17  error  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  416:17  error  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  434:27  error  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  461:17  error  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  485:17  error  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  518:21  error  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  539:21  error  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  594:21  error  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  604:27  error  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  684:21  error  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  713:21  error  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  744:21  error  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  756:21  error  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  773:21  error  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  791:21  error  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  803:21  error  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  814:21  error  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  831:21  error  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  843:21  error  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  855:21  error  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  866:21  error  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+
+H:\DigiReps\DigiReps Tracker\electron\api.ts
+  24:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+H:\DigiReps\DigiReps Tracker\electron\cache.ts
+  50:37  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+H:\DigiReps\DigiReps Tracker\electron\preload.ts
+  8:41  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+H:\DigiReps\DigiReps Tracker\electron\tracker.ts
+   15:33  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   36:24  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  187:55  error  Unnecessary escape character: \-          no-useless-escape
+  187:71  error  Unnecessary escape character: \-          no-useless-escape
+
+H:\DigiReps\DigiReps Tracker\src\App.tsx
+    5:27  error  'Clock' is defined but never used                                                                                    @typescript-eslint/no-unused-vars
+   50:11  error  Empty block statement                                                                                                no-empty
+   69:29  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+   85:16  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+   85:51  error  '_sample' is defined but never used                                                                                  @typescript-eslint/no-unused-vars
+  165:21  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  172:5   error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  173:34  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  181:20  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  182:7   error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  183:24  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  196:20  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  197:7   error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  198:24  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  204:20  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  205:7   error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  206:24  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  446:60  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+
+✖ 144 problems (126 errors, 18 warnings)
+

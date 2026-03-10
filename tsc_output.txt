@@ -1,0 +1,21 @@
+src/App.tsx(5,27): error TS6133: 'Clock' is declared but its value is never read.
+src/App.tsx(236,101): error TS2322: Type '{ type: string; ease: string; duration: number; }' is not assignable to type 'Transition<any> | undefined'.
+  Type '{ type: string; ease: string; duration: number; }' is not assignable to type 'TransitionWithValueOverrides<any>'.
+    Type '{ type: string; ease: string; duration: number; }' is not assignable to type 'ValueAnimationTransition<any>'.
+      Types of property 'type' are incompatible.
+        Type 'string' is not assignable to type 'AnimationGeneratorType | undefined'.
+src/App.tsx(242,104): error TS2322: Type '{ type: string; ease: string; duration: number; }' is not assignable to type 'Transition<any> | undefined'.
+  Type '{ type: string; ease: string; duration: number; }' is not assignable to type 'TransitionWithValueOverrides<any>'.
+    Type '{ type: string; ease: string; duration: number; }' is not assignable to type 'ValueAnimationTransition<any>'.
+      Types of property 'type' are incompatible.
+        Type 'string' is not assignable to type 'AnimationGeneratorType | undefined'.
+src/App.tsx(248,103): error TS2322: Type '{ type: string; ease: string; duration: number; }' is not assignable to type 'Transition<any> | undefined'.
+  Type '{ type: string; ease: string; duration: number; }' is not assignable to type 'TransitionWithValueOverrides<any>'.
+    Type '{ type: string; ease: string; duration: number; }' is not assignable to type 'ValueAnimationTransition<any>'.
+      Types of property 'type' are incompatible.
+        Type 'string' is not assignable to type 'AnimationGeneratorType | undefined'.
+src/App.tsx(254,103): error TS2322: Type '{ type: string; ease: string; duration: number; }' is not assignable to type 'Transition<any> | undefined'.
+  Type '{ type: string; ease: string; duration: number; }' is not assignable to type 'TransitionWithValueOverrides<any>'.
+    Type '{ type: string; ease: string; duration: number; }' is not assignable to type 'ValueAnimationTransition<any>'.
+      Types of property 'type' are incompatible.
+        Type 'string' is not assignable to type 'AnimationGeneratorType | undefined'.

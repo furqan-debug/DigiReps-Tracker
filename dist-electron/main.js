@@ -1,136 +1,89 @@
-import { desktopCapturer, app, BrowserWindow, ipcMain } from "electron";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-import { uIOhook } from "uiohook-napi";
-import activeWindow from "active-win";
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
-import fs from "node:fs";
-async function captureScreenBase64() {
+import { desktopCapturer as W, app as d, BrowserWindow as C, ipcMain as O } from "electron";
+import p from "node:path";
+import { fileURLToPath as V } from "node:url";
+import { uIOhook as y } from "uiohook-napi";
+import F from "active-win";
+import { execFile as j } from "node:child_process";
+import { promisify as M } from "node:util";
+import k from "node:fs";
+async function z() {
   try {
-    const sources = await desktopCapturer.getSources({
+    const e = await W.getSources({
       types: ["screen"],
       thumbnailSize: { width: 1920, height: 1080 }
     });
-    if (sources && sources.length > 0) {
-      const image = sources[0].thumbnail;
-      return image.toDataURL();
-    }
-    return null;
-  } catch (err) {
-    console.error("Failed to capture screen:", err);
-    return null;
+    return e && e.length > 0 ? e[0].thumbnail.toDataURL() : null;
+  } catch (e) {
+    return console.error("Failed to capture screen:", e), null;
   }
 }
-const execFileAsync = promisify(execFile);
-let isTracking = false;
-let mouseCount = 0;
-let keyboardCount = 0;
-let sampleInterval = null;
-let screenshotTimeout = null;
-let currentSessionId = null;
-let onSampleCallback = null;
-let onScreenshotCallback = null;
-const SCREENSHOT_WINDOW_MS = 10 * 60 * 1e3;
-const SCREENSHOTS_PER_WINDOW = 3;
-function initTracker() {
-  uIOhook.on("keydown", () => {
-    if (isTracking) keyboardCount++;
-  });
-  uIOhook.on("mousedown", () => {
-    if (isTracking) mouseCount++;
-  });
-  uIOhook.start();
+const G = M(j);
+let l = !1, m = 0, h = 0, g = null, w = null, S = null, $ = null, I = null;
+const P = 600 * 1e3, J = 3;
+function q() {
+  y.on("keydown", () => {
+    l && h++;
+  }), y.on("mousedown", () => {
+    l && m++;
+  }), y.start();
 }
-function startTrackingSession(sessionId, onSample, onScreenshot, intervalMs = 6e4) {
-  if (isTracking) return;
-  isTracking = true;
-  currentSessionId = sessionId;
-  onSampleCallback = onSample;
-  onScreenshotCallback = onScreenshot;
-  mouseCount = 0;
-  keyboardCount = 0;
-  sampleInterval = setInterval(async () => {
-    const activeInfo = await activeWindow();
-    const appName = activeInfo?.owner.name || "Unknown";
-    const title = activeInfo?.title || "Unknown";
-    const domain = await getBrowserUrl(appName, title);
-    const idle = mouseCount === 0 && keyboardCount === 0;
-    const sample = {
-      session_id: currentSessionId,
+function H(e, t, o, r = 6e4) {
+  l || (l = !0, S = e, $ = t, I = o, m = 0, h = 0, g = setInterval(async () => {
+    const a = await F(), n = a?.owner.name || "Unknown", s = a?.title || "Unknown", i = await ne(n, s), f = m === 0 && h === 0, N = {
+      session_id: S,
       timestamp: (/* @__PURE__ */ new Date()).toISOString(),
-      mouse_count: mouseCount,
-      keyboard_count: keyboardCount,
-      app_name: appName,
-      window_title: title,
-      domain,
-      idle_flag: idle
+      mouse_count: m,
+      keyboard_count: h,
+      app_name: n,
+      window_title: s,
+      domain: i,
+      idle_flag: f
     };
-    mouseCount = 0;
-    keyboardCount = 0;
-    if (onSampleCallback) onSampleCallback(sample);
-  }, intervalMs);
-  scheduleNextScreenshot();
+    m = 0, h = 0, $ && $(N);
+  }, r), T());
 }
-function scheduleNextScreenshot() {
-  if (!isTracking) return;
-  const offsets = [];
-  while (offsets.length < SCREENSHOTS_PER_WINDOW) {
-    const t = Math.floor(Math.random() * SCREENSHOT_WINDOW_MS);
-    if (!offsets.includes(t)) offsets.push(t);
+function T() {
+  if (!l) return;
+  const e = [];
+  for (; e.length < J; ) {
+    const t = Math.floor(Math.random() * P);
+    e.includes(t) || e.push(t);
   }
-  offsets.sort((a, b) => a - b);
-  fireChain(offsets, 0, 0);
+  e.sort((t, o) => t - o), L(e, 0, 0);
 }
-function fireChain(offsets, idx, prevOffset) {
-  if (!isTracking) return;
-  if (idx >= offsets.length) {
-    scheduleNextScreenshot();
+function L(e, t, o) {
+  if (!l) return;
+  if (t >= e.length) {
+    T();
     return;
   }
-  const delay = offsets[idx] - prevOffset;
-  screenshotTimeout = setTimeout(async () => {
-    if (!isTracking || !currentSessionId) return;
+  const r = e[t] - o;
+  w = setTimeout(async () => {
+    if (!l || !S) return;
     try {
-      const base64 = await captureScreenBase64();
-      if (base64 && onScreenshotCallback) {
-        onScreenshotCallback({
-          session_id: currentSessionId,
-          timestamp: (/* @__PURE__ */ new Date()).toISOString(),
-          base64
-        });
-      }
-    } catch (err) {
-      console.error("Screenshot error:", err);
+      const n = await z();
+      n && I && I({
+        session_id: S,
+        timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+        base64: n
+      });
+    } catch (n) {
+      console.error("Screenshot error:", n);
     }
-    const isLast = idx === offsets.length - 1;
-    if (isLast) {
-      const remainingMs = SCREENSHOT_WINDOW_MS - offsets[idx];
-      screenshotTimeout = setTimeout(() => scheduleNextScreenshot(), Math.max(remainingMs, 0));
-    } else {
-      fireChain(offsets, idx + 1, offsets[idx]);
-    }
-  }, delay);
+    if (t === e.length - 1) {
+      const n = P - e[t];
+      w = setTimeout(() => T(), Math.max(n, 0));
+    } else
+      L(e, t + 1, e[t]);
+  }, r);
 }
-function stopTrackingSession() {
-  if (!isTracking) return;
-  isTracking = false;
-  currentSessionId = null;
-  onSampleCallback = null;
-  onScreenshotCallback = null;
-  if (sampleInterval) {
-    clearInterval(sampleInterval);
-    sampleInterval = null;
-  }
-  if (screenshotTimeout) {
-    clearTimeout(screenshotTimeout);
-    screenshotTimeout = null;
-  }
+function X() {
+  l && (l = !1, S = null, $ = null, I = null, g && (clearInterval(g), g = null), w && (clearTimeout(w), w = null));
 }
-function teardownTracker() {
-  uIOhook.stop();
+function Z() {
+  y.stop();
 }
-const BROWSER_PROCESS_NAMES = /* @__PURE__ */ new Set([
+const K = /* @__PURE__ */ new Set([
   "chrome",
   "google chrome",
   "chromium",
@@ -143,8 +96,7 @@ const BROWSER_PROCESS_NAMES = /* @__PURE__ */ new Set([
   "brave browser",
   "vivaldi",
   "arc"
-]);
-const PS_GET_BROWSER_URL = `
+]), Q = `
 Add-Type -AssemblyName UIAutomationClient
 Add-Type -AssemblyName UIAutomationTypes
 $app = [System.Windows.Automation.AutomationElement]::RootElement
@@ -163,8 +115,7 @@ for ($i = 0; $i -lt 8; $i++) {
   if ($null -eq $parent) { break }
 }
 exit 1
-`.trim();
-const BROWSER_TITLE_SUFFIXES = [
+`.trim(), Y = [
   / [-–—|] Google Chrome$/i,
   / [-–—|] Chromium$/i,
   / [-–—|] Microsoft Edge$/i,
@@ -175,261 +126,201 @@ const BROWSER_TITLE_SUFFIXES = [
   / [-–—|] Brave$/i,
   / [-–—|] Vivaldi$/i,
   / [-–—|] Arc$/i
-];
-const DOMAIN_REGEX = /(?:https?:\/\/)?([a-z0-9][a-z0-9\-]*(?:\.[a-z0-9\-]+)+)(?:[:/]|$)/i;
-const LOCALHOST_REGEX = /localhost(?::[0-9]+)?/i;
-async function getBrowserUrl(appName, title) {
-  const lowerApp = appName.toLowerCase();
-  const isBrowser = [...BROWSER_PROCESS_NAMES].some((b) => lowerApp.includes(b));
-  if (!isBrowser) return "";
-  if (process.platform === "win32") {
+], ee = /(?:https?:\/\/)?([a-z0-9][a-z0-9\-]*(?:\.[a-z0-9\-]+)+)(?:[:/]|$)/i, te = /localhost(?::[0-9]+)?/i;
+async function ne(e, t) {
+  const o = e.toLowerCase();
+  if (![...K].some((i) => o.includes(i))) return "";
+  if (process.platform === "win32")
     try {
-      const { stdout } = await execFileAsync("powershell", [
+      const { stdout: i } = await G("powershell", [
         "-NoProfile",
         "-NonInteractive",
         "-ExecutionPolicy",
         "Bypass",
         "-Command",
-        PS_GET_BROWSER_URL
-      ], { timeout: 2e3 });
-      const url = stdout.trim();
-      if (url) {
+        Q
+      ], { timeout: 2e3 }), f = i.trim();
+      if (f)
         try {
-          return new URL(url).hostname;
+          return new URL(f).hostname;
         } catch {
-          return url;
+          return f;
         }
-      }
     } catch {
     }
-  }
-  let pageTitle = title;
-  for (const suffix of BROWSER_TITLE_SUFFIXES) {
-    pageTitle = pageTitle.replace(suffix, "").trim();
-  }
-  const localMatch = LOCALHOST_REGEX.exec(pageTitle);
-  if (localMatch) return localMatch[0];
-  const domainMatch = DOMAIN_REGEX.exec(pageTitle);
-  if (domainMatch?.[1]) {
-    const candidate = domainMatch[1];
-    if (candidate.length >= 4 && /\.[a-z]{2,}$/i.test(candidate)) {
-      return candidate.toLowerCase();
-    }
+  let a = t;
+  for (const i of Y)
+    a = a.replace(i, "").trim();
+  const n = te.exec(a);
+  if (n) return n[0];
+  const s = ee.exec(a);
+  if (s?.[1]) {
+    const i = s[1];
+    if (i.length >= 4 && /\.[a-z]{2,}$/i.test(i))
+      return i.toLowerCase();
   }
   return "";
 }
-const dbPath = path.join(app.getPath("userData"), "tracker_cache.json");
-let cache = [];
-let nextId = 1;
-function loadStorage() {
-  if (fs.existsSync(dbPath)) {
+const E = p.join(d.getPath("userData"), "tracker_cache.json");
+let c = [], D = 1;
+function oe() {
+  if (k.existsSync(E))
     try {
-      const data = fs.readFileSync(dbPath, "utf8");
-      cache = JSON.parse(data);
-      if (cache.length > 0) {
-        nextId = Math.max(...cache.map((c) => c.id || 0)) + 1;
-      }
+      const e = k.readFileSync(E, "utf8");
+      c = JSON.parse(e), c.length > 0 && (D = Math.max(...c.map((t) => t.id || 0)) + 1);
     } catch (e) {
-      console.error("Failed to parse cache JSON. Starting fresh.", e);
-      cache = [];
+      console.error("Failed to parse cache JSON. Starting fresh.", e), c = [];
     }
-  }
 }
-function saveStorage() {
-  fs.writeFileSync(dbPath, JSON.stringify(cache, null, 2), "utf8");
+function U() {
+  k.writeFileSync(E, JSON.stringify(c, null, 2), "utf8");
 }
-function initCache() {
-  loadStorage();
+function ae() {
+  oe();
 }
-function cacheSample(sample) {
-  const row = {
-    id: nextId++,
-    session_id: sample.session_id,
-    timestamp: sample.timestamp,
-    mouse_count: sample.mouse_count || 0,
-    keyboard_count: sample.keyboard_count || 0,
-    app_name: sample.app_name || "",
-    window_title: sample.window_title || "",
-    domain: sample.domain || "",
-    idle_flag: sample.idle_flag ? true : false,
-    type: sample.type || void 0,
-    file_url: sample.file_url || "",
-    file_data: sample.file_data || "",
+function ie(e) {
+  const t = {
+    id: D++,
+    session_id: e.session_id,
+    timestamp: e.timestamp,
+    mouse_count: e.mouse_count || 0,
+    keyboard_count: e.keyboard_count || 0,
+    app_name: e.app_name || "",
+    window_title: e.window_title || "",
+    domain: e.domain || "",
+    idle_flag: !!e.idle_flag,
+    type: e.type || void 0,
+    file_url: e.file_url || "",
+    file_data: e.file_data || "",
     synced: 0
   };
-  cache.push(row);
-  saveStorage();
+  c.push(t), U();
 }
-function getUnsyncedSamples() {
-  return cache.filter((row) => row.synced === 0).slice(0, 50);
+function re() {
+  return c.filter((e) => e.synced === 0).slice(0, 50);
 }
-function markSamplesSynced(ids) {
-  if (ids.length === 0) return;
-  let updated = false;
-  cache = cache.map((row) => {
-    if (row.id && ids.includes(row.id)) {
-      updated = true;
-      return { ...row, synced: 1 };
+function se(e) {
+  if (e.length === 0) return;
+  let t = !1;
+  c = c.map((r) => r.id && e.includes(r.id) ? (t = !0, { ...r, synced: 1 }) : r);
+  const o = /* @__PURE__ */ new Date();
+  o.setDate(o.getDate() - 7), c = c.filter((r) => !(r.synced === 1 && new Date(r.timestamp) < o)), t && U();
+}
+const ce = process.env.VITE_API_BASE_URL || "http://localhost:3001";
+let A = null, v = null;
+function le(e) {
+  A = setInterval(x, 3e4);
+}
+function ue() {
+  A && clearInterval(A);
+}
+async function de(e) {
+  ie(e), await x();
+}
+async function x() {
+  const e = re();
+  if (e.length !== 0)
+    try {
+      const t = e.map((n) => ({
+        session_id: n.session_id,
+        timestamp: n.timestamp,
+        mouse_count: n.mouse_count,
+        keyboard_count: n.keyboard_count,
+        app_name: n.app_name,
+        window_title: n.window_title,
+        domain: n.domain || "",
+        idle_flag: Number(n.idle_flag) === 1,
+        // We pass the screenshot base64 directly to our API for now
+        file_url: n.file_url
+      })), o = await fetch(`${ce}/api/heartbeats`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...v ? { Authorization: `Bearer ${v}` } : {}
+        },
+        body: JSON.stringify(t)
+      });
+      if (!o.ok)
+        throw new Error(`API Error: ${o.status} ${o.statusText}`);
+      const r = await o.json();
+      console.log(`✅ Successfully synced ${e.length} samples to backend API.`, r);
+      const a = e.map((n) => n.id);
+      se(a);
+    } catch (t) {
+      console.error("Failed to sync tracking data (will retry next loop):", t);
     }
-    return row;
-  });
-  const sevenDaysAgo = /* @__PURE__ */ new Date();
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-  cache = cache.filter((row) => {
-    if (row.synced === 1 && new Date(row.timestamp) < sevenDaysAgo) return false;
-    return true;
-  });
-  if (updated) {
-    saveStorage();
-  }
 }
-const API_URL = process.env.VITE_API_BASE_URL || "http://localhost:3001";
-let syncInterval = null;
-let currentFreelancerToken = null;
-function initApi(freelancerToken) {
-  syncInterval = setInterval(syncTrackerData, 3e4);
-}
-function teardownApi() {
-  if (syncInterval) clearInterval(syncInterval);
-}
-async function uploadSample(sample) {
-  cacheSample(sample);
-  await syncTrackerData();
-}
-async function syncTrackerData() {
-  const pendingSamples = getUnsyncedSamples();
-  if (pendingSamples.length === 0) return;
-  try {
-    const payload = pendingSamples.map((s) => ({
-      session_id: s.session_id,
-      timestamp: s.timestamp,
-      mouse_count: s.mouse_count,
-      keyboard_count: s.keyboard_count,
-      app_name: s.app_name,
-      window_title: s.window_title,
-      domain: s.domain || "",
-      idle_flag: Number(s.idle_flag) === 1,
-      // We pass the screenshot base64 directly to our API for now
-      file_url: s.file_url
-    }));
-    const response = await fetch(`${API_URL}/api/heartbeats`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...currentFreelancerToken ? { "Authorization": `Bearer ${currentFreelancerToken}` } : {}
-      },
-      body: JSON.stringify(payload)
-    });
-    if (!response.ok) {
-      throw new Error(`API Error: ${response.status} ${response.statusText}`);
-    }
-    const data = await response.json();
-    console.log(`✅ Successfully synced ${pendingSamples.length} samples to backend API.`, data);
-    const ids = pendingSamples.map((s) => s.id);
-    markSamplesSynced(ids);
-  } catch (error) {
-    console.error("Failed to sync tracking data (will retry next loop):", error);
-  }
-}
-const __dirname$1 = path.dirname(fileURLToPath(import.meta.url));
-process.env.DIST = path.join(__dirname$1, "../dist");
-process.env.VITE_PUBLIC = app.isPackaged ? process.env.DIST : path.join(process.env.DIST, "../public");
-let win = null;
-let activeSessionId = null;
-const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL;
-function createWindow() {
-  win = new BrowserWindow({
+const B = p.dirname(V(import.meta.url));
+process.env.DIST = p.join(B, "../dist");
+process.env.VITE_PUBLIC = d.isPackaged ? process.env.DIST : p.join(process.env.DIST, "../public");
+let u = null, _ = null;
+const R = process.env.VITE_DEV_SERVER_URL;
+function b() {
+  u = new C({
     width: 800,
     height: 600,
     webPreferences: {
-      preload: path.join(__dirname$1, "preload.mjs"),
+      preload: p.join(B, "preload.mjs"),
       // Ensure webSecurity is on unless specifically disabled!
-      nodeIntegration: false,
-      contextIsolation: true
+      nodeIntegration: !1,
+      contextIsolation: !0
     }
-  });
-  win.webContents.on("did-finish-load", () => {
-    win?.webContents.send("main-process-message", (/* @__PURE__ */ new Date()).toLocaleString());
-  });
-  if (VITE_DEV_SERVER_URL) {
-    win.loadURL(VITE_DEV_SERVER_URL);
-  } else {
-    win.loadFile(path.join(process.env.DIST || "", "index.html"));
-  }
+  }), u.webContents.on("did-finish-load", () => {
+    u?.webContents.send("main-process-message", (/* @__PURE__ */ new Date()).toLocaleString());
+  }), R ? u.loadURL(R) : u.loadFile(p.join(process.env.DIST || "", "index.html"));
 }
-app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") {
-    app.quit();
-  }
+d.on("window-all-closed", () => {
+  process.platform !== "darwin" && d.quit();
 });
-app.whenReady().then(() => {
-  createWindow();
-  app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
-  });
-  initCache();
-  initApi();
-  initTracker();
+d.whenReady().then(() => {
+  b(), d.on("activate", () => {
+    C.getAllWindows().length === 0 && b();
+  }), ae(), le(), q();
 });
-app.on("will-quit", () => {
-  teardownTracker();
-  teardownApi();
+d.on("will-quit", () => {
+  Z(), ue();
 });
-ipcMain.handle("start-tracking", async (event, { projectId, userId }) => {
-  console.log("Starting tracking for project:", projectId, "user:", userId);
-  const API_URL2 = process.env.VITE_API_BASE_URL || "http://localhost:3001";
-  let sessionId;
+O.handle("start-tracking", async (e, { projectId: t, userId: o }) => {
+  console.log("Starting tracking for project:", t, "user:", o);
+  const r = process.env.VITE_API_BASE_URL || "http://localhost:3001";
+  let a;
   try {
-    const response = await fetch(`${API_URL2}/api/sessions`, {
+    const s = await fetch(`${r}/api/sessions`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ user_id: userId || "local-user", project_id: projectId })
+      body: JSON.stringify({ user_id: o || "local-user", project_id: t })
     });
-    if (response.ok) {
-      const data = await response.json();
-      sessionId = data.session_id;
-      console.log(`✅ Session created: ${sessionId}`);
-    } else {
-      console.warn("⚠️  Backend unavailable, using local session ID");
-      sessionId = "local-" + Date.now();
-    }
-  } catch (err) {
-    console.warn("⚠️  Could not reach backend, using local session ID:", err);
-    sessionId = "local-" + Date.now();
+    s.ok ? (a = (await s.json()).session_id, console.log(`✅ Session created: ${a}`)) : (console.warn("⚠️  Backend unavailable, using local session ID"), a = "local-" + Date.now());
+  } catch (s) {
+    console.warn("⚠️  Could not reach backend, using local session ID:", s), a = "local-" + Date.now();
   }
-  activeSessionId = sessionId;
-  const API_URL_LOCAL = process.env.VITE_API_BASE_URL || "http://localhost:3001";
-  startTrackingSession(sessionId, (sample) => {
-    win?.webContents.send("tracking-sample", sample);
-    uploadSample(sample);
-  }, async (screenshot) => {
-    win?.webContents.send("tracking-screenshot", screenshot);
+  _ = a;
+  const n = process.env.VITE_API_BASE_URL || "http://localhost:3001";
+  return H(a, (s) => {
+    u?.webContents.send("tracking-sample", s), de(s);
+  }, async (s) => {
+    u?.webContents.send("tracking-screenshot", s);
     try {
-      const res = await fetch(`${API_URL_LOCAL}/api/screenshot`, {
+      const i = await fetch(`${n}/api/screenshot`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(screenshot)
+        body: JSON.stringify(s)
       });
-      if (!res.ok) console.error("Screenshot upload failed:", res.status);
-      else console.log("📸 Screenshot uploaded to backend");
-    } catch (err) {
-      console.error("Screenshot upload error (will retry next session):", err);
+      i.ok ? console.log("📸 Screenshot uploaded to backend") : console.error("Screenshot upload failed:", i.status);
+    } catch (i) {
+      console.error("Screenshot upload error (will retry next session):", i);
     }
-  }, 5e3);
-  return { status: "running", session_id: sessionId };
+  }, 5e3), { status: "running", session_id: a };
 });
-ipcMain.handle("stop-tracking", async () => {
-  console.log("Stopping tracking");
-  stopTrackingSession();
-  if (activeSessionId) {
-    const API_URL_LOCAL = process.env.VITE_API_BASE_URL || "http://localhost:3001";
+O.handle("stop-tracking", async () => {
+  if (console.log("Stopping tracking"), X(), _) {
+    const e = process.env.VITE_API_BASE_URL || "http://localhost:3001";
     try {
-      await fetch(`${API_URL_LOCAL}/api/sessions/${activeSessionId}/end`, { method: "POST" });
-      console.log(`🏁 Session ${activeSessionId} marked as ended in DB`);
-    } catch (err) {
-      console.warn("Could not end session in DB:", err);
+      await fetch(`${e}/api/sessions/${_}/end`, { method: "POST" }), console.log(`🏁 Session ${_} marked as ended in DB`);
+    } catch (t) {
+      console.warn("Could not end session in DB:", t);
     }
-    activeSessionId = null;
+    _ = null;
   }
   return { status: "stopped" };
 });

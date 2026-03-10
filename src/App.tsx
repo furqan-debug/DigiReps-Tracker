@@ -1,4 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Lock, Mail, ArrowRight, Play, Square, Pause,
+  ChevronRight, Activity, LogOut, CheckCircle2,
+  ShieldAlert, Eye, MapPin, MonitorPlay, MousePointerClick
+} from 'lucide-react';
 import './App.css';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -210,43 +216,47 @@ export default function App() {
     setScreen('login');
   }
 
-  // ─── Render ───────────────────────────────────────────────────────────────
-  if (screen === 'login') {
-    return <LoginScreen onLogin={handleLogin} rememberMe={rememberMe} setRememberMe={setRememberMe} />;
-  }
+  // Screen variants for framer-motion transitions
+  const pageVariants = {
+    initial: { opacity: 0, y: 10, scale: 0.98 },
+    in: { opacity: 1, y: 0, scale: 1 },
+    out: { opacity: 0, y: -10, scale: 0.98 }
+  };
 
-  if (screen === 'projects') {
-    return (
-      <ProjectsScreen
-        user={user!}
-        projects={projects}
-        onSelect={handleSelectProject}
-        onLogout={handleLogout}
-      />
-    );
-  }
-
-  if (screen === 'consent') {
-    return (
-      <ConsentScreen
-        project={activeProject!}
-        onAccept={handleConsentAccepted}
-        onDecline={handleConsentDeclined}
-      />
-    );
-  }
+  const pageTransition: any = {
+    type: 'tween',
+    ease: 'easeInOut',
+    duration: 0.3
+  };
 
   return (
-    <TrackerScreen
-      user={user!}
-      project={activeProject!}
-      sessionId={sessionId}
-      isPaused={isPaused}
-      elapsed={elapsed}
-      onStop={handleStop}
-      onPause={handlePause}
-      onResume={handleResume}
-    />
+    <div className="app-container">
+      <AnimatePresence mode="wait">
+        {screen === 'login' && (
+          <motion.div key="login" initial="initial" animate="in" exit="out" variants={pageVariants} transition={pageTransition} style={{ width: '100%', display: 'flex' }}>
+            <LoginScreen onLogin={handleLogin} rememberMe={rememberMe} setRememberMe={setRememberMe} />
+          </motion.div>
+        )}
+
+        {screen === 'projects' && (
+          <motion.div key="projects" initial="initial" animate="in" exit="out" variants={pageVariants} transition={pageTransition} style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
+            <ProjectsScreen user={user!} projects={projects} onSelect={handleSelectProject} onLogout={handleLogout} />
+          </motion.div>
+        )}
+
+        {screen === 'consent' && (
+          <motion.div key="consent" initial="initial" animate="in" exit="out" variants={pageVariants} transition={pageTransition} style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
+            <ConsentScreen project={activeProject!} onAccept={handleConsentAccepted} onDecline={handleConsentDeclined} />
+          </motion.div>
+        )}
+
+        {screen === 'tracker' && (
+          <motion.div key="tracker" initial="initial" animate="in" exit="out" variants={pageVariants} transition={pageTransition} style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
+            <TrackerScreen user={user!} project={activeProject!} sessionId={sessionId} isPaused={isPaused} elapsed={elapsed} onStop={handleStop} onPause={handlePause} onResume={handleResume} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
 
@@ -273,59 +283,111 @@ function LoginScreen({ onLogin, rememberMe, setRememberMe }: {
   }
 
   return (
-    <div className="screen login-screen">
-      <div className="login-card">
-        {/* Logo mark */}
-        <div className="brand">
-          <div className="brand-icon">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="12" r="10" fill="white" fillOpacity="0.15" />
-              <path d="M8 12l3 3 5-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+    <div className="login-screen">
+      <div className="login-bg-shape"></div>
+      <div className="login-bg-shape-2"></div>
+
+      <motion.div
+        className="login-card"
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.1, duration: 0.5 }}
+      >
+        <div className="brand-header">
+          <div className="brand-logo">
+            <Activity strokeWidth={2.5} size={28} />
           </div>
-          <span className="brand-name">DigiReps</span>
+          <div>
+            <h1 className="heading-1">Welcome back</h1>
+            <p className="text-muted">Sign in to DigiReps Tracker</p>
+          </div>
         </div>
 
-        <h1 className="login-title">Welcome back</h1>
-        <p className="login-sub">Sign in to your workspace</p>
-
         <form onSubmit={submit} className="login-form">
-          <div className="field">
-            <label className="label">Email address</label>
-            <input
-              type="email" required autoFocus
-              value={email} onChange={e => setEmail(e.target.value)}
-              placeholder="you@company.com"
-              className="input"
-            />
-          </div>
-          <div className="field">
-            <label className="label">Password</label>
-            <input
-              type="password" required
-              value={password} onChange={e => setPassword(e.target.value)}
-              placeholder="••••••••"
-              className="input"
-            />
+          <div className="field-group">
+            <label className="field-label">Email Address</label>
+            <div style={{ position: 'relative' }}>
+              <Mail size={18} style={{ position: 'absolute', left: '12px', top: '12px', color: 'var(--text-tertiary)' }} />
+              <input
+                type="email" required autoFocus
+                value={email} onChange={e => setEmail(e.target.value)}
+                placeholder="you@company.com"
+                className="field-input"
+                style={{ paddingLeft: '2.5rem' }}
+              />
+            </div>
           </div>
 
-          {error && <div className="alert-error">{error}</div>}
+          <div className="field-group">
+            <label className="field-label">Password</label>
+            <div style={{ position: 'relative' }}>
+              <Lock size={18} style={{ position: 'absolute', left: '12px', top: '12px', color: 'var(--text-tertiary)' }} />
+              <input
+                type="password" required
+                value={password} onChange={e => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="field-input"
+                style={{ paddingLeft: '2.5rem' }}
+              />
+            </div>
+          </div>
 
-          <label className="checkbox-row">
+          <AnimatePresence>
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="alert alert-error"
+                style={{ overflow: 'hidden' }}
+              >
+                <ShieldAlert size={16} />
+                <span>{error}</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <label className="checkbox-wrap">
             <input
               type="checkbox"
               checked={rememberMe}
               onChange={e => setRememberMe(e.target.checked)}
             />
-            <span className="checkbox-label">Keep me signed in</span>
+            <span>Keep me signed in</span>
           </label>
 
-          <button type="submit" disabled={loading} className="btn-primary">
-            {loading ? 'Signing in…' : 'Sign in'}
+          <button type="submit" disabled={loading} className="btn btn-primary" style={{ marginTop: '0.5rem', width: '100%', padding: '0.875rem' }}>
+            {loading ? 'Signing in...' : 'Sign In'}
+            {!loading && <ArrowRight size={18} />}
           </button>
         </form>
-      </div>
+      </motion.div>
     </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Shared Topbar
+// ─────────────────────────────────────────────────────────────────────────────
+function Topbar({ user, onLogout }: { user?: User, onLogout?: () => void }) {
+  const initials = user?.full_name?.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'U';
+  return (
+    <header className="app-topbar">
+      <div className="topbar-brand">
+        <div className="topbar-logo">
+          <Activity size={20} />
+        </div>
+        <span className="topbar-title">DigiReps</span>
+      </div>
+      {user && onLogout && (
+        <div className="topbar-actions">
+          <div className="user-avatar">{initials}</div>
+          <button onClick={onLogout} className="btn btn-ghost" title="Sign out" style={{ padding: '0.4rem' }}>
+            <LogOut size={18} />
+          </button>
+        </div>
+      )}
+    </header>
   );
 }
 
@@ -338,66 +400,66 @@ function ProjectsScreen({ user, projects, onSelect, onLogout }: {
   onSelect: (p: Project) => void;
   onLogout: () => void;
 }) {
-  const initials = user.full_name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: { staggerChildren: 0.1 }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 15 },
+    show: { opacity: 1, y: 0 }
+  };
 
   return (
-    <div className="screen projects-screen">
-      {/* Top bar */}
-      <div className="topbar">
-        <div className="topbar-brand">
-          <div className="brand-icon sm">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="12" r="10" fill="white" fillOpacity="0.2" />
-              <path d="M8 12l3 3 5-5" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </div>
-          <span className="topbar-name">DigiReps</span>
-        </div>
-        <div className="topbar-user">
-          <div className="avatar">{initials}</div>
-          <button onClick={onLogout} className="btn-logout" title="Sign out">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-              <polyline points="16 17 21 12 16 7" />
-              <line x1="21" y1="12" x2="9" y2="12" />
-            </svg>
-          </button>
-        </div>
-      </div>
+    <div className="projects-layout">
+      <Topbar user={user} onLogout={onLogout} />
 
-      {/* Body */}
-      <div className="projects-body">
-        <div className="section-header">
-          <h2 className="section-title">Select a project</h2>
-          <p className="section-sub">Choose the project you're working on today</p>
+      <div className="projects-content">
+        <div className="projects-header">
+          <h2 className="heading-1">Select a Project</h2>
+          <p className="text-muted" style={{ marginTop: '0.5rem' }}>Choose the active project to begin tracking your time.</p>
         </div>
 
         {projects.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-icon">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <rect x="3" y="3" width="18" height="18" rx="3" />
-                <path d="M9 12h6M12 9v6" />
-              </svg>
+          <div className="projects-empty">
+            <div className="projects-empty-icon">
+              <CheckCircle2 size={32} />
             </div>
-            <p className="empty-title">No projects assigned</p>
-            <p className="empty-hint">Ask your admin to assign you to a project.</p>
+            <h3 className="heading-3">You're all caught up!</h3>
+            <p className="text-muted" style={{ marginTop: '0.5rem' }}>You don't have any active projects assigned right now. Speak with your manager if this is a mistake.</p>
           </div>
         ) : (
-          <div className="project-list">
+          <motion.div
+            className="projects-grid"
+            variants={containerVariants}
+            initial="hidden"
+            animate="show"
+          >
             {projects.map(p => (
-              <button key={p.id} className="project-item" onClick={() => onSelect(p)}>
-                <div className="project-dot" style={{ backgroundColor: p.color }} />
-                <div className="project-info">
-                  <span className="project-name">{p.name}</span>
-                  {p.description && <span className="project-desc">{p.description}</span>}
+              <motion.div key={p.id} variants={itemVariants}>
+                <div
+                  className="project-card"
+                  onClick={() => onSelect(p)}
+                  style={{ '--project-color': p.color } as any}
+                >
+                  <div className="project-card-header">
+                    <div>
+                      <h3 className="project-card-title">{p.name}</h3>
+                      {p.description && <p className="project-card-desc">{p.description}</p>}
+                    </div>
+                  </div>
+
+                  <div className="project-card-footer">
+                    <span>Select project</span>
+                    <ChevronRight size={18} className="project-card-arrow" />
+                  </div>
                 </div>
-                <svg className="project-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M9 18l6-6-6-6" />
-                </svg>
-              </button>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         )}
       </div>
     </div>
@@ -413,101 +475,72 @@ function ConsentScreen({ project, onAccept, onDecline }: {
   onDecline: () => void;
 }) {
   return (
-    <div className="screen consent-screen">
-      <div className="consent-card">
-        {/* Header */}
-        <div className="consent-header">
-          <div className="consent-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-            </svg>
+    <div className="projects-layout">
+      <Topbar />
+
+      <div className="consent-content">
+        <motion.div
+          className="consent-card"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.4, ease: "easeOut" }}
+        >
+          <div className="consent-header">
+            <div className="consent-icon">
+              <ShieldAlert size={28} />
+            </div>
+            <h2 className="heading-2">Tracking Permissions</h2>
+            <p className="text-muted" style={{ marginTop: '0.5rem', lineHeight: '1.5' }}>
+              You are about to start tracking for <strong>{project.name}</strong>. Please review exactly what data will be collected during this session.
+            </p>
           </div>
-          <h1 className="consent-title">Before you start</h1>
-          <p className="consent-subtitle">
-            Tracking will begin for <strong>{project.name}</strong>. Please review what data is collected.
-          </p>
-        </div>
 
-        {/* Data collected */}
-        <div className="consent-section">
-          <h2 className="consent-section-title">Data collected while tracking</h2>
-          <div className="consent-items">
-            <ConsentItem
-              icon="📸"
-              label="Screenshots"
-              detail="3 screenshots at random moments within every 10-minute window"
-            />
-            <ConsentItem
-              icon="🖥️"
-              label="Active application"
-              detail="Name of the app in focus (e.g., Chrome, VS Code)"
-            />
-            <ConsentItem
-              icon="🌐"
-              label="Browser domain"
-              detail="Domain of the website you're visiting (e.g., github.com)"
-            />
-            <ConsentItem
-              icon="⌨️"
-              label="Activity counts"
-              detail="Number of keystrokes and mouse clicks per interval (not content)"
-            />
-            <ConsentItem
-              icon="📍"
-              label="Approximate location"
-              detail="IP-based city/country — not GPS tracking"
-            />
+          <div className="consent-body">
+            <div className="consent-section">
+              <h3 className="consent-section-title">Data Collected</h3>
+              <div className="consent-list">
+                <ConsentItem icon={<Eye size={20} />} title="Screenshots" desc="Up to 3 random captures every 10 minutes to verify work." />
+                <ConsentItem icon={<MonitorPlay size={20} />} title="Active Application" desc="Names of the active window (e.g. Chrome, VS Code) in focus." />
+                <ConsentItem icon={<MousePointerClick size={20} />} title="Activity Counts" desc="Number of mouse clicks and keystrokes (but NOT what was typed)." />
+                <ConsentItem icon={<MapPin size={20} />} title="General Location" desc="Approximate IP-based location for security auditing." />
+              </div>
+            </div>
+
+            <div className="consent-section" style={{ backgroundColor: '#fafbfd' }}>
+              <p style={{ fontSize: '0.875rem', color: 'var(--text-tertiary)', lineHeight: '1.5', textAlign: 'center' }}>
+                Activity data is transmitted securely and is only visible to your organization's administrators. You can stop tracking at any time.
+              </p>
+            </div>
           </div>
-        </div>
 
-        {/* How it's used */}
-        <div className="consent-section">
-          <h2 className="consent-section-title">How this data is used</h2>
-          <ul className="consent-list">
-            <li>To calculate time worked on each project</li>
-            <li>To generate productivity reports for your manager</li>
-            <li>For accurate payroll based on tracked hours</li>
-            <li>Data is visible only to admins, not to other team members</li>
-          </ul>
-        </div>
-
-        {/* Permissions required */}
-        <div className="consent-section">
-          <h2 className="consent-section-title">Permissions required</h2>
-          <ul className="consent-list">
-            <li>Screen recording (for screenshots)</li>
-            <li>Accessibility access (for app/window name detection)</li>
-          </ul>
-        </div>
-
-        {/* Actions */}
-        <div className="consent-actions">
-          <button onClick={onDecline} className="btn-decline">Go back</button>
-          <button onClick={onAccept} className="btn-accept">I understand — Start tracking</button>
-        </div>
-
-        <p className="consent-footer">
-          You can stop tracking at any time. Your consent is remembered on this device.
-        </p>
+          <div className="consent-actions">
+            <button onClick={onAccept} className="btn btn-primary" style={{ width: '100%', padding: '0.875rem' }}>
+              I Understand &mdash; Start Tracking
+            </button>
+            <button onClick={onDecline} className="btn btn-secondary" style={{ width: '100%', padding: '0.875rem' }}>
+              Cancel
+            </button>
+          </div>
+        </motion.div>
       </div>
     </div>
   );
 }
 
-function ConsentItem({ icon, label, detail }: { icon: string; label: string; detail: string }) {
+function ConsentItem({ icon, title, desc }: { icon: React.ReactNode; title: string; desc: string }) {
   return (
     <div className="consent-item">
-      <span className="consent-item-icon">{icon}</span>
-      <div className="consent-item-body">
-        <span className="consent-item-label">{label}</span>
-        <span className="consent-item-detail">{detail}</span>
+      <div className="consent-item-icon">{icon}</div>
+      <div className="consent-item-text">
+        <span className="consent-item-title">{title}</span>
+        <span className="consent-item-desc">{desc}</span>
       </div>
     </div>
   );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Screen: Tracker  (minimal — no activity feed)
+// Screen: Tracker
 // ─────────────────────────────────────────────────────────────────────────────
 function TrackerScreen({ user, project, isPaused = false, elapsed, onStop, onPause, onResume }: {
   user: User;
@@ -525,48 +558,55 @@ function TrackerScreen({ user, project, isPaused = false, elapsed, onStop, onPau
   const fmt = (n: number) => String(n).padStart(2, '0');
 
   return (
-    <div className="screen tracker-screen">
-      {/* Status bar */}
-      <div className="tracker-bar">
-        <div className={`live-pill ${isPaused ? 'paused' : ''}`}>
-          <span className="live-dot" />
-          {isPaused ? 'Paused' : 'Live'}
-        </div>
-        <span className="tracker-username">{user.full_name}</span>
-      </div>
+    <div className="tracker-layout">
+      <Topbar user={user} />
 
-      {/* Main content */}
-      <div className="tracker-body">
-        {/* Project label */}
-        <div className="tracker-project">
-          <span className="tracker-project-dot" style={{ backgroundColor: project.color }} />
-          <span className="tracker-project-name">{project.name}</span>
-        </div>
+      <div className="tracker-content">
+        <motion.div
+          className="tracker-widget"
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.5 }}
+        >
+          <div className={`status-pill ${isPaused ? 'status-paused' : 'status-live'}`}>
+            <div className="status-dot"></div>
+            {isPaused ? 'Timer Paused' : 'Tracking Live'}
+          </div>
 
-        {/* Clock */}
-        <div className={`tracker-clock ${isPaused ? 'clock-paused' : ''}`}>
-          {fmt(hrs)}:{fmt(mins)}:{fmt(secs)}
-        </div>
+          <div className="tracker-project-info">
+            <div className="color-dot" style={{ backgroundColor: project.color }}></div>
+            <span className="tracker-project-name">{project.name}</span>
+          </div>
 
-        {/* Status text */}
-        <p className="tracker-status-text">
-          {isPaused ? 'Timer paused — activity is not being recorded' : 'Tracking your time and activity'}
-        </p>
+          <div className={`timer-display ${isPaused ? 'timer-paused' : ''}`}>
+            {fmt(hrs)}:{fmt(mins)}:{fmt(secs)}
+          </div>
 
-        {/* Actions */}
-        <div className="tracker-actions">
-          {isPaused ? (
-            <button className="btn-resume" onClick={onResume}>Resume</button>
-          ) : (
-            <button className="btn-pause" onClick={onPause}>Pause</button>
-          )}
-          <button className="btn-stop" onClick={onStop}>Stop & exit</button>
-        </div>
+          <div className="timer-subtext">
+            {isPaused
+              ? "Your activity is not currently being recorded."
+              : "Screenshots and activity metrics are being securely recorded."}
+          </div>
 
-        {/* Subtle note */}
-        <p className="tracker-note">
-          Activity data is sent securely to your workspace admin.
-        </p>
+          <div className="tracker-controls">
+            {isPaused ? (
+              <button className="control-btn active-resume" onClick={onResume}>
+                <Play className="control-icon" fill="currentColor" />
+                Resume Work
+              </button>
+            ) : (
+              <button className="control-btn active-pause" onClick={onPause}>
+                <Pause className="control-icon" fill="currentColor" />
+                Take a Break
+              </button>
+            )}
+
+            <button className="control-btn action-stop" onClick={onStop}>
+              <Square className="control-icon" fill="currentColor" />
+              Stop & Exit
+            </button>
+          </div>
+        </motion.div>
       </div>
     </div>
   );
