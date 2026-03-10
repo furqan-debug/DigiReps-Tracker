@@ -1,0 +1,8 @@
+AUTH USERS:
+furqanfreelance1@gmail.com | pwd? false
+furqansddq2006@gmail.com | pwd? false
+
+MEMBERS:
+furqansddq2006@gmail.com | status: Inactive
+furqanfreelance1@gmail.com | status: Active
+newtest@example.com | status: Pending
