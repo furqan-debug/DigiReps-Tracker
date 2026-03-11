@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { Monitor, Keyboard, Mouse, Camera, Clock, Users } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { PageLayout, KpiCard, LoadingState } from '../components/ui';
 
 interface ActivitySample {
     id: number;
@@ -97,20 +98,32 @@ export function Activity() {
     const dateLabel = isToday ? 'Today' : new Date(selectedDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
     return (
-        <div className="p-8 max-w-[1400px] mx-auto w-full">
+        <PageLayout title="Activity" description={`${dateLabel} — keyboard, mouse & app usage`} maxWidth="full" actions={
+            <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 bg-surface border border-border rounded-shell-md px-3 py-2 shadow-shell-sm">
+                    <Users className="w-4 h-4 text-text-muted" />
+                    <select className="bg-transparent text-sm font-medium text-text-primary outline-none w-48" value={selectedMemberId} onChange={(e) => setSelectedMemberId(e.target.value)}>
+                        <option value="all">Entire Organization</option>
+                        <option disabled>──────────</option>
+                        {members.map(m => <option key={m.id} value={m.id}>{m.full_name}</option>)}
+                    </select>
+                </div>
+                <input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)}
+                    className="border border-border bg-surface rounded-shell-md px-4 py-2 text-sm font-medium text-text-primary shadow-shell-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+            </div>
+        }>
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8 relative z-20">
                 <div>
-                    <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">Activity</h1>
-                    <p className="text-slate-500 text-sm mt-1">{dateLabel} — keyboard, mouse & app usage</p>
+                    <h1 className="text-2xl font-semibold text-text-primary tracking-tight">Activity</h1>
+                    <p className="text-text-secondary text-sm mt-1">{dateLabel} — keyboard, mouse & app usage</p>
                 </div>
 
                 <div className="flex items-center gap-4">
-                    {/* Member Selector */}
-                    <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-3 py-2 shadow-sm">
-                        <Users className="w-4 h-4 text-slate-400" />
+                    <div className="flex items-center gap-2 bg-surface border border-border rounded-shell-md px-3 py-2 shadow-shell-sm">
+                        <Users className="w-4 h-4 text-text-muted" />
                         <select
-                            className="bg-transparent text-sm font-medium text-slate-700 outline-none w-48"
+                            className="bg-transparent text-sm font-medium text-text-primary outline-none w-48"
                             value={selectedMemberId}
                             onChange={(e) => setSelectedMemberId(e.target.value)}
                         >
@@ -122,25 +135,22 @@ export function Activity() {
                         </select>
                     </div>
 
-                    {/* Date Selector */}
                     <input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)}
-                        className="border border-slate-200 bg-white rounded-lg px-4 py-2 text-sm font-medium text-slate-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 hover:bg-slate-50 transition-colors" />
+                        className="border border-border bg-surface rounded-shell-md px-4 py-2 text-sm font-medium text-text-primary shadow-shell-sm focus:outline-none focus:ring-2 focus:ring-primary hover:bg-surface-subtle transition-colors" />
                 </div>
             </div>
 
-            {/* Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                <StatCard icon={<Mouse className="w-4 h-4 text-indigo-500" />} label="Mouse Clicks" value={totalClicks.toLocaleString()} />
-                <StatCard icon={<Keyboard className="w-4 h-4 text-violet-500" />} label="Keystrokes" value={totalKeys.toLocaleString()} />
-                <StatCard icon={<Clock className="w-4 h-4 text-emerald-500" />} label="Active Intervals" value={`${activeTime}`} />
-                <StatCard icon={<Monitor className="w-4 h-4 text-amber-500" />} label="Avg Activity" value={`${avgActivity}%`} />
+                <KpiCard icon={<Mouse className="w-4 h-4 text-primary" />} label="Mouse Clicks" value={totalClicks.toLocaleString()} />
+                <KpiCard icon={<Keyboard className="w-4 h-4 text-primary" />} label="Keystrokes" value={totalKeys.toLocaleString()} />
+                <KpiCard icon={<Clock className="w-4 h-4 text-primary" />} label="Active Intervals" value={`${activeTime}`} />
+                <KpiCard icon={<Monitor className="w-4 h-4 text-primary" />} label="Avg Activity" value={`${avgActivity}%`} />
             </div>
 
-            {/* Chart */}
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 mb-6">
-                <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-5">Activity Level — Hourly</h2>
+            <div className="bg-surface rounded-shell-lg border border-border shadow-shell-sm p-6 mb-6">
+                <h2 className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-5">Activity Level — Hourly</h2>
                 {loading ? (
-                    <div className="h-48 flex items-center justify-center text-slate-400 text-sm">Loading…</div>
+                    <LoadingState className="min-h-[12rem]" />
                 ) : samples.length === 0 ? (
                     <EmptyChart message="No activity recorded for this day." />
                 ) : (
@@ -239,21 +249,10 @@ export function Activity() {
                     </div>
                 </div>
             )}
-        </div>
+        </PageLayout>
     );
 }
 
-function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
-    return (
-        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm flex items-center gap-4">
-            <div className="w-9 h-9 rounded-lg bg-slate-50 flex items-center justify-center">{icon}</div>
-            <div>
-                <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider">{label}</p>
-                <p className="text-xl font-semibold text-slate-800 mt-0.5">{value}</p>
-            </div>
-        </div>
-    );
-}
 function EmptyChart({ message }: { message: string }) {
     return (
         <div className="h-48 flex flex-col items-center justify-center text-slate-400 gap-2">

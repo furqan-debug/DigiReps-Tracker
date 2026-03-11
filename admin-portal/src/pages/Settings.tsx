@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Camera, Clock, Monitor, Bell, Shield, Save, RotateCcw, CheckCircle } from 'lucide-react';
+import { PageLayout, Button } from '../components/ui';
 
 const SETTINGS_KEY = 'digireps_settings';
 
@@ -58,42 +59,41 @@ export function SettingsPage() {
     }
 
     return (
-        <div className="p-8 max-w-[900px] mx-auto w-full">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-8">
-                <div>
-                    <h1 className="text-2xl font-semibold text-slate-900">Settings & Policies</h1>
-                    <p className="text-slate-500 text-sm mt-1">Configure tracking behavior, limits, and notifications</p>
-                </div>
+        <PageLayout
+            title="Settings & Policies"
+            description="Configure tracking behavior, limits, and notifications"
+            maxWidth="full"
+            actions={
                 <div className="flex items-center gap-3">
-                    <button onClick={handleReset}
-                        className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50 transition-colors">
-                        <RotateCcw className="w-4 h-4" /> Reset Defaults
-                    </button>
-                    <button onClick={handleSave}
-                        className={`flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-medium transition-all ${saved ? 'bg-emerald-500 text-white' : 'bg-blue-600 text-white hover:bg-blue-700'}`}>
-                        {saved ? <><CheckCircle className="w-4 h-4" /> Saved!</> : <><Save className="w-4 h-4" /> Save Changes</>}
-                    </button>
+                    <Button variant="secondary" leftIcon={<RotateCcw className="w-4 h-4" />} onClick={handleReset}>
+                        Reset Defaults
+                    </Button>
+                    <Button
+                        leftIcon={saved ? <CheckCircle className="w-4 h-4" /> : <Save className="w-4 h-4" />}
+                        onClick={handleSave}
+                        className={saved ? 'bg-emerald-600 hover:bg-emerald-600' : ''}
+                    >
+                        {saved ? 'Saved!' : 'Save Changes'}
+                    </Button>
                 </div>
-            </div>
-
+            }
+        >
             <div className="space-y-6">
-                {/* Screenshot Settings */}
-                <Section icon={<Camera className="w-5 h-5 text-indigo-500" />} title="Screenshot Capture" subtitle="Control how screenshots are taken">
+                <Section icon={<Camera className="w-5 h-5 text-primary" />} title="Screenshot Capture" subtitle="Control how screenshots are taken">
                     <ToggleField
                         label="Blur Screenshots"
                         description="Apply a blur effect to screenshots before uploading (privacy mode)"
                         value={settings.screenshotBlur}
                         onChange={v => update('screenshotBlur', v)}
                     />
-                    <div className="bg-indigo-50 border border-indigo-100 rounded-lg px-4 py-3 text-xs text-indigo-600 flex items-center gap-2">
+                    <div className="bg-primary/10 border border-primary/20 rounded-shell-md px-4 py-3 text-xs text-primary flex items-center gap-2">
                         <Camera className="w-4 h-4 shrink-0" />
                         Screenshots are taken <strong>3 times at random moments</strong> within every 10-minute tracking window.
                     </div>
                 </Section>
 
                 {/* Idle Detection */}
-                <Section icon={<Clock className="w-5 h-5 text-purple-500" />} title="Idle Detection" subtitle="Configure what counts as idle time">
+                <Section icon={<Clock className="w-5 h-5 text-primary" />} title="Idle Detection" subtitle="Configure what counts as idle time">
                     <NumberField
                         label="Idle Threshold (seconds)"
                         description="No mouse/keyboard activity after this duration marks the user as idle"
@@ -119,7 +119,7 @@ export function SettingsPage() {
                 </Section>
 
                 {/* Work Limits */}
-                <Section icon={<Monitor className="w-5 h-5 text-emerald-500" />} title="Work Limits" subtitle="Set maximum daily and weekly tracking limits">
+                <Section icon={<Monitor className="w-5 h-5 text-primary" />} title="Work Limits" subtitle="Set maximum daily and weekly tracking limits">
                     <div className="grid grid-cols-2 gap-6">
                         <NumberField
                             label="Daily Limit (hours)"
@@ -139,7 +139,7 @@ export function SettingsPage() {
                 </Section>
 
                 {/* Tracking Policies */}
-                <Section icon={<Shield className="w-5 h-5 text-orange-500" />} title="Tracking Policies" subtitle="Control which data is collected">
+                <Section icon={<Shield className="w-5 h-5 text-primary" />} title="Tracking Policies" subtitle="Control which data is collected">
                     <ToggleField
                         label="Track URLs / Browser Domains"
                         description="Record active browser tab domains in activity samples"
@@ -155,7 +155,7 @@ export function SettingsPage() {
                 </Section>
 
                 {/* Notifications */}
-                <Section icon={<Bell className="w-5 h-5 text-rose-500" />} title="Notifications" subtitle="Configure admin alerts">
+                <Section icon={<Bell className="w-5 h-5 text-primary" />} title="Notifications" subtitle="Configure admin alerts">
                     <ToggleField
                         label="Alert on Idle (Admin)"
                         description="Send notification when a member goes idle during tracking"
@@ -191,18 +191,18 @@ export function SettingsPage() {
                     </div>
                 </div>
             </div>
-        </div>
+        </PageLayout>
     );
 }
 
 function Section({ icon, title, subtitle, children }: { icon: React.ReactNode; title: string; subtitle: string; children: React.ReactNode }) {
     return (
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center">{icon}</div>
+        <div className="bg-surface rounded-shell-lg border border-border shadow-shell-sm overflow-hidden">
+            <div className="px-6 py-4 border-b border-border-subtle flex items-center gap-3">
+                <div className="w-8 h-8 rounded-shell-md bg-surface-subtle flex items-center justify-center text-primary">{icon}</div>
                 <div>
-                    <h2 className="text-sm font-semibold text-slate-800">{title}</h2>
-                    <p className="text-xs text-slate-400">{subtitle}</p>
+                    <h2 className="text-sm font-semibold text-text-primary">{title}</h2>
+                    <p className="text-xs text-text-muted">{subtitle}</p>
                 </div>
             </div>
             <div className="p-6 space-y-5">{children}</div>

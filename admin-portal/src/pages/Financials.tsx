@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { CircleDollarSign, TrendingUp, Clock, Download } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { PageLayout, Card, KpiCard, Button, EmptyState, LoadingState } from '../components/ui';
 
 interface MemberFinancial {
     member_id: string;
@@ -129,52 +130,50 @@ export function Financials() {
     }
 
     return (
-        <div className="p-8 max-w-[1400px] mx-auto w-full">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-8">
-                <div>
-                    <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">Financials</h1>
-                    <p className="text-slate-500 text-sm mt-1">Pay costs based on tracked hours and real member rates</p>
-                </div>
+        <PageLayout
+            title="Financials"
+            description="Pay costs based on tracked hours and real member rates."
+            maxWidth="full"
+            actions={
                 <div className="flex items-center gap-3">
-                    <div className="flex items-center bg-white border border-slate-200 rounded-lg p-1">
+                    <div className="flex items-center bg-surface border border-border rounded-shell-md p-1">
                         {(['This Week', 'This Month', 'All Time'] as const).map(r => (
                             <button key={r} onClick={() => setRange(r)}
-                                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${range === r ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'}`}>
+                                className={`px-3 py-1.5 rounded-shell-sm text-sm font-medium transition-colors ${range === r ? 'bg-primary text-white' : 'text-text-secondary hover:bg-surface-subtle'}`}>
                                 {r}
                             </button>
                         ))}
                     </div>
-                    <button onClick={exportCsv}
-                        className="flex items-center gap-2 px-4 py-2 border border-slate-200 bg-white rounded-lg text-sm text-slate-600 hover:bg-slate-50 transition-colors">
-                        <Download className="w-4 h-4" /> Export CSV
-                    </button>
+                    <Button variant="secondary" leftIcon={<Download className="w-4 h-4" />} onClick={exportCsv}>
+                        Export CSV
+                    </Button>
                 </div>
-            </div>
-
-            {/* KPI row */}
+            }
+        >
             <div className="grid grid-cols-3 gap-4 mb-8">
-                <KpiCard icon={<CircleDollarSign className="w-5 h-5 text-indigo-500" />}
+                <KpiCard icon={<CircleDollarSign className="w-5 h-5 text-primary" />}
                     label="Total Pay Cost" value={`$${totals.cost.toFixed(2)}`} sub={range} />
-                <KpiCard icon={<Clock className="w-5 h-5 text-emerald-500" />}
+                <KpiCard icon={<Clock className="w-5 h-5 text-primary" />}
                     label="Total Hours" value={fmtTime(totals.minutes)} sub="all members" />
-                <KpiCard icon={<TrendingUp className="w-5 h-5 text-violet-500" />}
+                <KpiCard icon={<TrendingUp className="w-5 h-5 text-primary" />}
                     label="Sessions" value={totals.sessions.toString()} sub="tracked sessions" />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-                {/* Bar chart */}
-                <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-                    <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-5">Cost by Member</h2>
-                    {loading ? <Skeleton /> : members.length === 0 ? <EmptyState /> : (
+                <Card title="Cost by Member">
+                    {loading ? (
+                        <LoadingState className="min-h-[220px]" />
+                    ) : members.length === 0 ? (
+                        <EmptyState title="No tracked sessions yet" description="Once members start tracking time, costs will appear here based on their pay rate set in People." className="min-h-[220px]" />
+                    ) : (
                         <ResponsiveContainer width="100%" height={220}>
                             <BarChart data={members.slice(0, 6)} layout="vertical" barSize={16}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
-                                <XAxis type="number" tick={{ fontSize: 11, fill: '#94a3b8' }} unit="$" />
-                                <YAxis type="category" dataKey="full_name" tick={{ fontSize: 11, fill: '#64748b' }} width={90} />
+                                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border-subtle)" horizontal={false} />
+                                <XAxis type="number" tick={{ fontSize: 11, fill: 'var(--color-text-muted)' }} unit="$" />
+                                <YAxis type="category" dataKey="full_name" tick={{ fontSize: 11, fill: 'var(--color-text-secondary)' }} width={90} />
                                 <Tooltip
                                     formatter={(v?: number) => [`$${v ?? 0}`, 'Pay Cost']}
-                                    contentStyle={{ borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 12 }}
+                                    contentStyle={{ borderRadius: 8, border: '1px solid var(--color-border)', fontSize: 12 }}
                                 />
                                 <Bar dataKey="totalCost" radius={[0, 4, 4, 0]}>
                                     {members.slice(0, 6).map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
@@ -182,74 +181,58 @@ export function Financials() {
                             </BarChart>
                         </ResponsiveContainer>
                     )}
-                </div>
+                </Card>
 
-                {/* Table */}
-                <div className="lg:col-span-3 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                    <div className="px-6 py-4 border-b border-slate-100">
-                        <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Member Breakdown</h2>
+                <Card noPadding className="lg:col-span-3">
+                    <div className="px-6 py-4 border-b border-border">
+                        <h2 className="text-sm font-semibold text-text-primary uppercase tracking-wide">Member Breakdown</h2>
                     </div>
                     {loading ? (
-                        <div className="p-8 text-center text-slate-400 text-sm">Loading financial data…</div>
+                        <LoadingState message="Loading financial data…" className="py-12" />
                     ) : members.length === 0 ? (
-                        <div className="p-12 flex flex-col items-center gap-3 text-slate-400">
-                            <CircleDollarSign className="w-10 h-10 text-slate-200" />
-                            <p className="text-sm font-medium">No tracked sessions yet</p>
-                            <p className="text-xs text-center max-w-xs">Once members start tracking time, costs will appear here based on their pay rate set in People.</p>
-                        </div>
+                        <EmptyState
+                            icon={<CircleDollarSign className="w-6 h-6" />}
+                            title="No tracked sessions yet"
+                            description="Once members start tracking time, costs will appear here based on their pay rate set in People."
+                        />
                     ) : (
                         <table className="w-full text-sm">
                             <thead>
-                                <tr className="border-b border-slate-100 bg-slate-50/60">
-                                    <th className="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase">Member</th>
-                                    <th className="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase">Pay Rate</th>
-                                    <th className="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase">Hours</th>
-                                    <th className="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase">Sessions</th>
-                                    <th className="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase">Cost</th>
+                                <tr className="border-b border-border bg-surface-subtle/60">
+                                    <th className="text-left px-6 py-3 text-xs font-semibold text-text-muted uppercase">Member</th>
+                                    <th className="text-right px-6 py-3 text-xs font-semibold text-text-muted uppercase">Pay Rate</th>
+                                    <th className="text-right px-6 py-3 text-xs font-semibold text-text-muted uppercase">Hours</th>
+                                    <th className="text-right px-6 py-3 text-xs font-semibold text-text-muted uppercase">Sessions</th>
+                                    <th className="text-right px-6 py-3 text-xs font-semibold text-text-muted uppercase">Cost</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {members.map((m, i) => (
-                                    <tr key={m.member_id} className="border-b border-slate-50 hover:bg-slate-50/40 transition-colors">
+                                    <tr key={m.member_id} className="border-b border-border-subtle hover:bg-surface-subtle/50 transition-colors">
                                         <td className="px-6 py-3.5">
                                             <div className="flex items-center gap-3">
                                                 <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0"
                                                     style={{ backgroundColor: COLORS[i % COLORS.length] }}>
                                                     {m.full_name.charAt(0).toUpperCase()}
                                                 </div>
-                                                <span className="font-medium text-slate-700">{m.full_name}</span>
+                                                <span className="font-medium text-text-primary">{m.full_name}</span>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-3.5 text-right text-slate-500">
-                                            {m.pay_rate > 0 ? `$${m.pay_rate}/hr` : <span className="text-slate-300">—</span>}
+                                        <td className="px-6 py-3.5 text-right text-text-secondary">
+                                            {m.pay_rate > 0 ? `$${m.pay_rate}/hr` : <span className="text-text-muted">—</span>}
                                         </td>
-                                        <td className="px-6 py-3.5 text-right text-slate-600 font-medium">{fmtTime(m.totalMinutes)}</td>
-                                        <td className="px-6 py-3.5 text-right text-slate-400">{m.sessions}</td>
+                                        <td className="px-6 py-3.5 text-right text-text-secondary font-medium">{fmtTime(m.totalMinutes)}</td>
+                                        <td className="px-6 py-3.5 text-right text-text-muted">{m.sessions}</td>
                                         <td className="px-6 py-3.5 text-right">
-                                            <span className="font-semibold text-slate-800">${m.totalCost.toFixed(2)}</span>
+                                            <span className="font-semibold text-text-primary">${m.totalCost.toFixed(2)}</span>
                                         </td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
                     )}
-                </div>
+                </Card>
             </div>
-        </div>
+        </PageLayout>
     );
 }
-
-function KpiCard({ icon, label, value, sub }: { icon: React.ReactNode; label: string; value: string; sub: string }) {
-    return (
-        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-            <div className="flex items-center gap-3 mb-3">
-                <div className="w-9 h-9 rounded-lg bg-slate-50 flex items-center justify-center">{icon}</div>
-                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{label}</span>
-            </div>
-            <div className="text-3xl font-light text-slate-800 tracking-tight">{value}</div>
-            <div className="text-xs text-slate-400 mt-1">{sub}</div>
-        </div>
-    );
-}
-function Skeleton() { return <div className="h-48 flex items-center justify-center text-slate-400 text-sm">Loading…</div>; }
-function EmptyState() { return <div className="h-48 flex items-center justify-center text-slate-400 text-sm">No data yet</div>; }

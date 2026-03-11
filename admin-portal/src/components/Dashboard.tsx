@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { Clock, Users, FolderOpen, CircleDollarSign, Activity, Camera } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid } from 'recharts';
+import { PageLayout, Card, KpiCard, EmptyState, LoadingState } from './ui';
 
 interface DashStats {
     todayMinutes: number;
@@ -160,37 +161,31 @@ export function Dashboard() {
     const weekLabel = `${new Date(today.getFullYear(), today.getMonth(), today.getDate() - today.getDay()).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${new Date(today.getFullYear(), today.getMonth(), today.getDate() - today.getDay() + 6).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
 
     return (
-        <div className="p-8 max-w-[1600px] mx-auto w-full">
-            {/* Header */}
-            <div className="mb-8">
-                <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">Dashboard</h1>
-                <p className="text-slate-400 text-sm mt-1">{weekLabel}</p>
-            </div>
-
+        <PageLayout title="Dashboard" description={weekLabel} maxWidth="full">
             {/* KPI Row */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
-                <KpiCard icon={<Clock className="w-4 h-4 text-indigo-500" />} label="Today" value={loading ? '—' : fmtTime(stats.todayMinutes)} />
-                <KpiCard icon={<Clock className="w-4 h-4 text-violet-500" />} label="This Week" value={loading ? '—' : fmtTime(stats.weekMinutes)} />
-                <KpiCard icon={<CircleDollarSign className="w-4 h-4 text-emerald-500" />} label="Week Cost" value={loading ? '—' : `$${stats.weekCost.toFixed(2)}`} />
-                <KpiCard icon={<Users className="w-4 h-4 text-blue-500" />} label="Active Members" value={loading ? '—' : stats.activeMembers.toString()} />
-                <KpiCard icon={<FolderOpen className="w-4 h-4 text-amber-500" />} label="Projects" value={loading ? '—' : stats.activeProjects.toString()} />
-                <KpiCard icon={<Camera className="w-4 h-4 text-rose-500" />} label="Screenshots" value={loading ? '—' : stats.screenshotCount.toString()} />
+                <KpiCard icon={<Clock className="w-4 h-4 text-primary" />} label="Today" value={loading ? '—' : fmtTime(stats.todayMinutes)} />
+                <KpiCard icon={<Clock className="w-4 h-4 text-primary" />} label="This Week" value={loading ? '—' : fmtTime(stats.weekMinutes)} />
+                <KpiCard icon={<CircleDollarSign className="w-4 h-4 text-primary" />} label="Week Cost" value={loading ? '—' : `$${stats.weekCost.toFixed(2)}`} />
+                <KpiCard icon={<Users className="w-4 h-4 text-primary" />} label="Active Members" value={loading ? '—' : stats.activeMembers.toString()} />
+                <KpiCard icon={<FolderOpen className="w-4 h-4 text-primary" />} label="Projects" value={loading ? '—' : stats.activeProjects.toString()} />
+                <KpiCard icon={<Camera className="w-4 h-4 text-primary" />} label="Screenshots" value={loading ? '—' : stats.screenshotCount.toString()} />
             </div>
 
             {/* Main Content */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
                 {/* Projects */}
-                <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-                    <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-5">Projects This Week</h2>
+                <Card title="Projects This Week" className="lg:col-span-2">
                     {loading ? (
-                        <div className="h-48 flex items-center justify-center text-slate-400 text-sm">Loading…</div>
+                        <LoadingState className="min-h-[12rem]" />
                     ) : projects.length === 0 ? (
-                        <div className="h-48 flex flex-col items-center justify-center gap-3 text-slate-400">
-                            <FolderOpen className="w-10 h-10 text-slate-200" />
-                            <p className="text-sm font-medium">No tracked sessions this week</p>
-                            <p className="text-xs text-center">Start a tracking session in the Electron app to see data here.</p>
-                        </div>
+                        <EmptyState
+                            icon={<FolderOpen className="w-6 h-6" />}
+                            title="No tracked sessions this week"
+                            description="Start a tracking session in the Electron app to see data here."
+                            className="min-h-[12rem]"
+                        />
                     ) : (
                         <div className="space-y-3">
                             {projects.map((p) => (
@@ -201,10 +196,10 @@ export function Dashboard() {
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center justify-between mb-1.5">
-                                            <span className="text-sm font-medium text-slate-700 truncate">{p.name}</span>
-                                            <span className="text-xs text-slate-400 ml-3 shrink-0">{fmtTime(p.minutes)}</span>
+                                            <span className="text-sm font-medium text-text-primary truncate">{p.name}</span>
+                                            <span className="text-xs text-text-muted ml-3 shrink-0">{fmtTime(p.minutes)}</span>
                                         </div>
-                                        <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                        <div className="h-1.5 bg-surface-subtle rounded-full overflow-hidden">
                                             <div className="h-full rounded-full transition-all"
                                                 style={{ width: `${Math.round((p.minutes / maxProjectMins) * 100)}%`, backgroundColor: p.color }} />
                                         </div>
@@ -213,46 +208,41 @@ export function Dashboard() {
                             ))}
                         </div>
                     )}
-                </div>
+                </Card>
 
                 {/* Weekly bars */}
-                <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 flex flex-col">
-                    <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-5">This Week</h2>
+                <Card title="This Week" className="flex flex-col">
                     {loading ? (
-                        <div className="flex-1 flex items-center justify-center text-slate-400 text-sm">Loading…</div>
+                        <LoadingState className="flex-1 min-h-[12rem]" />
                     ) : (
                         <div className="flex-1">
                             <ResponsiveContainer width="100%" height={200}>
                                 <BarChart data={weekBars} barSize={20}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                                    <XAxis dataKey="day" tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                                    <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border-subtle)" vertical={false} />
+                                    <XAxis dataKey="day" tick={{ fontSize: 10, fill: 'var(--color-text-muted)' }} axisLine={false} tickLine={false} />
                                     <YAxis hide />
                                     <Tooltip
                                         formatter={(v: number | undefined) => [fmtTime(v ?? 0), 'Tracked']}
-                                        contentStyle={{ borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 12 }}
+                                        contentStyle={{ borderRadius: 8, border: '1px solid var(--color-border)', fontSize: 12 }}
                                     />
-                                    <Bar dataKey="minutes" fill="#4f46e5" radius={[4, 4, 0, 0]}
+                                    <Bar dataKey="minutes" fill="var(--color-primary)" radius={[4, 4, 0, 0]}
                                         label={false} />
                                 </BarChart>
                             </ResponsiveContainer>
                             {/* Today highlight */}
-                            <p className="text-xs text-slate-400 text-center mt-2">
-                                Today: <span className="font-semibold text-indigo-600">{DAYS_SHORT[today.getDay()]}</span>
+                            <p className="text-xs text-text-muted text-center mt-2">
+                                Today: <span className="font-semibold text-primary">{DAYS_SHORT[today.getDay()]}</span>
                             </p>
                         </div>
                     )}
-                </div>
+                </Card>
 
                 {/* Live activity feed */}
-                <div className="lg:col-span-3 bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-                    <div className="flex items-center gap-2 mb-5">
-                        <Activity className="w-4 h-4 text-indigo-500" />
-                        <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Recent Tracking Sessions</h2>
-                    </div>
+                <Card title="Recent Tracking Sessions" className="lg:col-span-3">
                     <RecentSessions />
-                </div>
+                </Card>
             </div>
-        </div>
+        </PageLayout>
     );
 }
 
@@ -278,23 +268,24 @@ function RecentSessions() {
         load();
     }, []);
 
-    if (loading) return <div className="text-slate-400 text-sm py-4">Loading…</div>;
+    if (loading) return <LoadingState message="Loading…" className="py-4 min-h-0" />;
     if (sessions.length === 0) return (
-        <div className="flex flex-col items-center justify-center py-8 gap-2 text-slate-400">
-            <Activity className="w-8 h-8 text-slate-200" />
-            <p className="text-sm">No sessions yet. Start tracking in the Electron app.</p>
-        </div>
+        <EmptyState
+            icon={<Activity className="w-6 h-6" />}
+            title="No sessions yet"
+            description="Start tracking in the Electron app."
+        />
     );
 
     return (
         <div className="overflow-x-auto">
             <table className="w-full text-sm">
                 <thead>
-                    <tr className="border-b border-slate-100 text-left">
-                        <th className="pb-3 pr-6 text-xs font-semibold text-slate-400 uppercase">Member</th>
-                        <th className="pb-3 pr-6 text-xs font-semibold text-slate-400 uppercase">Started</th>
-                        <th className="pb-3 pr-6 text-xs font-semibold text-slate-400 uppercase">Duration</th>
-                        <th className="pb-3 text-xs font-semibold text-slate-400 uppercase">Status</th>
+                    <tr className="border-b border-border text-left">
+                        <th className="pb-3 pr-6 text-xs font-semibold text-text-muted uppercase">Member</th>
+                        <th className="pb-3 pr-6 text-xs font-semibold text-text-muted uppercase">Started</th>
+                        <th className="pb-3 pr-6 text-xs font-semibold text-text-muted uppercase">Duration</th>
+                        <th className="pb-3 text-xs font-semibold text-text-muted uppercase">Status</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -306,16 +297,16 @@ function RecentSessions() {
                         const mid = s.user_id ?? '—';
 
                         return (
-                            <tr key={s.id} className="border-b border-slate-50 hover:bg-slate-50/40 transition-colors">
+                            <tr key={s.id} className="border-b border-border-subtle hover:bg-surface-subtle/50 transition-colors">
                                 <td className="py-3 pr-6">
-                                    <div className="w-7 h-7 rounded-full bg-indigo-100 text-indigo-600 font-bold text-xs flex items-center justify-center">
+                                    <div className="w-7 h-7 rounded-full bg-primary/10 text-primary font-bold text-xs flex items-center justify-center">
                                         {mid.slice(0, 1).toUpperCase()}
                                     </div>
                                 </td>
-                                <td className="py-3 pr-6 text-slate-500">
+                                <td className="py-3 pr-6 text-text-secondary">
                                     {new Date(s.started_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                 </td>
-                                <td className="py-3 pr-6 font-medium text-slate-700">{fmtTime(mins)}</td>
+                                <td className="py-3 pr-6 font-medium text-text-primary">{fmtTime(mins)}</td>
                                 <td className="py-3">
                                     {isActive ? (
                                         <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
@@ -323,7 +314,7 @@ function RecentSessions() {
                                             Live
                                         </span>
                                     ) : (
-                                        <span className="text-xs text-slate-400">Ended</span>
+                                        <span className="text-xs text-text-muted">Ended</span>
                                     )}
                                 </td>
                             </tr>
@@ -335,14 +326,3 @@ function RecentSessions() {
     );
 }
 
-function KpiCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
-    return (
-        <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-            <div className="flex items-center gap-2 mb-2">
-                <div className="w-7 h-7 rounded-lg bg-slate-50 flex items-center justify-center">{icon}</div>
-            </div>
-            <div className="text-2xl font-semibold text-slate-800 tracking-tight">{value}</div>
-            <div className="text-xs text-slate-400 mt-0.5 font-medium">{label}</div>
-        </div>
-    );
-}

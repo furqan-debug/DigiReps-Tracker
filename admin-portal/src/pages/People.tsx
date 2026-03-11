@@ -7,6 +7,7 @@ import {
     AlertCircle, RotateCcw,
     Square, Settings
 } from 'lucide-react';
+import { PageLayout } from '../components/ui';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Role = 'Admin' | 'Manager' | 'User' | 'Viewer';
@@ -255,34 +256,34 @@ export function People() {
     const invitesCount = members.filter(m => m.status === 'Pending').length;
 
     return (
-        <div className="p-8 max-w-[1600px] mx-auto w-full fade-in font-sans">
-            {/* Top Row: Title & Link */}
-            <div className="flex items-center justify-between mb-8">
-                <h1 className="text-3xl font-medium text-[#2d2d2d]">Members</h1>
-                <button className="flex items-center gap-2 text-[#2a85ff] hover:underline text-sm font-medium">
+        <PageLayout
+            title="Members"
+            description={undefined}
+            maxWidth="full"
+            actions={
+                <button className="flex items-center gap-2 text-primary hover:underline text-sm font-medium">
                     <Users className="w-4 h-4" />
                     Onboarding status
                 </button>
-            </div>
-
+            }
+        >
             {/* Tabs */}
-            <div className="flex items-center gap-8 border-b border-slate-200 mb-6">
+            <div className="flex items-center gap-8 border-b border-border mb-6">
                 <button
                     onClick={() => setActiveTab('Members')}
-                    className={`pb-3 text-xs font-bold uppercase tracking-wider transition-all border-b-2 ${activeTab === 'Members' ? 'border-[#2a85ff] text-[#2a85ff]' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+                    className={`pb-3 text-xs font-bold uppercase tracking-wider transition-all border-b-2 ${activeTab === 'Members' ? 'border-primary text-primary' : 'border-transparent text-text-muted hover:text-text-secondary'}`}
                 >
                     Members ({membersCount})
                 </button>
                 <button
                     onClick={() => setActiveTab('Invites')}
-                    className={`pb-3 text-xs font-bold uppercase tracking-wider transition-all border-b-2 ${activeTab === 'Invites' ? 'border-[#2a85ff] text-[#2a85ff]' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+                    className={`pb-3 text-xs font-bold uppercase tracking-wider transition-all border-b-2 ${activeTab === 'Invites' ? 'border-primary text-primary' : 'border-transparent text-text-muted hover:text-text-secondary'}`}
                 >
                     Invites ({invitesCount})
                 </button>
             </div>
 
-            {/* Pricing Info Shadow (Mock) */}
-            <div className="mb-4 flex items-center gap-2 text-xs text-slate-400">
+            <div className="mb-4 flex items-center gap-2 text-xs text-text-muted">
                 <span>{membersCount} of {membersCount} members count toward your pricing plan</span>
                 <AlertCircle className="w-3.5 h-3.5" />
             </div>
@@ -399,7 +400,7 @@ export function People() {
             {showAddModal && <InviteModal onClose={() => setShowAddModal(false)} onInvite={handleAddMember} form={{ addEmail, setAddEmail, addRole, setAddRole, addPayRate, setAddPayRate, addBillRate, setAddBillRate, addWeekly, setAddWeekly, addDaily, setAddDaily, adding, addError }} />}
             {editMember && <EditModal member={editMember} onClose={() => setEditMember(null)} onSave={(patch: any) => handleUpdateMeta(editMember.id, patch)} />}
             {inviteSentTo && <InviteSentPopup email={inviteSentTo} onClose={() => setInviteSentTo(null)} />}
-        </div>
+        </PageLayout>
     );
 }
 
