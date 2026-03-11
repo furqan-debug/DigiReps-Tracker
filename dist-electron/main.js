@@ -392,12 +392,14 @@ ipcMain.handle("start-tracking", async (event, { projectId, userId }) => {
       sessionId = data.session_id;
       console.log(`✅ Session created: ${sessionId}`);
     } else {
-      console.warn("⚠️  Backend unavailable, using local session ID");
-      sessionId = "local-" + Date.now();
+      const errData = await response.json().catch(() => ({}));
+      const msg = errData.error || `Backend returned ${response.status}`;
+      console.error("❌ Failed to create session:", msg);
+      return { status: "error", error: `Could not start session: ${msg}` };
     }
   } catch (err) {
-    console.warn("⚠️  Could not reach backend, using local session ID:", err);
-    sessionId = "local-" + Date.now();
+    console.error("❌ Could not reach backend:", err);
+    return { status: "error", error: "Cannot connect to the backend server. Please make sure it is running." };
   }
   activeSessionId = sessionId;
   const API_URL_LOCAL = process.env.VITE_API_BASE_URL || "http://localhost:3001";

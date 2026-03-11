@@ -78,6 +78,7 @@ export default function App() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [rememberMe, setRememberMe] = useState(true);
+  const [trackingError, setTrackingError] = useState<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Restore session on startup
@@ -161,6 +162,7 @@ export default function App() {
   async function startTracking(project: Project) {
     setElapsed(0);
     setIsPaused(false);
+    setTrackingError(null);
 
     if (!(window as any).trackerAPI) {
       // Browser dev mode — simulate
@@ -171,6 +173,11 @@ export default function App() {
     }
     // @ts-ignore
     const res = await (window as any).trackerAPI.startTracking(project.id, user?.id);
+    if (res.status === 'error') {
+      setTrackingError(res.error || 'Failed to start tracking. Is the backend running?');
+      setActiveProject(null);
+      return;
+    }
     setIsTracking(true);
     setSessionId(res.session_id);
     setScreen('tracker');
@@ -240,7 +247,7 @@ export default function App() {
 
         {screen === 'projects' && (
           <motion.div key="projects" initial="initial" animate="in" exit="out" variants={pageVariants} transition={pageTransition} style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
-            <ProjectsScreen user={user!} projects={projects} onSelect={handleSelectProject} onLogout={handleLogout} />
+            <ProjectsScreen user={user!} projects={projects} onSelect={handleSelectProject} onLogout={handleLogout} trackingError={trackingError} />
           </motion.div>
         )}
 
@@ -518,11 +525,12 @@ function Topbar({ user, onLogout }: { user?: User, onLogout?: () => void }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // Screen: Project Picker
 // ─────────────────────────────────────────────────────────────────────────────
-function ProjectsScreen({ user, projects, onSelect, onLogout }: {
+function ProjectsScreen({ user, projects, onSelect, onLogout, trackingError }: {
   user: User;
   projects: Project[];
   onSelect: (p: Project) => void;
   onLogout: () => void;
+  trackingError?: string | null;
 }) {
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -547,6 +555,12 @@ function ProjectsScreen({ user, projects, onSelect, onLogout }: {
           <p className="text-muted" style={{ marginTop: '0.5rem' }}>Choose the active project to begin tracking your time.</p>
         </div>
 
+        {trackingError && (
+          <div className="alert alert-error" style={{ marginBottom: '1rem', borderRadius: '0.75rem', padding: '0.75rem 1rem' }}>
+            <ShieldAlert size={16} />
+            <span>{trackingError}</span>
+          </div>
+        )}
         {projects.length === 0 ? (
           <div className="projects-empty">
             <div className="projects-empty-icon">
