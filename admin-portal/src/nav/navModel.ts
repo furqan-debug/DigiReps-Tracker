@@ -4,7 +4,6 @@ import {
     Clock,
     Activity,
     FolderKanban,
-    CalendarDays,
     FileText,
     Users,
     CircleDollarSign,
@@ -54,11 +53,6 @@ export const navStructure: NavGroup[] = [
             { name: 'To-dos', path: '/projects/todos' },
             { name: 'Clients', path: '/projects/clients' },
         ],
-    },
-    {
-        name: 'Calendar',
-        icon: CalendarDays,
-        children: [{ name: 'Time off requests', path: '/calendar/requests' }],
     },
     {
         name: 'Reports',

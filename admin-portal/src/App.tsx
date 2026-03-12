@@ -31,7 +31,6 @@ import { UpdatePassword } from './pages/UpdatePassword';
 import { MemberTimeline } from './pages/MemberTimeline';
 import { Teams } from './pages/Teams';
 import { Calendar } from './pages/Calendar';
-import { TimeOff } from './pages/TimeOff';
 import { PlaceholderPage } from './pages/PlaceholderPage';
 import { CreatePayments } from './pages/CreatePayments';
 import { PastPayments } from './pages/PastPayments';
@@ -87,7 +86,6 @@ function App() {
                     <Route path="/projects/clients" element={<Clients />} />
 
                     <Route path="/calendar" element={<Calendar />} />
-                    <Route path="/calendar/requests" element={<TimeOff />} />
 
                     <Route path="/reports/legacy" element={<ReportsLegacy />} />
                     <Route path="/reports/daily" element={<DailyTotals />} />

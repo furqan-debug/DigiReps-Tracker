@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
 import {
-    Users, Plus, Search, Pencil,
+    Users, Search,
     Trash2, Shield, LayoutGrid, List, X,
-    ChevronRight, UsersRound
+    ChevronRight, UsersRound, Plus, Pencil
 } from 'lucide-react';
+
+const API = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 interface Team {
     id: string;
@@ -33,11 +34,13 @@ export function Teams() {
     const [showModal, setShowModal] = useState(false);
     const [editingTeam, setEditingTeam] = useState<Team | null>(null);
     const [deletingTeam, setDeletingTeam] = useState<Team | null>(null);
+    const [managingMembersTeam, setManagingMembersTeam] = useState<Team | null>(null);
 
     // Form state
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [managerId, setManagerId] = useState('');
+    const [selectedMemberIds, setSelectedMemberIds] = useState<Set<string>>(new Set());
 
     useEffect(() => {
         fetchData();
@@ -45,34 +48,18 @@ export function Teams() {
 
     async function fetchData() {
         setLoading(true);
-        const [
-            { data: teamsData },
-            { data: membersData },
-            { data: countsData }
-        ] = await Promise.all([
-            supabase.from('teams').select('*').order('created_at', { ascending: false }),
-            supabase.from('members').select('id, full_name, email'),
-            supabase.from('team_members').select('team_id')
-        ]);
-
-        if (teamsData && membersData) {
-            setMembers(membersData);
-            const memberMap: Record<string, string> = {};
-            membersData.forEach(m => memberMap[m.id] = m.full_name);
-
-            const countMap: Record<string, number> = {};
-            (countsData || []).forEach(c => {
-                countMap[c.team_id] = (countMap[c.team_id] || 0) + 1;
-            });
-
-            const formatted: Team[] = teamsData.map(t => ({
-                ...t,
-                manager_name: t.manager_id ? memberMap[t.manager_id] : 'No Manager',
-                member_count: countMap[t.id] || 0
-            }));
-            setTeams(formatted);
+        try {
+            const [tRes, mRes] = await Promise.all([
+                fetch(`${API}/api/teams`),
+                fetch(`${API}/api/members`)
+            ]);
+            if (tRes.ok) setTeams(await tRes.json());
+            if (mRes.ok) setMembers(await mRes.json());
+        } catch (e) {
+            console.error('Fetch teams error:', e);
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     }
 
     function openCreateModal() {
@@ -95,26 +82,36 @@ export function Teams() {
         const payload = {
             name,
             description,
-            manager_id: managerId || null
+            manager_id: managerId || null,
+            member_ids: Array.from(selectedMemberIds)
         };
 
-        if (editingTeam) {
-            const { error } = await supabase.from('teams').update(payload).eq('id', editingTeam.id);
-            if (error) console.error(error);
-        } else {
-            const { error } = await supabase.from('teams').insert([payload]);
-            if (error) console.error(error);
+        try {
+            const res = await fetch(`${API}/api/teams${editingTeam ? `/${editingTeam.id}` : ''}`, {
+                method: editingTeam ? 'PUT' : 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (res.ok) {
+                setShowModal(false);
+                fetchData();
+            }
+        } catch (e) {
+            console.error('Save team error:', e);
         }
-        setShowModal(false);
-        fetchData();
     }
 
     async function handleDelete() {
         if (!deletingTeam) return;
-        const { error } = await supabase.from('teams').delete().eq('id', deletingTeam.id);
-        if (error) console.error(error);
-        setDeletingTeam(null);
-        fetchData();
+        try {
+            const res = await fetch(`${API}/api/teams/${deletingTeam.id}`, { method: 'DELETE' });
+            if (res.ok) {
+                setDeletingTeam(null);
+                fetchData();
+            }
+        } catch (e) {
+            console.error('Delete team error:', e);
+        }
     }
 
     const filtered = teams.filter(t =>
@@ -222,6 +219,7 @@ export function Teams() {
                                 team={team}
                                 mode={viewMode}
                                 onEdit={() => openEditModal(team)}
+                                onManage={() => setManagingMembersTeam(team)}
                                 onDelete={() => setDeletingTeam(team)}
                             />
                         ))}
@@ -328,14 +326,103 @@ export function Teams() {
                     </div>
                 </div>
             )}
+            {/* MANAGE MEMBERS MODAL */}
+            {managingMembersTeam && (
+                <ManageMembersModal
+                    team={managingMembersTeam}
+                    allMembers={members}
+                    onClose={() => setManagingMembersTeam(null)}
+                    onSuccess={() => { setManagingMembersTeam(null); fetchData(); }}
+                />
+            )}
         </div>
     );
 }
 
-function TeamItem({ team, mode, onEdit, onDelete }: {
+function ManageMembersModal({ team, allMembers, onClose, onSuccess }: {
+    team: Team;
+    allMembers: Member[];
+    onClose: () => void;
+    onSuccess: () => void;
+}) {
+    // Note: team.memberIds is populated by our refined backend API
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set((team as any).memberIds || []));
+    const [loading, setLoading] = useState(false);
+
+    async function handleSave() {
+        setLoading(true);
+        try {
+            const res = await fetch(`${API}/api/teams/${team.id}/members`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ member_ids: Array.from(selectedIds) })
+            });
+            if (res.ok) onSuccess();
+        } catch (e) {
+            console.error('Update members error:', e);
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    return (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in fade-in duration-300">
+            <div className="bg-white rounded-[3rem] w-full max-w-lg shadow-2xl overflow-hidden border border-slate-200">
+                <div className="px-10 py-8 border-b border-slate-100 flex items-center justify-between">
+                    <div>
+                        <h2 className="text-2xl font-black text-slate-900 tracking-tight">Manage Members</h2>
+                        <p className="text-slate-500 font-bold text-xs uppercase tracking-widest mt-1">{team.name}</p>
+                    </div>
+                    <button onClick={onClose} className="p-3 hover:bg-slate-100 rounded-2xl transition-all">
+                        <X className="w-6 h-6 text-slate-400" />
+                    </button>
+                </div>
+                <div className="p-8 max-h-[50vh] overflow-y-auto space-y-4">
+                    {allMembers.map(m => {
+                        const isSelected = selectedIds.has(m.id);
+                        return (
+                            <button
+                                key={m.id}
+                                onClick={() => {
+                                    const next = new Set(selectedIds);
+                                    if (next.has(m.id)) next.delete(m.id);
+                                    else next.add(m.id);
+                                    setSelectedIds(next);
+                                }}
+                                className={`w-full flex items-center justify-between p-4 rounded-2xl border transition-all ${isSelected ? 'border-indigo-600 bg-indigo-50/50' : 'border-slate-100 hover:bg-slate-50'}`}
+                            >
+                                <div className="flex items-center gap-4">
+                                    <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-xs font-black text-indigo-600">
+                                        {m.full_name.substring(0, 2).toUpperCase()}
+                                    </div>
+                                    <div className="text-left">
+                                        <p className="text-sm font-black text-slate-800 tracking-tight">{m.full_name}</p>
+                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{m.email}</p>
+                                    </div>
+                                </div>
+                                <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-indigo-600 border-indigo-600' : 'border-slate-200'}`}>
+                                    {isSelected && <X className="w-4 h-4 text-white" style={{ transform: 'rotate(45deg)' }} />}
+                                </div>
+                            </button>
+                        );
+                    })}
+                </div>
+                <div className="px-10 py-8 bg-slate-50/50 border-t border-slate-100 flex gap-4">
+                    <button onClick={onClose} className="flex-1 px-6 py-4 rounded-2xl text-sm font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-all">Cancel</button>
+                    <button onClick={handleSave} disabled={loading} className="flex-[2] bg-indigo-600 text-white px-8 py-4 rounded-2xl text-sm font-black uppercase tracking-widest hover:bg-slate-900 transition-all shadow-xl shadow-indigo-100 active:scale-95 disabled:opacity-50">
+                        {loading ? 'Saving...' : 'Update Members'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function TeamItem({ team, mode, onEdit, onManage, onDelete }: {
     team: Team;
     mode: 'grid' | 'list';
     onEdit: () => void;
+    onManage: () => void;
     onDelete: () => void;
 }) {
     const initials = team.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
@@ -369,6 +456,9 @@ function TeamItem({ team, mode, onEdit, onDelete }: {
                 <div className="flex items-center gap-2 ml-auto opacity-0 group-hover:opacity-100 transition-all">
                     <button onClick={onEdit} className="p-3 hover:bg-white rounded-xl border border-transparent hover:border-slate-200 transition-all text-slate-400 hover:text-indigo-600 shadow-sm">
                         <Pencil className="w-5 h-5" />
+                    </button>
+                    <button onClick={onManage} className="p-3 hover:bg-white rounded-xl border border-transparent hover:border-slate-200 transition-all text-slate-400 hover:text-indigo-600 shadow-sm">
+                        <Users className="w-5 h-5" />
                     </button>
                     <button onClick={onDelete} className="p-3 hover:bg-rose-50 rounded-xl border border-transparent hover:border-rose-100 transition-all text-slate-300 hover:text-rose-500 shadow-sm">
                         <Trash2 className="w-5 h-5" />
@@ -428,7 +518,10 @@ function TeamItem({ team, mode, onEdit, onDelete }: {
                         </div>
                         <span className="text-xs font-black text-slate-400 uppercase tracking-widest">{team.member_count} Members</span>
                     </div>
-                    <button className="flex items-center gap-2 text-indigo-600 hover:text-indigo-800 font-black uppercase tracking-widest text-[10px] transition-all group/btn">
+                    <button 
+                        onClick={onManage}
+                        className="flex items-center gap-2 text-indigo-600 hover:text-indigo-800 font-black uppercase tracking-widest text-[10px] transition-all group/btn"
+                    >
                         Manage
                         <ChevronRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
                     </button>
