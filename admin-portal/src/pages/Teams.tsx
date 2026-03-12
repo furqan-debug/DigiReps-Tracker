@@ -6,7 +6,7 @@ import {
     ChevronRight, UsersRound, Plus, Pencil
 } from 'lucide-react';
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
 interface Team {
     id: string;
@@ -25,7 +25,7 @@ interface Member {
 }
 
 export function Teams() {
-    const { profile } = useAuth();
+    const { profile, session } = useAuth();
     const isViewer = profile?.role === 'Viewer';
     const [teams, setTeams] = useState<Team[]>([]);
     const [members, setMembers] = useState<Member[]>([]);
@@ -52,8 +52,12 @@ export function Teams() {
         setLoading(true);
         try {
             const [tRes, mRes] = await Promise.all([
-                fetch(`${API}/api/teams`),
-                fetch(`${API}/api/members`)
+                fetch(`${API}/api/teams`, {
+                    headers: { 'Authorization': `Bearer ${session?.access_token}` }
+                }),
+                fetch(`${API}/api/members`, {
+                    headers: { 'Authorization': `Bearer ${session?.access_token}` }
+                })
             ]);
             if (tRes.ok) setTeams(await tRes.json());
             if (mRes.ok) setMembers(await mRes.json());
@@ -92,7 +96,10 @@ export function Teams() {
         try {
             const res = await fetch(`${API}/api/teams${editingTeam ? `/${editingTeam.id}` : ''}`, {
                 method: editingTeam ? 'PUT' : 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session?.access_token}`
+                },
                 body: JSON.stringify(payload)
             });
             if (res.ok) {
@@ -107,7 +114,10 @@ export function Teams() {
     async function handleDelete() {
         if (!deletingTeam) return;
         try {
-            const res = await fetch(`${API}/api/teams/${deletingTeam.id}`, { method: 'DELETE' });
+            const res = await fetch(`${API}/api/teams/${deletingTeam.id}`, { 
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${session?.access_token}` }
+            });
             if (res.ok) {
                 setDeletingTeam(null);
                 fetchData();

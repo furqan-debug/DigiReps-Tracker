@@ -57,7 +57,7 @@ const API = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 // ─── Components ───────────────────────────────────────────────────────────────
 
 export function Projects() {
-    const { profile } = useAuth();
+    const { profile, session } = useAuth();
     const isViewer = profile?.role === 'Viewer';
 
     const [projects, setProjects] = useState<Project[]>([]);
@@ -78,7 +78,9 @@ export function Projects() {
     async function fetchProjects() {
         setLoading(true);
         try {
-            const res = await fetch(`${API}/api/projects?status=${activeTab}`);
+            const res = await fetch(`${API}/api/projects?status=${activeTab}`, {
+                headers: { 'Authorization': `Bearer ${session?.access_token}` }
+            });
             if (res.ok) {
                 const data = await res.json();
                 setProjects(data);
@@ -118,7 +120,10 @@ export function Projects() {
             await Promise.all(Array.from(selectedIds).map(id =>
                 fetch(`${API}/api/projects/${id}`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${session?.access_token}`
+                    },
                     body: JSON.stringify({ status: newStatus })
                 })
             ));

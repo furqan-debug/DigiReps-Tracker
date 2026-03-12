@@ -40,7 +40,7 @@ const API = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export function People() {
-    const { profile } = useAuth();
+    const { profile, session } = useAuth();
     const isViewer = profile?.role === 'Viewer';
     const [members, setMembers] = useState<MemberRow[]>([]);
     const [loading, setLoading] = useState(true);
@@ -73,7 +73,9 @@ export function People() {
     async function fetchMembers() {
         setLoading(true);
         try {
-            const r = await fetch(`${API}/api/members`);
+            const r = await fetch(`${API}/api/members`, {
+                headers: { 'Authorization': `Bearer ${session?.access_token}` }
+            });
             if (r.ok) {
                 const data = await r.json();
                 setMembers(data);
@@ -92,7 +94,10 @@ export function People() {
         try {
             const res = await fetch(`${API}/api/members`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session?.access_token}`
+                },
                 body: JSON.stringify({
                     email: addEmail.trim().toLowerCase(),
                     role: addRole,
@@ -121,7 +126,10 @@ export function People() {
         try {
             await fetch(`${API}/api/members`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session?.access_token}`
+                },
                 body: JSON.stringify({ email }),
             });
             setInviteSentTo(email);
@@ -138,7 +146,10 @@ export function People() {
         try {
             await fetch(`${API}/api/members/${id}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session?.access_token}`
+                },
                 body: JSON.stringify(patch),
             });
         } catch {
@@ -151,7 +162,10 @@ export function People() {
         if (!confirm('Are you sure you want to remove this member?')) return;
         setMembers(prev => prev.filter(m => m.id !== id));
         try {
-            await fetch(`${API}/api/members/${id}`, { method: 'DELETE' });
+            await fetch(`${API}/api/members/${id}`, { 
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${session?.access_token}` }
+            });
         } catch { fetchMembers(); }
     }
 
@@ -161,7 +175,10 @@ export function People() {
         setMembers(prev => prev.filter(m => !selectedIds.has(m.id)));
         try {
             await Promise.all(
-                Array.from(selectedIds).map(id => fetch(`${API}/api/members/${id}`, { method: 'DELETE' }))
+                Array.from(selectedIds).map(id => fetch(`${API}/api/members/${id}`, { 
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${session?.access_token}` }
+                }))
             );
             setSelectedIds(new Set());
         } catch { fetchMembers(); }

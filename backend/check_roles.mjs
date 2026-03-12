@@ -16,7 +16,7 @@ import fs from 'fs';
 
 async function listAll() {
     const output = { auth: [], db: [] };
-    
+
     const { data: { users }, error: authError } = await supabase.auth.admin.listUsers();
     if (authError) console.error('Auth Error:', authError);
     else output.auth = users.map(u => ({ email: u.email, id: u.id, metadata: u.user_metadata }));

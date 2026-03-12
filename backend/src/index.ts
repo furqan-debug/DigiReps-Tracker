@@ -198,7 +198,7 @@ app.get('/api/auth/me', requireAuth, async (req, res) => {
 /**
  * GET /api/members — list all members with project counts and stats
  */
-app.get('/api/members', async (req, res) => {
+app.get('/api/members', requireAuth, async (req, res) => {
     try {
         const db = getDb();
         
@@ -265,12 +265,33 @@ app.get('/api/members', async (req, res) => {
  * Body: { email, role, pay_rate, bill_rate, weekly_limit, daily_limit }
  * Supabase sends an invite email; no temp password is generated.
  */
-app.post('/api/members', async (req, res) => {
+app.post('/api/members', requireAuth, async (req, res) => {
     try {
+        const authUser = (req as any).authUser;
         const { email, role = 'User', pay_rate, bill_rate, weekly_limit = 40, daily_limit = 8 } = req.body;
         if (!email) return res.status(400).json({ error: 'email is required' });
 
         const db = getDb();
+
+        // 1. Fetch the admin/manager's own profile to get their organization_id
+        const { data: adminProfile, error: adminErr } = await db
+            .from('members')
+            .select('organization_id, role')
+            .eq('email', authUser.email)
+            .single();
+
+        if (adminErr || !adminProfile) {
+            return res.status(403).json({ error: 'Your admin profile was not found.' });
+        }
+
+        if (adminProfile.role !== 'Admin' && adminProfile.role !== 'Manager') {
+            return res.status(403).json({ error: 'Only Admins and Managers can invite members.' });
+        }
+
+        const orgId = adminProfile.organization_id;
+        if (!orgId) {
+            return res.status(403).json({ error: 'You must belong to an organization to invite members.' });
+        }
 
         // Send Supabase invite email (user will receive a magic link)
         const adminPortalUrl = process.env.ADMIN_PORTAL_URL || 'http://localhost:5173';
@@ -307,7 +328,7 @@ app.post('/api/members', async (req, res) => {
             weekly_limit,
             daily_limit,
             status: 'Pending',
-            organization_id: req.body.organization_id || null,
+            organization_id: orgId,
         }]).select().single();
 
         if (memberError) throw memberError;
@@ -377,7 +398,7 @@ app.post('/api/members/complete-setup', async (req, res) => {
 /**
  * PUT /api/members/:id — update member profile
  */
-app.put('/api/members/:id', async (req, res) => {
+app.put('/api/members/:id', requireAuth, async (req, res) => {
     try {
         const { id } = req.params;
         const { full_name, role, status, pay_rate, bill_rate, weekly_limit, daily_limit, tracking_enabled } = req.body;
@@ -394,7 +415,7 @@ app.put('/api/members/:id', async (req, res) => {
 /**
  * DELETE /api/members/:id — remove a member
  */
-app.delete('/api/members/:id', async (req, res) => {
+app.delete('/api/members/:id', requireAuth, async (req, res) => {
     try {
         const { id } = req.params;
         const { error } = await getDb().from('members').delete().eq('id', id);
@@ -412,7 +433,7 @@ app.delete('/api/members/:id', async (req, res) => {
 /**
  * GET /api/projects — list all projects (admin view)
  */
-app.get('/api/projects', async (req, res) => {
+app.get('/api/projects', requireAuth, async (req, res) => {
     try {
         const { status } = req.query;
         const db = getDb();
@@ -454,7 +475,7 @@ app.get('/api/projects', async (req, res) => {
  * POST /api/projects — admin creates a project
  * Body: { name, description, color, client_id, billable, budget_type, budget_limit, budget_notifications, member_ids, team_ids }
  */
-app.post('/api/projects', async (req, res) => {
+app.post('/api/projects', requireAuth, async (req, res) => {
     try {
         const {
             name, description, color = '#3b82f6', client_id,
@@ -495,7 +516,7 @@ app.post('/api/projects', async (req, res) => {
 /**
  * PUT /api/projects/:id — update project
  */
-app.put('/api/projects/:id', async (req, res) => {
+app.put('/api/projects/:id', requireAuth, async (req, res) => {
     try {
         const { id } = req.params;
         const {
@@ -541,7 +562,7 @@ app.put('/api/projects/:id', async (req, res) => {
  * PUT /api/projects/:id/members — set member assignments for a project
  * Body: { member_ids: string[] }
  */
-app.put('/api/projects/:id/members', async (req, res) => {
+app.put('/api/projects/:id/members', requireAuth, async (req, res) => {
     try {
         const { id } = req.params;
         const { member_ids = [] } = req.body;
@@ -950,7 +971,7 @@ app.delete('/api/expenses/:id', async (req, res) => {
 /**
  * GET /api/teams — list all teams with counts
  */
-app.get('/api/teams', async (req, res) => {
+app.get('/api/teams', requireAuth, async (req, res) => {
     try {
         const db = getDb();
         const { data, error } = await db.from('teams').select(`
@@ -975,7 +996,7 @@ app.get('/api/teams', async (req, res) => {
 /**
  * POST /api/teams — create a team
  */
-app.post('/api/teams', async (req, res) => {
+app.post('/api/teams', requireAuth, async (req, res) => {
     try {
         const { name, description, manager_id, member_ids = [] } = req.body;
         if (!name) return res.status(400).json({ error: 'name is required' });
@@ -1001,7 +1022,7 @@ app.post('/api/teams', async (req, res) => {
 /**
  * PUT /api/teams/:id — update team
  */
-app.put('/api/teams/:id', async (req, res) => {
+app.put('/api/teams/:id', requireAuth, async (req, res) => {
     try {
         const { id } = req.params;
         const { name, description, manager_id, member_ids } = req.body;
@@ -1030,7 +1051,7 @@ app.put('/api/teams/:id', async (req, res) => {
 /**
  * DELETE /api/teams/:id — delete team
  */
-app.delete('/api/teams/:id', async (req, res) => {
+app.delete('/api/teams/:id', requireAuth, async (req, res) => {
     try {
         const { id } = req.params;
         const { error } = await getDb().from('teams').delete().eq('id', id);
@@ -1044,7 +1065,7 @@ app.delete('/api/teams/:id', async (req, res) => {
 /**
  * PUT /api/teams/:id/members — manage team members
  */
-app.put('/api/teams/:id/members', async (req, res) => {
+app.put('/api/teams/:id/members', requireAuth, async (req, res) => {
     try {
         const { id } = req.params;
         const { member_ids = [] } = req.body;
