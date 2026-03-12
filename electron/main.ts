@@ -1,7 +1,7 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, Notification } from 'electron';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { initTracker, startTrackingSession, stopTrackingSession, teardownTracker } from './tracker';
+import { initTracker, startTrackingSession, stopTrackingSession, teardownTracker, pauseTrackingSession, resumeTrackingSession } from './tracker';
 import { initCache } from './cache';
 import { initApi, teardownApi, uploadSample } from './api';
 
@@ -139,4 +139,29 @@ ipcMain.handle('stop-tracking', async () => {
     }
 
     return { status: 'stopped' };
+});
+
+ipcMain.handle('pause-tracking', async () => {
+    console.log('Pausing tracking');
+    pauseTrackingSession();
+    return { status: 'paused' };
+});
+
+ipcMain.handle('resume-tracking', async () => {
+    console.log('Resuming tracking');
+    resumeTrackingSession();
+    return { status: 'running' };
+});
+
+// IPC: Fire a native OS desktop notification
+ipcMain.handle('show-notification', (_event, { title, body }: { title: string; body: string }) => {
+    if (Notification.isSupported()) {
+        const notif = new Notification({
+            title,
+            body,
+            urgency: 'critical', // Windows doesn't use this much, but helps in some environments
+            silent: false,      // Ensure system sound plays
+        });
+        notif.show();
+    }
 });

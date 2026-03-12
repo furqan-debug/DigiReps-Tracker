@@ -14,6 +14,7 @@ let screenshotTimeout: NodeJS.Timeout | null = null;
 let currentSessionId: string | null = null;
 let onSampleCallback: ((sample: any) => void) | null = null;
 let onScreenshotCallback: ((screenshot: { session_id: string; timestamp: string; base64: string }) => void) | null = null;
+let lastIntervalMs = 60000;
 
 // Screenshot window: 2 minutes, 2 shots per window (for faster testing)
 const SCREENSHOT_WINDOW_MS = 2 * 60 * 1000;  // 2 min
@@ -39,12 +40,17 @@ export function startTrackingSession(
 ) {
     if (isTracking) return;
     isTracking = true;
+    lastIntervalMs = intervalMs;
     currentSessionId = sessionId;
     onSampleCallback = onSample;
     onScreenshotCallback = onScreenshot;
     mouseCount = 0;
     keyboardCount = 0;
 
+    startIntervals();
+}
+
+function startIntervals() {
     // ── Activity samples ──────────────────────────────────────
     sampleInterval = setInterval(async () => {
         const activeInfo = await activeWindow();
@@ -70,7 +76,7 @@ export function startTrackingSession(
         keyboardCount = 0;
 
         if (onSampleCallback) onSampleCallback(sample);
-    }, intervalMs);
+    }, lastIntervalMs);
 
     // ── Screenshots — random interval between min/max ────────
     scheduleNextScreenshot();
@@ -131,7 +137,6 @@ function fireChain(offsets: number[], idx: number, prevOffset: number) {
 }
 
 
-
 export function stopTrackingSession() {
     if (!isTracking) return;
     isTracking = false;
@@ -144,6 +149,21 @@ export function stopTrackingSession() {
 
 export function teardownTracker() {
     uIOhook.stop();
+}
+
+export function pauseTrackingSession() {
+    if (!isTracking) return;
+    isTracking = false;
+    if (sampleInterval) { clearInterval(sampleInterval); sampleInterval = null; }
+    if (screenshotTimeout) { clearTimeout(screenshotTimeout); screenshotTimeout = null; }
+}
+
+export function resumeTrackingSession() {
+    if (isTracking || !currentSessionId) return;
+    isTracking = true;
+    mouseCount = 0;
+    keyboardCount = 0;
+    startIntervals();
 }
 
 // ─── Browser URL Extraction ────────────────────────────────────────────────────

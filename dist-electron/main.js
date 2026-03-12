@@ -1,4 +1,4 @@
-import { desktopCapturer, app, BrowserWindow, ipcMain } from "electron";
+import { desktopCapturer, app, BrowserWindow, ipcMain, Notification } from "electron";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { uIOhook } from "uiohook-napi";
@@ -31,6 +31,7 @@ let screenshotTimeout = null;
 let currentSessionId = null;
 let onSampleCallback = null;
 let onScreenshotCallback = null;
+let lastIntervalMs = 6e4;
 const SCREENSHOT_WINDOW_MS = 2 * 60 * 1e3;
 const SCREENSHOTS_PER_WINDOW = 2;
 function initTracker() {
@@ -45,11 +46,15 @@ function initTracker() {
 function startTrackingSession(sessionId, onSample, onScreenshot, intervalMs = 6e4) {
   if (isTracking) return;
   isTracking = true;
+  lastIntervalMs = intervalMs;
   currentSessionId = sessionId;
   onSampleCallback = onSample;
   onScreenshotCallback = onScreenshot;
   mouseCount = 0;
   keyboardCount = 0;
+  startIntervals();
+}
+function startIntervals() {
   sampleInterval = setInterval(async () => {
     const activeInfo = await activeWindow();
     const appName = activeInfo?.owner.name || "Unknown";
@@ -69,7 +74,7 @@ function startTrackingSession(sessionId, onSample, onScreenshot, intervalMs = 6e
     mouseCount = 0;
     keyboardCount = 0;
     if (onSampleCallback) onSampleCallback(sample);
-  }, intervalMs);
+  }, lastIntervalMs);
   scheduleNextScreenshot();
 }
 function scheduleNextScreenshot() {
@@ -129,6 +134,25 @@ function stopTrackingSession() {
 }
 function teardownTracker() {
   uIOhook.stop();
+}
+function pauseTrackingSession() {
+  if (!isTracking) return;
+  isTracking = false;
+  if (sampleInterval) {
+    clearInterval(sampleInterval);
+    sampleInterval = null;
+  }
+  if (screenshotTimeout) {
+    clearTimeout(screenshotTimeout);
+    screenshotTimeout = null;
+  }
+}
+function resumeTrackingSession() {
+  if (isTracking || !currentSessionId) return;
+  isTracking = true;
+  mouseCount = 0;
+  keyboardCount = 0;
+  startIntervals();
 }
 const BROWSER_PROCESS_NAMES = /* @__PURE__ */ new Set([
   "chrome",
@@ -436,4 +460,27 @@ ipcMain.handle("stop-tracking", async () => {
     activeSessionId = null;
   }
   return { status: "stopped" };
+});
+ipcMain.handle("pause-tracking", async () => {
+  console.log("Pausing tracking");
+  pauseTrackingSession();
+  return { status: "paused" };
+});
+ipcMain.handle("resume-tracking", async () => {
+  console.log("Resuming tracking");
+  resumeTrackingSession();
+  return { status: "running" };
+});
+ipcMain.handle("show-notification", (_event, { title, body }) => {
+  if (Notification.isSupported()) {
+    const notif = new Notification({
+      title,
+      body,
+      urgency: "critical",
+      // Windows doesn't use this much, but helps in some environments
+      silent: false
+      // Ensure system sound plays
+    });
+    notif.show();
+  }
 });

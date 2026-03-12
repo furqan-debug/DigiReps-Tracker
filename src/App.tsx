@@ -1,11 +1,25 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Lock, Mail, ArrowRight, Play, Square, Pause,
   ChevronRight, Activity, LogOut, CheckCircle2,
-  ShieldAlert, Eye, MapPin, MonitorPlay, MousePointerClick
+  ShieldAlert, Eye, MapPin, MonitorPlay, MousePointerClick,
+  ClipboardList, Calendar, Circle, ChevronDown, ChevronUp
 } from 'lucide-react';
 import './App.css';
+
+const SUPABASE_URL = (import.meta as any).env?.VITE_SUPABASE_URL as string;
+const SUPABASE_ANON_KEY = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY as string;
+
+// Lazy singleton Supabase client for the renderer
+let _supabase: any = null;
+async function getSupabase() {
+  if (!_supabase) {
+    const { createClient } = await import('@supabase/supabase-js');
+    _supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  }
+  return _supabase;
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Screen = 'login' | 'projects' | 'consent' | 'tracker';
@@ -22,6 +36,18 @@ interface Project {
   name: string;
   description: string;
   color: string;
+}
+
+interface Todo {
+  id: string;
+  title: string;
+  description?: string;
+  status: 'Todo' | 'In Progress' | 'Done';
+  due_date?: string;
+  project_id?: string;
+  assignee_id?: string;
+  projectName?: string;
+  projectColor?: string;
 }
 
 interface ActivitySample {
@@ -79,7 +105,9 @@ export default function App() {
   const [elapsed, setElapsed] = useState(0);
   const [rememberMe, setRememberMe] = useState(true);
   const [trackingError, setTrackingError] = useState<string | null>(null);
+  const [todos, setTodos] = useState<Todo[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const realtimeRef = useRef<any>(null);
 
   // Restore session on startup
   useEffect(() => {
@@ -97,12 +125,60 @@ export default function App() {
           setUser(saved.user);
           setProjects(data.projects || []);
           setScreen('projects');
+          fetchAndSubscribeTodos(saved.user.id);
         } else {
           clearSession();
         }
       })
       .catch(() => clearSession());
   }, []);
+
+  // Fetch open todos for the logged-in member and subscribe for new ones
+  async function fetchAndSubscribeTodos(userId: string) {
+    const sb = await getSupabase();
+
+    // Initial fetch
+    const { data } = await sb
+      .from('todos')
+      .select('id, title, description, status, due_date, project_id, assignee_id, projects(name, color)')
+      .eq('assignee_id', userId)
+      .neq('status', 'Done')
+      .order('created_at', { ascending: false });
+
+    if (data) {
+      setTodos(data.map((t: any) => ({
+        ...t,
+        projectName: t.projects?.name,
+        projectColor: t.projects?.color,
+      })));
+    }
+
+    // Realtime subscription — fires on INSERT of a new assigned todo
+    if (realtimeRef.current) sb.removeChannel(realtimeRef.current);
+    realtimeRef.current = sb
+      .channel('my-todos-' + userId)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'todos', filter: `assignee_id=eq.${userId}` },
+        async (payload: any) => {
+          const t = payload.new;
+          // Fetch project details for the new todo
+          const { data: proj } = await sb.from('projects').select('name, color').eq('id', t.project_id).single();
+          const enriched: Todo = {
+            ...t,
+            projectName: proj?.name,
+            projectColor: proj?.color,
+          };
+          setTodos(prev => [enriched, ...prev]);
+          // Fire native desktop notification
+          (window as any).trackerAPI?.showNotification(
+            '📋 New Task Assigned',
+            t.title + (proj?.name ? ` — ${proj.name}` : '')
+          );
+        }
+      )
+      .subscribe();
+  }
 
   // Elapsed timer — only ticks when tracking and not paused
   useEffect(() => {
@@ -129,6 +205,7 @@ export default function App() {
       setUser(data.user);
       setProjects(data.projects || []);
       setScreen('projects');
+      fetchAndSubscribeTodos(data.user.id);
       return null;
     } catch {
       return 'Network error — is the backend running?';
@@ -220,8 +297,22 @@ export default function App() {
     clearSession();
     setUser(null);
     setProjects([]);
+    setTodos([]);
+    // Unsubscribe realtime (fire-and-forget)
+    if (realtimeRef.current) {
+      const ch = realtimeRef.current;
+      realtimeRef.current = null;
+      getSupabase().then((sb: any) => sb.removeChannel(ch));
+    }
     setScreen('login');
   }
+
+  // ── Mark a todo as Done ───────────────────────────────────────────────────
+  const handleTodoDone = useCallback(async (todoId: string) => {
+    setTodos(prev => prev.filter(t => t.id !== todoId));
+    const sb = await getSupabase();
+    await sb.from('todos').update({ status: 'Done' }).eq('id', todoId);
+  }, []);
 
   // Screen variants for framer-motion transitions
   const pageVariants = {
@@ -247,7 +338,7 @@ export default function App() {
 
         {screen === 'projects' && (
           <motion.div key="projects" initial="initial" animate="in" exit="out" variants={pageVariants} transition={pageTransition} style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
-            <ProjectsScreen user={user!} projects={projects} onSelect={handleSelectProject} onLogout={handleLogout} trackingError={trackingError} />
+            <ProjectsScreen user={user!} projects={projects} onSelect={handleSelectProject} onLogout={handleLogout} trackingError={trackingError} todos={todos} onTodoDone={handleTodoDone} />
           </motion.div>
         )}
 
@@ -259,7 +350,7 @@ export default function App() {
 
         {screen === 'tracker' && (
           <motion.div key="tracker" initial="initial" animate="in" exit="out" variants={pageVariants} transition={pageTransition} style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
-            <TrackerScreen user={user!} project={activeProject!} sessionId={sessionId} isPaused={isPaused} elapsed={elapsed} onStop={handleStop} onPause={handlePause} onResume={handleResume} />
+            <TrackerScreen user={user!} project={activeProject!} sessionId={sessionId} isPaused={isPaused} elapsed={elapsed} onStop={handleStop} onPause={handlePause} onResume={handleResume} todos={todos} onTodoDone={handleTodoDone} />
           </motion.div>
         )}
       </AnimatePresence>
@@ -500,7 +591,7 @@ function LoginScreen({ onLogin, rememberMe, setRememberMe }: {
 // ─────────────────────────────────────────────────────────────────────────────
 // Shared Topbar
 // ─────────────────────────────────────────────────────────────────────────────
-function Topbar({ user, onLogout }: { user?: User, onLogout?: () => void }) {
+function Topbar({ user, onLogout, todoBadge }: { user?: User; onLogout?: () => void; todoBadge?: number }) {
   const initials = user?.full_name?.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'U';
   return (
     <header className="app-topbar">
@@ -512,6 +603,19 @@ function Topbar({ user, onLogout }: { user?: User, onLogout?: () => void }) {
       </div>
       {user && onLogout && (
         <div className="topbar-actions">
+          {todoBadge != null && todoBadge > 0 && (
+            <div style={{ position: 'relative', display: 'inline-flex' }} title={`${todoBadge} open task${todoBadge > 1 ? 's' : ''}`}>
+              <ClipboardList size={20} style={{ color: 'var(--text-secondary)' }} />
+              <span style={{
+                position: 'absolute', top: '-6px', right: '-8px',
+                background: '#ef4444', color: '#fff',
+                borderRadius: '999px', fontSize: '9px', fontWeight: 700,
+                minWidth: '14px', height: '14px', display: 'flex',
+                alignItems: 'center', justifyContent: 'center', padding: '0 3px',
+                lineHeight: 1,
+              }}>{todoBadge > 9 ? '9+' : todoBadge}</span>
+            </div>
+          )}
           <div className="user-avatar">{initials}</div>
           <button onClick={onLogout} className="btn btn-ghost" title="Sign out" style={{ padding: '0.4rem' }}>
             <LogOut size={18} />
@@ -523,14 +627,99 @@ function Topbar({ user, onLogout }: { user?: User, onLogout?: () => void }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Screen: Project Picker
+// My Tasks Panel
 // ─────────────────────────────────────────────────────────────────────────────
-function ProjectsScreen({ user, projects, onSelect, onLogout, trackingError }: {
+function MyTasksPanel({ todos, onDone }: { todos: Todo[]; onDone: (id: string) => void }) {
+  const [open, setOpen] = useState(true);
+  if (todos.length === 0) return null;
+  return (
+    <div style={{
+      margin: '0 1rem 1rem',
+      background: 'var(--surface)',
+      border: '1px solid var(--border)',
+      borderRadius: '0.875rem',
+      overflow: 'hidden',
+    }}>
+      {/* Header */}
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{
+          width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '0.65rem 0.9rem', background: 'none', border: 'none', cursor: 'pointer',
+          borderBottom: open ? '1px solid var(--border)' : 'none',
+        }}
+      >
+        <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          <ClipboardList size={13} />
+          My Tasks
+          <span style={{
+            background: 'var(--accent)', color: '#fff',
+            borderRadius: '999px', fontSize: '9px', fontWeight: 700,
+            minWidth: '16px', height: '16px', display: 'inline-flex',
+            alignItems: 'center', justifyContent: 'center', padding: '0 4px',
+          }}>{todos.length}</span>
+        </span>
+        {open ? <ChevronUp size={14} style={{ color: 'var(--text-tertiary)' }} /> : <ChevronDown size={14} style={{ color: 'var(--text-tertiary)' }} />}
+      </button>
+      {/* Task list */}
+      {open && (
+        <div style={{ maxHeight: '220px', overflowY: 'auto' }}>
+          {todos.map(todo => (
+            <div key={todo.id} style={{
+              display: 'flex', alignItems: 'flex-start', gap: '0.6rem',
+              padding: '0.6rem 0.9rem',
+              borderBottom: '1px solid var(--border-subtle)',
+            }}>
+              <button
+                onClick={() => onDone(todo.id)}
+                title="Mark as done"
+                style={{ marginTop: '2px', background: 'none', border: 'none', cursor: 'pointer', padding: 0, flexShrink: 0, color: 'var(--text-tertiary)' }}
+              >
+                <Circle size={15} />
+              </button>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap', marginBottom: '0.15rem' }}>
+                  <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                    {todo.title}
+                  </span>
+                  {todo.projectName && (
+                    <span style={{
+                      fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em',
+                      padding: '1px 5px', borderRadius: '4px',
+                      background: todo.projectColor ? `${todo.projectColor}22` : '#e0e7ff',
+                      color: todo.projectColor || '#4f46e5',
+                    }}>{todo.projectName}</span>
+                  )}
+                </div>
+                {todo.description && (
+                  <p style={{ margin: '0 0 0.35rem 0', fontSize: '0.75rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                    {todo.description}
+                  </p>
+                )}
+                {todo.due_date && (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: '10px', color: 'var(--text-tertiary)' }}>
+                    <Calendar size={10} />
+                    {new Date(todo.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  </span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+function ProjectsScreen({ user, projects, onSelect, onLogout, trackingError, todos, onTodoDone }: {
   user: User;
   projects: Project[];
   onSelect: (p: Project) => void;
   onLogout: () => void;
   trackingError?: string | null;
+  todos: Todo[];
+  onTodoDone: (id: string) => void;
 }) {
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -547,7 +736,7 @@ function ProjectsScreen({ user, projects, onSelect, onLogout, trackingError }: {
 
   return (
     <div className="projects-layout">
-      <Topbar user={user} onLogout={onLogout} />
+      <Topbar user={user} onLogout={onLogout} todoBadge={todos.length} />
 
       <div className="projects-content">
         <div className="projects-header">
@@ -600,6 +789,8 @@ function ProjectsScreen({ user, projects, onSelect, onLogout, trackingError }: {
           </motion.div>
         )}
       </div>
+
+      <MyTasksPanel todos={todos} onDone={onTodoDone} />
     </div>
   );
 }
@@ -680,7 +871,7 @@ function ConsentItem({ icon, title, desc }: { icon: React.ReactNode; title: stri
 // ─────────────────────────────────────────────────────────────────────────────
 // Screen: Tracker
 // ─────────────────────────────────────────────────────────────────────────────
-function TrackerScreen({ user, project, isPaused = false, elapsed, onStop, onPause, onResume }: {
+function TrackerScreen({ user, project, isPaused = false, elapsed, onStop, onPause, onResume, todos, onTodoDone }: {
   user: User;
   project: Project;
   sessionId?: string | null;
@@ -689,6 +880,8 @@ function TrackerScreen({ user, project, isPaused = false, elapsed, onStop, onPau
   onStop: () => void;
   onPause: () => void;
   onResume: () => void;
+  todos: Todo[];
+  onTodoDone: (id: string) => void;
 }) {
   const hrs = Math.floor(elapsed / 3600);
   const mins = Math.floor((elapsed % 3600) / 60);
@@ -746,6 +939,8 @@ function TrackerScreen({ user, project, isPaused = false, elapsed, onStop, onPau
           </div>
         </motion.div>
       </div>
+
+      <MyTasksPanel todos={todos} onDone={onTodoDone} />
     </div>
   );
 }
