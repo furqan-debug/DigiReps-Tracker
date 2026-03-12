@@ -280,8 +280,13 @@ app.post('/api/members', async (req, res) => {
 
         if (inviteError) {
             console.warn(`⚠️ Supabase Auth Invite failed: ${inviteError.message}`);
-            // In local development or if SMTP is not configured, this will fail.
-            // We still proceed to create the member record in the DB so that the UI works.
+            // If it's a rate limit error, return it to the frontend
+            if (inviteError.status === 429) {
+                return res.status(429).json({ error: 'Supabase email rate limit reached. Please wait an hour or configure a custom SMTP provider in Supabase Dashboard.' });
+            }
+            // For other invite errors, we'll log it but proceed to create the DB record 
+            // OR we can choose to fail. Let's return the error so the user knows.
+            return res.status(inviteError.status || 500).json({ error: `Invite failed: ${inviteError.message}` });
         }
 
         const authUserId = inviteData?.user?.id || null;
@@ -817,7 +822,7 @@ app.post('/api/invoices', async (req, res) => {
         const { client_id, amount, status, issue_date, due_date } = req.body;
         if (!client_id || !amount || !due_date) return res.status(400).json({ error: 'Missing required fields' });
 
-        const { data: error } = await getDb().from('invoices').insert([{
+        const { data, error } = await getDb().from('invoices').insert([{
             client_id, amount, status: status || 'Draft', issue_date, due_date, organization_id: req.body.organization_id || null
         }]).select().single();
 
