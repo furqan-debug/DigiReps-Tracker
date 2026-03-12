@@ -7,7 +7,7 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, roles }: ProtectedRouteProps) {
-    const { profile, loading, session, signOut } = useAuth();
+    const { profile, loading, session, signOut, error } = useAuth();
     const location = useLocation();
 
     if (loading) {
@@ -56,9 +56,15 @@ export function ProtectedRoute({ children, roles }: ProtectedRouteProps) {
                         <span className="text-3xl">⚠️</span>
                     </div>
                     <h1 className="text-xl font-bold text-slate-900 mb-2">Profile Not Found</h1>
-                    <p className="text-slate-500 text-sm mb-8">
+                    <p className="text-slate-500 text-sm mb-4">
                         We couldn't find a management profile for your account. Please ensure your administrator has added you as an Admin or Viewer.
                     </p>
+                    {error && (
+                        <div className="mb-8 p-3 bg-slate-50 rounded-lg border border-slate-200">
+                            <p className="text-[10px] font-mono text-slate-400 uppercase mb-1 tracking-wider text-left">Internal Error</p>
+                            <p className="text-xs text-rose-600 font-medium text-left break-all">{error}</p>
+                        </div>
+                    )}
                     <button 
                         onClick={() => signOut()}
                         className="w-full bg-slate-900 text-white py-3 rounded-lg text-sm font-bold hover:bg-slate-800 transition-all"

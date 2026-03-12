@@ -16,6 +16,7 @@ interface AuthContextType {
     user: User | null;
     profile: MemberProfile | null;
     loading: boolean;
+    error: string | null;
     refreshProfile: () => Promise<void>;
     signOut: () => Promise<void>;
 }
@@ -26,6 +27,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [session, setSession] = useState<Session | null>(null);
     const [profile, setProfile] = useState<MemberProfile | null>(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         // 1. Initial session check
@@ -59,11 +61,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
             if (error) {
                 console.warn('Profile not found for:', email, error.message);
+                setError(error.message);
                 throw error;
             }
             setProfile(data);
-        } catch (err) {
+            setError(null);
+        } catch (err: any) {
             console.error('Error fetching profile:', err);
+            setError(err.message || 'Unknown error fetching profile');
             setProfile(null);
         } finally {
             setLoading(false);
@@ -89,7 +94,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     return (
-        <AuthContext.Provider value={{ session, user: session?.user ?? null, profile, loading, refreshProfile, signOut }}>
+        <AuthContext.Provider value={{ session, user: session?.user ?? null, profile, loading, error, refreshProfile, signOut }}>
             {children}
         </AuthContext.Provider>
     );
