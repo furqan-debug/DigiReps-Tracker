@@ -52,11 +52,11 @@ export const navStructure: NavGroup[] = [
     {
         name: 'Project management',
         icon: FolderKanban,
-        allowedRoles: ['Admin', 'Manager', 'User'],
+        allowedRoles: ['Admin', 'Manager', 'User', 'Viewer'],
         children: [
             { name: 'Projects', path: '/dashboard/projects' },
             { name: 'To-dos', path: '/dashboard/projects/todos' },
-            { name: 'Clients', path: '/dashboard/projects/clients', allowedRoles: ['Admin', 'Manager'] },
+            { name: 'Clients', path: '/dashboard/projects/clients', allowedRoles: ['Admin', 'Manager', 'Viewer'] },
         ],
     },
     {
@@ -66,7 +66,7 @@ export const navStructure: NavGroup[] = [
             { name: 'Time & activity', path: '/dashboard/reports', badge: 'new' },
             { name: 'Time & activity (Legacy)', path: '/dashboard/reports/legacy', allowedRoles: ['Admin'] },
             { name: 'Daily totals (Weekly)', path: '/dashboard/reports/daily' },
-            { name: 'Amounts owed', path: '/dashboard/reports/owed', allowedRoles: ['Admin', 'Manager'] },
+            { name: 'Amounts owed', path: '/dashboard/reports/owed', allowedRoles: ['Admin', 'Manager', 'Viewer'] },
             { name: 'Payments', path: '/dashboard/reports/payments', allowedRoles: ['Admin', 'Manager'] },
             { name: 'All reports', path: '/dashboard/reports/all', allowedRoles: ['Admin'] },
             { name: 'Customized reports', path: '/dashboard/reports/custom', badge: 'bolt', allowedRoles: ['Admin'] },

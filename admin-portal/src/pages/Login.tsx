@@ -23,13 +23,31 @@ export function Login() {
         setError(null);
 
         try {
-            const { error: authError } = await supabase.auth.signInWithPassword({
+            const { data: { user }, error: authError } = await supabase.auth.signInWithPassword({
                 email,
                 password,
             });
 
             if (authError) throw authError;
-            navigate('/dashboard', { replace: true });
+
+            // Immediately check for a professional role in the members table
+            const { data: member, error: dbError } = await supabase
+                .from('members')
+                .select('role')
+                .eq('email', email)
+                .single();
+
+            if (dbError || !member) {
+                // If no member record exists, they might be an invited user who hasn't accepted yet
+                // or just doesn't belong here. For now, we allow them to go to dashboard which 
+                // will handle the state (like Onboarding) but if they are definitely not an admin/manager/viewer
+                // and they are on the ADMIN portal, we might want to warn them.
+                navigate('/dashboard', { replace: true });
+            } else {
+                // Roles like 'Admin', 'Manager', 'Viewer' are all welcome in the Admin Portal.
+                // Each will see limited options via the Sidebar logic.
+                navigate('/dashboard', { replace: true });
+            }
         } catch (err: any) {
             setError(err.message || 'Failed to sign in. Please check your credentials.');
         } finally {
