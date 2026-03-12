@@ -265,8 +265,8 @@ export function People() {
                         />
                     </div>
                     <div className="relative">
-                        <button 
-                            onClick={() => { if (!isViewer) setShowBatch(!showBatch); }} 
+                        <button
+                            onClick={() => { if (!isViewer) setShowBatch(!showBatch); }}
                             disabled={isViewer}
                             className={`flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-medium transition-colors ${isViewer ? 'text-slate-300 cursor-not-allowed grayscale opacity-60' : 'text-slate-700 hover:bg-slate-50'}`}
                         >
@@ -284,7 +284,7 @@ export function People() {
                     <button onClick={handleExportCsv} className="flex items-center gap-2 px-4 py-2 text-slate-500 hover:text-slate-700 text-sm font-medium">
                         <Download className="w-4 h-4" /> Export
                     </button>
-                    <button 
+                    <button
                         onClick={() => { if (!isViewer) { resetAddForm(); setShowAddModal(true); } }}
                         disabled={isViewer}
                         className={`px-6 py-2 rounded-lg text-sm font-semibold transition-colors ${isViewer ? 'bg-slate-200 text-slate-400 cursor-not-allowed grayscale opacity-60' : 'bg-[#2a85ff] text-white hover:bg-[#0052cc]'}`}
@@ -441,28 +441,28 @@ function MemberRowItem({ m, isSelected, onToggle, onEdit, onResendInvite, onDele
                 </button>
                 {open && (
                     <div className="absolute right-6 top-14 bg-white border border-slate-200 rounded-lg shadow-xl z-50 py-2 w-48 animate-in fade-in zoom-in duration-200">
-                        <DropItem 
-                            icon={<Pencil className="w-3.5 h-3.5" />} 
-                            label={isRestricted ? 'View details' : 'Edit member'} 
-                            onClick={() => { onEdit(); setOpen(false); }} 
+                        <DropItem
+                            icon={<Pencil className="w-3.5 h-3.5" />}
+                            label={isRestricted ? 'View details' : 'Edit member'}
+                            onClick={() => { onEdit(); setOpen(false); }}
                         />
                         {(m.status === 'Pending') && (
-                            <DropItem 
-                                icon={<RotateCcw className="w-3.5 h-3.5" />} 
-                                label="Resend invite" 
+                            <DropItem
+                                icon={<RotateCcw className="w-3.5 h-3.5" />}
+                                label="Resend invite"
                                 disabled={isRestricted}
-                                onClick={() => { if (!isRestricted) { onResendInvite(); setOpen(false); } }} 
+                                onClick={() => { if (!isRestricted) { onResendInvite(); setOpen(false); } }}
                                 dull={isRestricted}
                             />
                         )}
 
                         <DropItem icon={<Settings className="w-3.5 h-3.5" />} label="Settings" onClick={() => { setOpen(false); onEdit(); }} />
                         <div className="my-1 border-t border-slate-100" />
-                        <DropItem 
-                            icon={<Trash2 className={`w-3.5 h-3.5 ${isRestricted ? 'text-slate-200' : 'text-rose-500'}`} />} 
-                            label="Remove member" 
+                        <DropItem
+                            icon={<Trash2 className={`w-3.5 h-3.5 ${isRestricted ? 'text-slate-200' : 'text-rose-500'}`} />}
+                            label="Remove member"
                             disabled={isRestricted}
-                            onClick={() => { if (!isRestricted) { setOpen(false); onDelete(); } }} 
+                            onClick={() => { if (!isRestricted) { setOpen(false); onDelete(); } }}
                             danger={!isRestricted}
                             dull={isRestricted}
                         />
@@ -475,7 +475,7 @@ function MemberRowItem({ m, isSelected, onToggle, onEdit, onResendInvite, onDele
 
 function DropItem({ icon, label, onClick, danger, dull, disabled }: any) {
     return (
-        <button 
+        <button
             onClick={onClick}
             disabled={disabled}
             className={`w-full flex items-center gap-2.5 px-4 py-2 text-xs font-medium transition-all text-left ${danger ? 'text-rose-600 hover:bg-rose-50' : 'text-slate-700 hover:bg-slate-50'} ${dull ? 'opacity-40 grayscale cursor-not-allowed' : ''}`}
@@ -509,8 +509,8 @@ function InviteModal({ onClose, onInvite, form, isViewer, currentUserRole }: any
                 </div>
                 <div className="px-8 py-6 bg-slate-50 flex justify-end gap-3">
                     <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-slate-500 hover:text-slate-700">Cancel</button>
-                    <button 
-                        onClick={onInvite} 
+                    <button
+                        onClick={onInvite}
                         disabled={form.adding || !form.addEmail.trim() || isViewer}
                         className={`px-6 py-2 rounded-lg text-sm font-semibold transition-colors ${isViewer ? 'bg-slate-200 text-slate-400 cursor-not-allowed' : 'bg-[#2a85ff] text-white hover:bg-[#0052cc] disabled:opacity-50'}`}
                     >
