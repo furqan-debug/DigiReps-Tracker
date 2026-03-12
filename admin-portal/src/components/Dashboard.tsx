@@ -28,6 +28,21 @@ interface DayBar {
 const PROJECT_COLORS = ['#4f46e5', '#7c3aed', '#0891b2', '#059669', '#d97706', '#dc2626'];
 const DAYS_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+// Sessions with no ended_at that started more than this many ms ago are considered stale/orphaned.
+const STALE_THRESHOLD_MS = 2 * 60 * 60 * 1000; // 2 hours
+
+/** Returns the effective end time for a session. Stale open sessions use their start time (0 duration). */
+function effectiveEnd(startedAt: string, endedAt: string | null): { endMs: number; isLive: boolean; isStale: boolean } {
+    const startMs = new Date(startedAt).getTime();
+    if (endedAt) return { endMs: new Date(endedAt).getTime(), isLive: false, isStale: false };
+    const now = Date.now();
+    if (now - startMs > STALE_THRESHOLD_MS) {
+        // Orphaned session — treat as ended at start (duration = 0) and not live
+        return { endMs: startMs, isLive: false, isStale: true };
+    }
+    return { endMs: now, isLive: true, isStale: false };
+}
+
 function fmtTime(min: number) {
     const h = Math.floor(min / 60);
     const m = min % 60;
@@ -79,8 +94,8 @@ export function Dashboard() {
             // Today minutes
             const todayMins = (todaySessions || []).reduce((acc, s) => {
                 const start = new Date(s.started_at).getTime();
-                const end = s.ended_at ? new Date(s.ended_at).getTime() : Date.now();
-                return acc + Math.max(0, Math.round((end - start) / 60000));
+                const { endMs } = effectiveEnd(s.started_at, s.ended_at);
+                return acc + Math.max(0, Math.round((endMs - start) / 60000));
             }, 0);
 
             // Week minutes + cost per member
@@ -96,8 +111,8 @@ export function Dashboard() {
 
             (weekSessions || []).forEach(s => {
                 const start = new Date(s.started_at).getTime();
-                const end = s.ended_at ? new Date(s.ended_at).getTime() : Date.now();
-                const mins = Math.max(0, Math.round((end - start) / 60000));
+                const { endMs } = effectiveEnd(s.started_at, s.ended_at);
+                const mins = Math.max(0, Math.round((endMs - start) / 60000));
                 weekMins += mins;
 
                 if (s.user_id) {
@@ -291,9 +306,9 @@ function RecentSessions() {
                 <tbody>
                     {sessions.map(s => {
                         const startMs = new Date(s.started_at).getTime();
-                        const endMs = s.ended_at ? new Date(s.ended_at).getTime() : Date.now();
+                        const { endMs, isLive, isStale } = effectiveEnd(s.started_at, s.ended_at);
                         const mins = Math.max(0, Math.round((endMs - startMs) / 60000));
-                        const isActive = !s.ended_at;
+                        const isActive = isLive;
                         const mid = s.user_id ?? '—';
 
                         return (
@@ -306,12 +321,18 @@ function RecentSessions() {
                                 <td className="py-3 pr-6 text-text-secondary">
                                     {new Date(s.started_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                 </td>
-                                <td className="py-3 pr-6 font-medium text-text-primary">{fmtTime(mins)}</td>
+                                <td className="py-3 pr-6 font-medium text-text-primary">
+                                    {isStale ? <span className="text-text-muted">—</span> : fmtTime(mins)}
+                                </td>
                                 <td className="py-3">
                                     {isActive ? (
                                         <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
                                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                                             Live
+                                        </span>
+                                    ) : isStale ? (
+                                        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
+                                            Orphaned
                                         </span>
                                     ) : (
                                         <span className="text-xs text-text-muted">Ended</span>
