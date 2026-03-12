@@ -263,17 +263,24 @@ export function Dashboard() {
 
 function RecentSessions() {
     const [sessions, setSessions] = useState<any[]>([]);
+    const [memberMap, setMemberMap] = useState<Record<string, string>>({});
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         async function load() {
             try {
-                const { data, error } = await supabase.from('sessions')
-                    .select('id, user_id, project_id, started_at, ended_at')
-                    .order('started_at', { ascending: false })
-                    .limit(8);
+                const [{ data, error }, { data: membersData }] = await Promise.all([
+                    supabase.from('sessions')
+                        .select('id, user_id, project_id, started_at, ended_at')
+                        .order('started_at', { ascending: false })
+                        .limit(8),
+                    supabase.from('members').select('id, full_name'),
+                ]);
                 if (error) console.error("RecentSessions Error:", error);
                 setSessions(data || []);
+                const map: Record<string, string> = {};
+                (membersData || []).forEach(m => { map[m.id] = m.full_name; });
+                setMemberMap(map);
             } catch (err) {
                 console.error("RecentSessions unhandled error:", err);
             } finally {
@@ -309,14 +316,12 @@ function RecentSessions() {
                         const { endMs, isLive, isStale } = effectiveEnd(s.started_at, s.ended_at);
                         const mins = Math.max(0, Math.round((endMs - startMs) / 60000));
                         const isActive = isLive;
-                        const mid = s.user_id ?? '—';
+                        const memberName = (s.user_id && memberMap[s.user_id]) || 'Unknown';
 
                         return (
                             <tr key={s.id} className="border-b border-border-subtle hover:bg-surface-subtle/50 transition-colors">
                                 <td className="py-3 pr-6">
-                                    <div className="w-7 h-7 rounded-full bg-primary/10 text-primary font-bold text-xs flex items-center justify-center">
-                                        {mid.slice(0, 1).toUpperCase()}
-                                    </div>
+                                    <span className="text-sm font-medium text-text-primary">{memberName}</span>
                                 </td>
                                 <td className="py-3 pr-6 text-text-secondary">
                                     {new Date(s.started_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
@@ -332,7 +337,7 @@ function RecentSessions() {
                                         </span>
                                     ) : isStale ? (
                                         <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
-                                            Orphaned
+                                            Not Closed
                                         </span>
                                     ) : (
                                         <span className="text-xs text-text-muted">Ended</span>
