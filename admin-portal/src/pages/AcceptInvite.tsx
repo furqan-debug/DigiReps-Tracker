@@ -112,10 +112,19 @@ export function AcceptInvite() {
                     <div className="px-8 py-6 space-y-3 text-sm text-slate-600">
                         <p className="font-semibold text-slate-800">Next steps:</p>
                         <ol className="list-decimal list-inside space-y-1.5">
-                            <li>Download and open the <strong>DigiReps Tracker</strong> app</li>
+                            <li>Download and open the <strong>DigiReps Tracker</strong> app (for workers)</li>
                             <li>Sign in with your email and the password you just set</li>
                             <li>Start tracking — your admin has already assigned your projects</li>
                         </ol>
+                        <div className="mt-8 pt-6 border-t border-slate-100/50">
+                            <p className="text-slate-500 mb-4">Or if you are an Admin/Viewer, you can log in to the portal directly:</p>
+                            <a
+                                href="/login"
+                                className="inline-flex w-full items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl transition-all shadow-lg shadow-indigo-200"
+                            >
+                                Go to Login
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>

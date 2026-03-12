@@ -273,7 +273,7 @@ app.post('/api/members', async (req, res) => {
         const db = getDb();
 
         // Send Supabase invite email (user will receive a magic link)
-        const adminPortalUrl = process.env.ADMIN_PORTAL_URL || 'http://localhost:5174';
+        const adminPortalUrl = process.env.ADMIN_PORTAL_URL || 'http://localhost:5173';
         const { data: inviteData, error: inviteError } = await db.auth.admin.inviteUserByEmail(email, {
             redirectTo: `${adminPortalUrl}/accept-invite`,
         });

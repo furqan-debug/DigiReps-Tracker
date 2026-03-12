@@ -2,11 +2,11 @@ import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
-import { 
-    Building2, 
-    CreditCard, 
-    CheckCircle2, 
-    ArrowRight, 
+import {
+    Building2,
+    CreditCard,
+    CheckCircle2,
+    ArrowRight,
     Rocket
 } from 'lucide-react';
 
@@ -61,7 +61,7 @@ export function Onboarding() {
             if (profile?.email && orgData) {
                 const { error: memberError } = await supabase
                     .from('members')
-                    .update({ 
+                    .update({
                         status: 'Active',
                         organization_id: orgData.id
                     })
@@ -89,7 +89,7 @@ export function Onboarding() {
     return (
         <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
             <div className="w-full max-w-2xl bg-white rounded-[2rem] shadow-2xl border border-slate-100 overflow-hidden flex flex-col md:flex-row">
-                
+
                 {/* Left Sidebar: Progress */}
                 <div className="md:w-64 bg-slate-900 p-8 text-white flex flex-col">
                     <div className="flex items-center gap-2 mb-12">
