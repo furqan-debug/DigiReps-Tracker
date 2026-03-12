@@ -37,7 +37,7 @@ export const navStructure: NavGroup[] = [
         icon: Clock,
         children: [
             { name: 'View & edit', path: '/dashboard/timesheets' },
-            { name: 'Approvals', path: '/dashboard/timesheets/approvals', badge: 'bolt', allowedRoles: ['Admin', 'Manager'] },
+            { name: 'Approvals', path: '/dashboard/timesheets/approvals', badge: 'bolt', allowedRoles: ['Admin', 'Manager', 'Viewer'] },
         ],
     },
     {
@@ -64,27 +64,27 @@ export const navStructure: NavGroup[] = [
         icon: FileText,
         children: [
             { name: 'Time & activity', path: '/dashboard/reports', badge: 'new' },
-            { name: 'Time & activity (Legacy)', path: '/dashboard/reports/legacy', allowedRoles: ['Admin'] },
+            { name: 'Time & activity (Legacy)', path: '/dashboard/reports/legacy', allowedRoles: ['Admin', 'Manager', 'Viewer'] },
             { name: 'Daily totals (Weekly)', path: '/dashboard/reports/daily' },
             { name: 'Amounts owed', path: '/dashboard/reports/owed', allowedRoles: ['Admin', 'Manager', 'Viewer'] },
-            { name: 'Payments', path: '/dashboard/reports/payments', allowedRoles: ['Admin', 'Manager'] },
-            { name: 'All reports', path: '/dashboard/reports/all', allowedRoles: ['Admin'] },
-            { name: 'Customized reports', path: '/dashboard/reports/custom', badge: 'bolt', allowedRoles: ['Admin'] },
+            { name: 'Payments', path: '/dashboard/reports/payments', allowedRoles: ['Admin', 'Manager', 'Viewer'] },
+            { name: 'All reports', path: '/dashboard/reports/all', allowedRoles: ['Admin', 'Manager', 'Viewer'] },
+            { name: 'Customized reports', path: '/dashboard/reports/custom', badge: 'bolt', allowedRoles: ['Admin', 'Manager', 'Viewer'] },
         ],
     },
     {
         name: 'People',
         icon: Users,
-        allowedRoles: ['Admin', 'Manager'],
+        allowedRoles: ['Admin', 'Manager', 'Viewer'],
         children: [
-            { name: 'Members', path: '/dashboard/people', allowedRoles: ['Admin'] },
+            { name: 'Members', path: '/dashboard/people', allowedRoles: ['Admin', 'Manager', 'Viewer'] },
             { name: 'Teams', path: '/dashboard/people/teams', badge: 'bolt' },
         ],
     },
     {
         name: 'Financials',
         icon: CircleDollarSign,
-        allowedRoles: ['Admin'],
+        allowedRoles: ['Admin', 'Manager', 'Viewer'],
         children: [
             { name: 'Manage payroll', path: '/dashboard/financials', badge: 'bolt' },
             { name: 'Create payments', path: '/dashboard/financials/create' },
@@ -96,16 +96,16 @@ export const navStructure: NavGroup[] = [
     {
         name: 'Silent app',
         icon: AppWindow,
-        allowedRoles: ['Admin'],
+        allowedRoles: ['Admin', 'Manager', 'Viewer'],
         children: [{ name: 'How it works', path: '/dashboard/silent/how-it-works' }],
     },
     {
         name: 'Settings',
         icon: Settings,
         children: [
-            { name: 'All settings', path: '/dashboard/settings', allowedRoles: ['Admin'] },
-            { name: 'Activity & tracking', path: '/dashboard/settings/tracking', allowedRoles: ['Admin', 'Manager'] },
-            { name: 'Billing', path: '/dashboard/settings/billing', allowedRoles: ['Admin'] },
+            { name: 'All settings', path: '/dashboard/settings', allowedRoles: ['Admin', 'Manager', 'Viewer'] },
+            { name: 'Activity & tracking', path: '/dashboard/settings/tracking', allowedRoles: ['Admin', 'Manager', 'Viewer'] },
+            { name: 'Billing', path: '/dashboard/settings/billing', allowedRoles: ['Admin', 'Manager', 'Viewer'] },
         ],
     },
 ];

@@ -20,6 +20,7 @@ export function AcceptInvite() {
 
     // Supabase session (set from the invite link's access_token in the URL hash)
     const [userId, setUserId] = useState<string | null>(null);
+    const [role, setRole] = useState<string>('User');
 
     useEffect(() => {
         // Supabase puts the session in the URL hash after the user clicks the invite link.
@@ -62,6 +63,9 @@ export function AcceptInvite() {
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Failed to complete setup.');
 
+            if (data.member?.role) {
+                setRole(data.member.role);
+            }
             setStep('success');
         } catch (err: any) {
             setFormError(err.message);
@@ -107,22 +111,38 @@ export function AcceptInvite() {
                             <span className="text-3xl">✅</span>
                         </div>
                         <h1 className="text-2xl font-bold text-emerald-900">You're all set!</h1>
-                        <p className="text-sm text-emerald-700">Your account has been activated successfully.</p>
+                        <p className="text-sm text-emerald-700">
+                            Your <strong>{role}</strong> account has been activated successfully.
+                        </p>
                     </div>
                     <div className="px-8 py-6 space-y-3 text-sm text-slate-600">
                         <p className="font-semibold text-slate-800">Next steps:</p>
-                        <ol className="list-decimal list-inside space-y-1.5">
-                            <li>Download and open the <strong>DigiReps Tracker</strong> app (for workers)</li>
-                            <li>Sign in with your email and the password you just set</li>
-                            <li>Start tracking — your admin has already assigned your projects</li>
-                        </ol>
+
+                        {role === 'User' ? (
+                            <ol className="list-decimal list-inside space-y-1.5">
+                                <li>Download and open the <strong>DigiReps Tracker</strong> app</li>
+                                <li>Sign in with your email and the password you just set</li>
+                                <li>Start tracking — your projects are already assigned</li>
+                            </ol>
+                        ) : (
+                            <ol className="list-decimal list-inside space-y-1.5">
+                                <li>Log in to the <strong>Admin Portal</strong> below</li>
+                                <li>Complete your profile settings</li>
+                                <li>Start managing teams and viewing reports</li>
+                            </ol>
+                        )}
+
                         <div className="mt-8 pt-6 border-t border-slate-100/50">
-                            <p className="text-slate-500 mb-4">Or if you are an Admin/Viewer, you can log in to the portal directly:</p>
+                            <p className="text-slate-500 mb-4">
+                                {role === 'User'
+                                    ? "If you're also an Admin/Viewer, you can log in below:"
+                                    : "Access your dashboard directly here:"}
+                            </p>
                             <a
                                 href="/login"
-                                className="inline-flex w-full items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl transition-all shadow-lg shadow-indigo-200"
+                                className="inline-flex w-full items-center justify-center bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl transition-all shadow-lg shadow-blue-200"
                             >
-                                Go to Login
+                                Go to Portal
                             </a>
                         </div>
                     </div>
