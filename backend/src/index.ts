@@ -399,23 +399,58 @@ app.post('/api/members/complete-setup', async (req, res) => {
         }
 
         // 2. Update the member record using the email we just retrieved
-        const { data: member, error } = await db
+        // We use maybeSingle() to avoid the "Cannot coerce" error if it doesn't exist yet
+        const { data: existingMember, error: fetchErr } = await db
             .from('members')
-            .update({
-                full_name,
-                phone: phone || null,
-                status: 'Active',
-                auth_user_id: user.id // Also link the auth_user_id for future RLS
-            })
+            .select('*')
             .eq('email', user.email)
-            .select()
-            .single();
+            .maybeSingle();
 
-        if (error) {
-            console.error('Database update error:', error);
-            throw error;
+        if (fetchErr) throw fetchErr;
+
+        let member;
+        if (!existingMember) {
+            console.log(`⚠️ Member record missing for ${user.email}. Creating it now...`);
+            // This might happen if the invite row failed to insert but the auth invite succeeded.
+            // Recovering by creating a member record linked to the first organization found.
+            const { data: orgs } = await db.from('organizations').select('id').limit(1);
+            const fallbackOrgId = orgs?.[0]?.id;
+
+            const { data: newMember, error: createErr } = await db
+                .from('members')
+                .insert([{
+                    id: uuidv4(),
+                    email: user.email,
+                    full_name,
+                    phone: phone || null,
+                    auth_user_id: user.id,
+                    organization_id: fallbackOrgId,
+                    role: 'User',
+                    status: 'Active'
+                }])
+                .select()
+                .maybeSingle();
+            
+            if (createErr) throw createErr;
+            member = newMember;
+        } else {
+            const { data: updatedMember, error: updateErr } = await db
+                .from('members')
+                .update({
+                    full_name,
+                    phone: phone || null,
+                    status: 'Active',
+                    auth_user_id: user.id
+                })
+                .eq('id', existingMember.id)
+                .select()
+                .maybeSingle();
+
+            if (updateErr) throw updateErr;
+            member = updatedMember;
         }
-        if (!member) return res.status(404).json({ error: 'Member record not found for this email.' });
+
+        if (!member) return res.status(404).json({ error: 'Failed to create or update member record.' });
 
         console.log(`✅ Member setup complete: ${full_name} (${member.email})`);
         res.json({ member });

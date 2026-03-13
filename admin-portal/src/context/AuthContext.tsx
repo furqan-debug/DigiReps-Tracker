@@ -53,19 +53,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     async function fetchProfile(email: string) {
         try {
             // Use case-insensitive match just in case
+            // Use maybeSingle to avoid errors if the member record doesn't exist yet
             const { data, error } = await supabase
                 .from('members')
                 .select('*')
                 .ilike('email', email)
-                .single();
+                .maybeSingle();
 
             if (error) {
-                console.warn('Profile not found for:', email, error.message);
+                console.warn('Profile fetch error for:', email, error.message);
                 setError(error.message);
-                throw error;
+                return; 
             }
-            setProfile(data);
-            setError(null);
+            
+            if (!data) {
+                console.log('No member profile record found for:', email);
+                setProfile(null);
+                setError(null); // Clear any previous error
+                // We don't necessarily treat this as a blocking error in the context, 
+                // components can decide how to handle a null profile.
+            } else {
+                setProfile(data);
+                setError(null);
+            }
         } catch (err: any) {
             console.error('Error fetching profile:', err);
             setError(err.message || 'Unknown error fetching profile');
