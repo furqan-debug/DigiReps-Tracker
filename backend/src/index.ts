@@ -293,48 +293,78 @@ app.post('/api/members', requireAuth, async (req, res) => {
             return res.status(403).json({ error: 'You must belong to an organization to invite members.' });
         }
 
-        // Send Supabase invite email (user will receive a magic link)
+        // 2. Check if a member row already exists for this email
+        const { data: existingMember } = await db.from('members').select('id, status').eq('email', email).maybeSingle();
+        
+        if (existingMember && existingMember.status === 'Active') {
+            return res.status(409).json({ 
+                error: 'Member already exists', 
+                message: `This user is already ACTIVE. They should log in directly or use the "Forgot Password" link if they cannot access their account.` 
+            });
+        }
+
+        // 3. Send Supabase invite email
         const adminPortalUrl = process.env.ADMIN_PORTAL_URL || 'http://localhost:5174';
         const { data: inviteData, error: inviteError } = await db.auth.admin.inviteUserByEmail(email, {
             redirectTo: `${adminPortalUrl}/accept-invite`,
         });
 
         if (inviteError) {
-            console.warn(`⚠️ Supabase Auth Invite failed: ${inviteError.message}`);
-            // If it's a rate limit error, return it to the frontend
-            if (inviteError.status === 429) {
-                return res.status(429).json({ error: 'Supabase email rate limit reached. Please wait an hour or configure a custom SMTP provider in Supabase Dashboard.' });
+            console.warn(`⚠️ Supabase Auth Invite failed for ${email}: ${inviteError.message} (status: ${inviteError.status})`);
+            
+            // Handle "User already registered" (422)
+            if (inviteError.status === 422) {
+                // If they exist in Auth but we already checked they ARE NOT in members table (step 2),
+                // we should still create the member record for them so they are linked to this org.
+                const { data: { users } } = await db.auth.admin.listUsers();
+                const existingUser = users.find(u => u.email?.toLowerCase() === email.toLowerCase());
+                
+                if (existingUser) {
+                    const { error: insertError } = await db.from('members').insert([{
+                        id: uuidv4(),
+                        email,
+                        auth_user_id: existingUser.id,
+                        organization_id: orgId,
+                        role,
+                        pay_rate,
+                        bill_rate,
+                        weekly_limit,
+                        daily_limit,
+                        status: 'Pending' // They need to accept the invite/link
+                    }]);
+
+                    if (insertError) throw insertError;
+                    return res.json({ message: 'User found in system and linked to your organization.', user: existingUser });
+                }
             }
-            // For other invite errors, we'll log it but proceed to create the DB record 
-            // OR we can choose to fail. Let's return the error so the user knows.
-            return res.status(inviteError.status || 500).json({ error: `Invite failed: ${inviteError.message}` });
+
+            if (inviteError.status === 429) {
+                return res.status(429).json({ error: 'Supabase email rate limit reached. Please wait an hour or configure a custom SMTP provider.' });
+            }
+            
+            return res.status(inviteError.status || 500).json({ error: inviteError.message });
         }
 
         const authUserId = inviteData?.user?.id || null;
 
-        // Check if a member row already exists for this email
-        const { data: existing } = await db.from('members').select('id').eq('email', email).maybeSingle();
-        if (existing) {
-            return res.status(409).json({ error: 'A member with this email already exists.' });
-        }
-
-        // Insert a pending member row — full_name will be filled in by user during onboarding
-        const { data: member, error: memberError } = await db.from('members').insert([{
+        // 4. Create the member record in the DB
+        const { data: newMember, error: insertError } = await db.from('members').insert([{
+            id: uuidv4(),
             email,
-            full_name: email, // placeholder until user completes setup
+            auth_user_id: authUserId,
+            organization_id: orgId,
             role,
             pay_rate,
             bill_rate,
             weekly_limit,
             daily_limit,
-            status: 'Pending',
-            organization_id: orgId,
+            status: 'Pending'
         }]).select().single();
 
-        if (memberError) throw memberError;
+        if (insertError) throw insertError;
 
         console.log(`📧 Invite sent to: ${email}`);
-        res.status(201).json({ member, invited: true });
+        res.status(201).json({ member: newMember, invited: true });
     } catch (e: any) {
         console.error('Invite member error:', e);
         res.status(500).json({ error: e.message });

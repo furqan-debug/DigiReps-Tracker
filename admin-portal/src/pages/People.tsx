@@ -123,8 +123,9 @@ export function People() {
 
     async function handleResendInvite(email: string) {
         setAdding(true);
+        setAddError(null);
         try {
-            await fetch(`${API}/api/members`, {
+            const res = await fetch(`${API}/api/members`, {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
@@ -132,9 +133,13 @@ export function People() {
                 },
                 body: JSON.stringify({ email }),
             });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Failed to resend invite');
+
             setInviteSentTo(email);
-        } catch (e) {
+        } catch (e: any) {
             console.error(e);
+            alert(e.message);
         } finally {
             setAdding(false);
         }
