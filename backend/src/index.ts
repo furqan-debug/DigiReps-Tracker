@@ -544,35 +544,56 @@ app.post('/api/projects', requireAuth, async (req, res) => {
     try {
         const {
             name, description, color = '#3b82f6', client_id,
+            billable = true, disable_activity = false, allow_tracking = true,
+            disable_idle_time = false, budget_type = 'No budget',
+            budget_limit, budget_notifications = true, member_limit,
             member_ids = [], team_ids = []
         } = req.body;
 
         if (!name) return res.status(400).json({ error: 'name is required' });
 
         const db = getDb();
+        const projectNames = name.split('\n').map((n: string) => n.trim()).filter((n: string) => n.length > 0);
+        const createdProjects = [];
 
-        // 1. Insert Project
-        const { data: project, error: projectError } = await db.from('projects').insert([{
-            name, description, color, client_id, organization_id: req.body.organization_id || null
-        }]).select().single();
+        for (const pName of projectNames) {
+            // 1. Insert Project
+            const { data: project, error: projectError } = await db.from('projects').insert([{
+                name: pName, 
+                description, 
+                color, 
+                client_id, 
+                organization_id: req.body.organization_id || null,
+                billable,
+                disable_activity,
+                allow_tracking,
+                disable_idle_time,
+                budget_type,
+                budget_limit,
+                budget_notifications,
+                member_limit
+            }]).select().single();
 
-        if (projectError) throw projectError;
+            if (projectError) throw projectError;
 
-        // 2. Insert Member Assignments
-        if (member_ids.length > 0) {
-            const memberRows = member_ids.map((mid: string) => ({ project_id: project.id, member_id: mid }));
-            const { error: mErr } = await db.from('project_members').insert(memberRows);
-            if (mErr) throw mErr;
+            // 2. Insert Member Assignments
+            if (member_ids.length > 0) {
+                const memberRows = member_ids.map((mid: string) => ({ project_id: project.id, member_id: mid }));
+                const { error: mErr } = await db.from('project_members').insert(memberRows);
+                if (mErr) throw mErr;
+            }
+
+            // 3. Insert Team Assignments
+            if (team_ids.length > 0) {
+                const teamRows = team_ids.map((tid: string) => ({ project_id: project.id, team_id: tid }));
+                const { error: tErr } = await db.from('project_teams').insert(teamRows);
+                if (tErr) throw tErr;
+            }
+            
+            createdProjects.push(project);
         }
 
-        // 3. Insert Team Assignments
-        if (team_ids.length > 0) {
-            const teamRows = team_ids.map((tid: string) => ({ project_id: project.id, team_id: tid }));
-            const { error: tErr } = await db.from('project_teams').insert(teamRows);
-            if (tErr) throw tErr;
-        }
-
-        res.status(201).json(project);
+        res.status(201).json(projectNames.length > 1 ? createdProjects : createdProjects[0]);
     } catch (e: any) {
         res.status(500).json({ error: e.message });
     }
@@ -588,7 +609,7 @@ app.put('/api/projects/:id', requireAuth, async (req, res) => {
         const {
             name, description, color, status, client_id,
             billable, disable_activity, allow_tracking, disable_idle_time,
-            budget_type, budget_limit, budget_notifications,
+            budget_type, budget_limit, budget_notifications, member_limit,
             member_ids, team_ids
         } = req.body;
 
@@ -610,7 +631,8 @@ app.put('/api/projects/:id', requireAuth, async (req, res) => {
         const updateData: any = { 
             name, description, color, status, client_id,
             billable, disable_activity, allow_tracking, disable_idle_time,
-            budget_type, budget_limit, budget_notifications
+            budget_type, budget_limit, budget_notifications,
+            member_limit // Fix: added to scope
         };
 
         // Remove undefined keys so they don't overwrite with nulls
