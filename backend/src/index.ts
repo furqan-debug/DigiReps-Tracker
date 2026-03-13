@@ -107,7 +107,7 @@ async function getMemberProjectStats(memberId: string, projectIds: string[]) {
     const now = new Date();
     const nowMs = now.getTime();
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-    
+
     // Start of week (Monday)
     const day = now.getDay();
     const diff = (day === 0 ? -6 : 1) - day;
@@ -124,13 +124,13 @@ async function getMemberProjectStats(memberId: string, projectIds: string[]) {
 
     // 2. Aggregate time
     const projectSessions: Record<string, string[]> = {};
-    
+
     (sessions || []).forEach(s => {
         if (!s.project_id) return;
         if (!stats[s.project_id]) {
             stats[s.project_id] = { todaySeconds: 0, weeklySeconds: 0, activityPercent: 0, sampleCount: 0, totalActivity: 0 };
         }
-        
+
         const sessStart = new Date(s.started_at).getTime();
         const sessEnd = s.ended_at ? new Date(s.ended_at).getTime() : nowMs;
 
@@ -157,7 +157,7 @@ async function getMemberProjectStats(memberId: string, projectIds: string[]) {
         (activity || []).forEach(a => {
             const sess = sessions?.find(s => s.id === a.session_id);
             if (!sess?.project_id) return;
-            
+
             // Explicitly initialize if missing to appease TS
             if (!stats[sess.project_id]) {
                 stats[sess.project_id] = { todaySeconds: 0, weeklySeconds: 0, activityPercent: 0, sampleCount: 0, totalActivity: 0 };
@@ -412,17 +412,17 @@ app.post('/api/members', requireAuth, async (req, res) => {
 
         // 2. Check if a member row already exists for this email
         const { data: existingMember } = await db.from('members').select('id, status').eq('email', email).maybeSingle();
-        
+
         if (existingMember && existingMember.status === 'Active') {
-            return res.status(409).json({ 
-                error: 'Member already exists', 
-                message: `This user is already ACTIVE. They should log in directly or use the "Forgot Password" link if they cannot access their account.` 
+            return res.status(409).json({
+                error: 'Member already exists',
+                message: `This user is already ACTIVE. They should log in directly or use the "Forgot Password" link if they cannot access their account.`
             });
         }
 
         // 3. Generate invitation link and send via Resend
         const adminPortalUrl = process.env.ADMIN_PORTAL_URL || 'http://localhost:5174';
-        
+
         const { data: inviteData, error: inviteError } = await db.auth.admin.generateLink({
             type: 'invite',
             email,
@@ -548,7 +548,7 @@ app.post('/api/members/complete-setup', async (req, res) => {
                 }])
                 .select()
                 .maybeSingle();
-            
+
             if (createErr) throw createErr;
             member = newMember;
         } else {
@@ -677,10 +677,10 @@ app.post('/api/projects', requireAuth, async (req, res) => {
         for (const pName of projectNames) {
             // 1. Insert Project
             const { data: project, error: projectError } = await db.from('projects').insert([{
-                name: pName, 
-                description, 
-                color, 
-                client_id, 
+                name: pName,
+                description,
+                color,
+                client_id,
                 organization_id: req.body.organization_id || null,
                 billable,
                 disable_activity,
@@ -707,7 +707,7 @@ app.post('/api/projects', requireAuth, async (req, res) => {
                 const { error: tErr } = await db.from('project_teams').insert(teamRows);
                 if (tErr) throw tErr;
             }
-            
+
             createdProjects.push(project);
         }
 
@@ -746,7 +746,7 @@ app.put('/api/projects/:id', requireAuth, async (req, res) => {
 
         const orgId = adminProfile.organization_id;
 
-        const updateData: any = { 
+        const updateData: any = {
             name, description, color, status, client_id,
             billable, disable_activity, allow_tracking, disable_idle_time,
             budget_type, budget_limit, budget_notifications,
@@ -852,13 +852,13 @@ app.post('/api/sessions', async (req, res) => {
 
         const { error } = await getDb()
             .from('sessions')
-            .insert([{ 
-                id: session_id, 
-                user_id, 
-                project_id, 
-                started_at, 
+            .insert([{
+                id: session_id,
+                user_id,
+                project_id,
+                started_at,
                 ip_address,
-                organization_id 
+                organization_id
             }]);
 
         if (error) throw error;
