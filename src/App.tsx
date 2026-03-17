@@ -6,6 +6,7 @@ import {
   ShieldAlert, Eye, MapPin, MonitorPlay, MousePointerClick,
   ClipboardList, Calendar, Circle, ChevronDown, ChevronUp
 } from 'lucide-react';
+import { trackerAPI } from './tauri-ipc';
 import './App.css';
 
 const SUPABASE_URL = (import.meta as any).env?.VITE_SUPABASE_URL as string;
@@ -55,18 +56,6 @@ interface Todo {
   projectColor?: string;
 }
 
-interface ActivitySample {
-  type?: 'screenshot';
-  session_id: string;
-  timestamp: string;
-  mouse_count?: number;
-  keyboard_count?: number;
-  app_name?: string;
-  window_title?: string;
-  domain?: string;
-  idle_flag?: boolean;
-  file_url?: string;
-}
 
 // ─── Persistent storage ───────────────────────────────────────────────────────
 const TOKEN_KEY = 'digireps_token';
@@ -122,12 +111,25 @@ export default function App() {
   const [todos, setTodos] = useState<Todo[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const realtimeRef = useRef<any>(null);
+  const [updateVersion, setUpdateVersion] = useState<string | null>(null);
+  const [updateInstalling, setUpdateInstalling] = useState(false);
 
-  // Restore session on startup
+  // Restore session on startup + listen for update events
   useEffect(() => {
-    (window as any).trackerAPI?.onTrackingSample((_sample: ActivitySample) => {
+    trackerAPI.onTrackingSample((_sample: unknown) => {
       // samples are sent to admin via backend — not displayed in tracker
     });
+
+    // Listen for Tauri auto-update event (no-op in browser)
+    const tauri = (window as any).__TAURI__;
+    if (tauri?.event) {
+      tauri.event.listen('update-available', (ev: any) => {
+        setUpdateVersion(ev.payload?.version || 'new version');
+      });
+      tauri.event.listen('update-progress', (ev: any) => {
+        if (ev.payload === 100) setUpdateInstalling(false);
+      });
+    }
 
     const saved = loadSession();
     if (!saved) return;
@@ -185,7 +187,7 @@ export default function App() {
           };
           setTodos(prev => [enriched, ...prev]);
           // Fire native desktop notification
-          (window as any).trackerAPI?.showNotification(
+          trackerAPI.showNotification(
             '📋 New Task Assigned',
             t.title + (proj?.name ? ` — ${proj.name}` : '')
           );
@@ -256,31 +258,20 @@ export default function App() {
     setIsPaused(false);
     setTrackingError(null);
 
-    if (!(window as any).trackerAPI) {
-      // Browser dev mode — simulate
-      setSessionId('demo-' + Date.now());
-      setIsTracking(true);
-      setScreen('tracker');
-      return;
-    }
-    // @ts-ignore
-    const res = await (window as any).trackerAPI.startTracking(project.id, user?.id);
-    if (res.status === 'error') {
+    const res: any = await trackerAPI.startTracking(project.id, user?.id ?? '', undefined);
+    if (res?.status === 'error') {
       setTrackingError(res.error || 'Failed to start tracking. Is the backend running?');
       setActiveProject(null);
       return;
     }
     setIsTracking(true);
-    setSessionId(res.session_id);
+    setSessionId(res?.session_id ?? null);
     setScreen('tracker');
   }
 
   // ── Stop ──────────────────────────────────────────────────────────────────
   async function handleStop() {
-    if ((window as any).trackerAPI) {
-      // @ts-ignore
-      await (window as any).trackerAPI.stopTracking();
-    }
+    await trackerAPI.stopTracking();
     setIsTracking(false);
     setIsPaused(false);
     setSessionId(null);
@@ -292,18 +283,12 @@ export default function App() {
   // ── Pause / Resume ────────────────────────────────────────────────────────
   async function handlePause() {
     setIsPaused(true);
-    if ((window as any).trackerAPI?.pauseTracking) {
-      // @ts-ignore
-      await (window as any).trackerAPI.pauseTracking();
-    }
+    await trackerAPI.pauseTracking();
   }
 
   async function handleResume() {
     setIsPaused(false);
-    if ((window as any).trackerAPI?.resumeTracking) {
-      // @ts-ignore
-      await (window as any).trackerAPI.resumeTracking();
-    }
+    await trackerAPI.resumeTracking();
   }
 
   // ── Logout ────────────────────────────────────────────────────────────────
@@ -344,6 +329,40 @@ export default function App() {
 
   return (
     <div className="app-container">
+      {/* ─── Auto-update banner ─────────────────────────────────────────── */}
+      {updateVersion && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, zIndex: 9999,
+          background: 'linear-gradient(90deg, #7c3aed, #4f46e5)',
+          color: '#fff', fontSize: '12px', padding: '6px 12px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+        }}>
+          <span>⬆️ v{updateVersion} available</span>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              disabled={updateInstalling}
+              onClick={async () => {
+                setUpdateInstalling(true);
+                await trackerAPI.installUpdate();
+              }}
+              style={{
+                background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '4px',
+                color: '#fff', fontSize: '11px', padding: '3px 8px', cursor: 'pointer',
+              }}
+            >
+              {updateInstalling ? '⏳ Installing…' : 'Install & Restart'}
+            </button>
+            <button
+              onClick={() => setUpdateVersion(null)}
+              style={{
+                background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.7)',
+                fontSize: '14px', cursor: 'pointer', padding: '0 2px',
+              }}
+            >×</button>
+          </div>
+        </div>
+      )}
       <AnimatePresence mode="wait">
         {screen === 'login' && (
           <motion.div key="login" initial="initial" animate="in" exit="out" variants={pageVariants} transition={pageTransition} style={{ width: '100%', display: 'flex' }}>
