@@ -45,7 +45,7 @@ export function Signup() {
                 const { error: profileError } = await supabase
                     .from('members')
                     .upsert({
-                        ...(existingMember ? { id: existingMember.id } : {}),
+                        id: existingMember ? existingMember.id : authData.user.id,
                         email,
                         full_name: fullName,
                         role: 'Admin', // Purchasers through pricing/plan always get Admin access
