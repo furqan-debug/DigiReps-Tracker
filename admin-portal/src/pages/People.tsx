@@ -34,9 +34,7 @@ interface MemberRow extends DbMember {
     sessionCount: number;
     projectsCount: number;
 }
-
-
-const API = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+import { supabase } from '../lib/supabase';
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export function People() {
@@ -73,13 +71,9 @@ export function People() {
     async function fetchMembers() {
         setLoading(true);
         try {
-            const r = await fetch(`${API}/api/members`, {
-                headers: { 'Authorization': `Bearer ${session?.access_token}` }
-            });
-            if (r.ok) {
-                const data = await r.json();
-                setMembers(data);
-            }
+            const { data, error } = await supabase.from('members').select('*').order('created_at', { ascending: false });
+            if (error) throw error;
+            if (data) setMembers(data as any);
         } catch (e) {
             console.error('Fetch members error:', e);
         } finally {
@@ -92,7 +86,7 @@ export function People() {
         setAdding(true);
         setAddError(null);
         try {
-            const res = await fetch(`${API}/api/members`, {
+            const res = await fetch('/api/invite', {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
@@ -125,7 +119,7 @@ export function People() {
         setAdding(true);
         setAddError(null);
         try {
-            const res = await fetch(`${API}/api/members`, {
+            const res = await fetch('/api/invite', {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
@@ -149,14 +143,7 @@ export function People() {
         setEditMember(null);
         setMembers(prev => prev.map(m => m.id === id ? { ...m, ...patch } : m));
         try {
-            await fetch(`${API}/api/members/${id}`, {
-                method: 'PUT',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${session?.access_token}`
-                },
-                body: JSON.stringify(patch),
-            });
+            await supabase.from('members').update(patch).eq('id', id);
         } catch {
             fetchMembers();
         }
@@ -167,10 +154,7 @@ export function People() {
         if (!confirm('Are you sure you want to remove this member?')) return;
         setMembers(prev => prev.filter(m => m.id !== id));
         try {
-            await fetch(`${API}/api/members/${id}`, { 
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${session?.access_token}` }
-            });
+            await supabase.from('members').delete().eq('id', id);
         } catch { fetchMembers(); }
     }
 
@@ -180,10 +164,7 @@ export function People() {
         setMembers(prev => prev.filter(m => !selectedIds.has(m.id)));
         try {
             await Promise.all(
-                Array.from(selectedIds).map(id => fetch(`${API}/api/members/${id}`, { 
-                    method: 'DELETE',
-                    headers: { 'Authorization': `Bearer ${session?.access_token}` }
-                }))
+                Array.from(selectedIds).map(id => supabase.from('members').delete().eq('id', id))
             );
             setSelectedIds(new Set());
         } catch { fetchMembers(); }
