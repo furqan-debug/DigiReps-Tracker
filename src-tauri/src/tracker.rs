@@ -250,12 +250,12 @@ fn regex_domain(s: &str) -> Option<String> {
 
 // ─── 60-second sample loop ────────────────────────────────────────────────────
 /// Emits "tracking-sample" Tauri events every `interval_ms`.
-/// Phase 4: writes sample to SQLite cache FIRST, then attempts immediate sync.
+/// Writes to SQLite cache first, then syncs to Supabase /rest/v1/activity_samples.
 pub fn start_sample_loop(
     app: AppHandle,
     counts: Arc<Mutex<TrackerCounts>>,
     session_id: String,
-    api_url: String,
+    cfg: crate::SupabaseConfig,
     running: Arc<Mutex<bool>>,
     interval_ms: u64,
     db: Arc<Mutex<Option<rusqlite::Connection>>>,
@@ -294,30 +294,28 @@ pub fn start_sample_loop(
             // Emit to React UI
             let _ = app.emit("tracking-sample", &sample);
 
-            // Cache first (Phase 4), then immediately try to sync
-            {
-                let db_guard = db.lock().unwrap();
-                if let Some(conn) = db_guard.as_ref() {
-                    if let Err(e) = crate::cache::cache_sample(conn, &sample) {
-                        eprintln!("[tracker] cache write error: {}", e);
-                    } else {
-                        // Try immediate sync (cache::sync_once is fire-and-forget)
-                        crate::cache::sync_once(conn, &api_url, &auth_token);
-                    }
+            // Cache first, then sync to Supabase
+            let db_guard = db.lock().unwrap();
+            if let Some(conn) = db_guard.as_ref() {
+                if let Err(e) = crate::cache::cache_sample(conn, &sample) {
+                    eprintln!("[tracker] cache write error: {}", e);
                 } else {
-                    // No DB — fall back to direct HTTP
-                    let body = serde_json::json!([{
-                        "session_id": sample.session_id,
-                        "timestamp": sample.timestamp,
-                        "mouse_count": sample.mouse_count,
-                        "keyboard_count": sample.keyboard_count,
-                        "app_name": sample.app_name,
-                        "window_title": sample.window_title,
-                        "domain": sample.domain,
-                        "idle_flag": sample.idle_flag,
-                    }]).to_string();
-                    let _ = crate::http_post(&format!("{}/api/heartbeats", api_url), Some(&body));
+                    crate::cache::sync_once(conn, &cfg, &auth_token);
                 }
+            } else {
+                // No DB — post the single sample directly
+                let body = serde_json::json!([{
+                    "session_id": sample.session_id,
+                    "timestamp":  sample.timestamp,
+                    "mouse_count": sample.mouse_count,
+                    "keyboard_count": sample.keyboard_count,
+                    "app_name":   sample.app_name,
+                    "window_title": sample.window_title,
+                    "domain":     sample.domain,
+                    "idle_flag":  sample.idle_flag,
+                }]).to_string();
+                let token = auth_token.lock().unwrap().clone();
+                let _ = crate::supabase_post(&cfg, "activity_samples", &body, token.as_deref(), None);
             }
         }
     });
@@ -330,7 +328,7 @@ const SCREENSHOTS_PER_WINDOW: usize = 2;
 pub fn start_screenshot_loop(
     app: AppHandle,
     session_id: String,
-    api_url: String,
+    cfg: crate::SupabaseConfig,
     running: Arc<Mutex<bool>>,
 ) {
     thread::spawn(move || {
@@ -354,23 +352,23 @@ pub fn start_screenshot_loop(
 
                 if !*running.lock().unwrap() { return; }
 
-                if let Some(base64) = capture_screenshot() {
+                if let Some(base64_data) = capture_screenshot() {
                     let payload = ScreenshotPayload {
                         session_id: session_id.clone(),
                         timestamp: chrono::Utc::now().to_rfc3339(),
-                        base64,
+                        base64: base64_data.clone(),
                     };
                     let _ = app.emit("tracking-screenshot", &payload);
-                    // Upload to backend
-                    let body = serde_json::json!({
-                        "session_id": payload.session_id,
-                        "timestamp": payload.timestamp,
-                        "base64": payload.base64,
-                    });
-                    let _ = crate::http_post(
-                        &format!("{}/api/screenshot", api_url),
-                        Some(&body.to_string()),
-                    );
+
+                    // Upload to Supabase Storage as a PNG file
+                    let filename = format!("{}_{}.png", session_id, payload.timestamp.replace(':', "-"));
+                    let url = format!("{}/storage/v1/object/screenshots/{}", cfg.url, filename);
+                    if let Ok(png_bytes) = base64::engine::general_purpose::STANDARD.decode(&base64_data) {
+                        let _ = ureq::put(&url)
+                            .set("apikey", &cfg.anon_key)
+                            .set("Content-Type", "image/png")
+                            .send_bytes(&png_bytes);
+                    }
                 }
             }
 
