@@ -1,8 +1,6 @@
-// lib.rs — DigiReps Tracker (Tauri v2)
-// Phase 2: IPC commands replacing Electron ipcMain handlers
-// Phase 3: Native activity tracking via Rust (rdev + Win32)
-// Phase 4: Offline SQLite cache with 30s sync loop
-// Phase 5: Notifications + Auto-Updater
+// lib.rs — Trackora (Tauri v2)
+// Phases 2-5: IPC, native tracking, SQLite cache, notifications, auto-updater
+// Phase 6+: Direct Supabase REST API — no Express backend needed
 
 mod tracker;
 mod cache;
@@ -15,28 +13,30 @@ use std::sync::{Arc, Mutex};
 // ─── Shared App State ─────────────────────────────────────────────────────────
 pub struct AppState {
     pub active_session_id: Option<String>,
-    /// JWT stored as an Arc so cache.rs sync loop can read it
+    /// User's Supabase JWT — stored as Arc so cache.rs sync loop can read it
     pub auth_token: Arc<Mutex<Option<String>>>,
-    pub api_url: String,
-    /// Set to false to stop tracker + sync loops
+    /// https://<project>.supabase.co
+    pub supabase_url: String,
+    /// public anon key (safe to embed in app, RLS enforces access)
+    pub supabase_anon_key: String,
     pub tracking_running: Arc<Mutex<bool>>,
-    /// Shared input event counts for the rdev listener
     pub counts: Arc<Mutex<tracker::TrackerCounts>>,
-    /// Shared SQLite connection for cache operations
     pub db: Arc<Mutex<Option<rusqlite::Connection>>>,
 }
 
 impl Default for AppState {
     fn default() -> Self {
         let db = cache::init_db()
-            .map(|c| Some(c))
+            .map(Some)
             .unwrap_or_else(|e| { eprintln!("[cache] DB init error: {}", e); None });
 
         Self {
             active_session_id: None,
             auth_token: Arc::new(Mutex::new(None)),
-            api_url: std::env::var("VITE_API_BASE_URL")
-                .unwrap_or_else(|_| "http://localhost:3001".to_string()),
+            supabase_url: std::env::var("VITE_SUPABASE_URL")
+                .unwrap_or_else(|_| "https://your-project.supabase.co".to_string()),
+            supabase_anon_key: std::env::var("VITE_SUPABASE_ANON_KEY")
+                .unwrap_or_default(),
             tracking_running: Arc::new(Mutex::new(false)),
             counts: Arc::new(Mutex::new(tracker::TrackerCounts::default())),
             db: Arc::new(Mutex::new(db)),
@@ -44,10 +44,18 @@ impl Default for AppState {
     }
 }
 
+// ─── Supabase API config (passed around instead of a bare URL string) ─────────
+#[derive(Clone, Debug)]
+pub struct SupabaseConfig {
+    pub url: String,
+    pub anon_key: String,
+}
+
 // ─── Response types ────────────────────────────────────────────────────────────
+/// Supabase PostgREST returns an array on insert with Prefer: return=representation
 #[derive(Serialize, Deserialize, Debug, Clone)]
-struct SessionResponse {
-    session_id: String,
+struct SupabaseSessionRow {
+    pub id: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -59,54 +67,63 @@ pub struct TrackingResult {
     pub error: Option<String>,
 }
 
-// ─── Simple HTTP POST helper (no external deps) ────────────────────────────────
-pub fn http_post(url: &str, body: Option<&str>) -> Result<String, String> {
-    use std::io::{Read, Write};
-    use std::net::TcpStream;
+// ─── Supabase REST helpers ─────────────────────────────────────────────────────
 
-    let url_str = url.replace("http://", "");
-    let parts: Vec<&str> = url_str.splitn(2, '/').collect();
-    let host_port = parts[0];
-    let path = format!("/{}", parts.get(1).unwrap_or(&""));
-    let host = host_port.split(':').next().unwrap_or("localhost");
-    let body_str = body.unwrap_or("{}");
+/// POST to a Supabase PostgREST endpoint.
+/// Returns the raw response body on success.
+pub fn supabase_post(
+    cfg: &SupabaseConfig,
+    table: &str,
+    body: &str,
+    auth_token: Option<&str>,
+    prefer: Option<&str>,
+) -> Result<String, String> {
+    let url = format!("{}/rest/v1/{}", cfg.url, table);
 
-    let stream = TcpStream::connect(host_port)
-        .map_err(|e| format!("Cannot connect to backend: {}", e))?;
-    stream.set_write_timeout(Some(std::time::Duration::from_secs(5))).ok();
-    stream.set_read_timeout(Some(std::time::Duration::from_secs(10))).ok();
+    let mut req = ureq::post(&url)
+        .set("apikey", &cfg.anon_key)
+        .set("Content-Type", "application/json");
 
-    let request = format!(
-        "POST {} HTTP/1.1\r\nHost: {}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
-        path, host, body_str.len(), body_str
-    );
-
-    let mut stream = stream;
-    stream.write_all(request.as_bytes()).map_err(|e| e.to_string())?;
-
-    let mut response = String::new();
-    stream.read_to_string(&mut response).map_err(|e| e.to_string())?;
-
-    let body_start = response.find("\r\n\r\n").map(|i| i + 4).unwrap_or(0);
-    let status_code: u16 = response.lines().next().unwrap_or("")
-        .split_whitespace().nth(1)
-        .and_then(|s| s.parse().ok())
-        .unwrap_or(0);
-    let resp_body = response[body_start..].to_string();
-
-    if status_code >= 200 && status_code < 300 {
-        Ok(resp_body)
-    } else {
-        Err(serde_json::from_str::<serde_json::Value>(&resp_body)
-            .ok()
-            .and_then(|v| v["error"].as_str().map(|s| s.to_string()))
-            .unwrap_or_else(|| format!("Backend returned {}", status_code)))
+    if let Some(token) = auth_token {
+        req = req.set("Authorization", &format!("Bearer {}", token));
     }
+    if let Some(p) = prefer {
+        req = req.set("Prefer", p);
+    }
+
+    req.send_string(body)
+        .map_err(|e| format!("Supabase POST error: {}", e))
+        .and_then(|resp| resp.into_string().map_err(|e| e.to_string()))
+}
+
+/// PATCH a Supabase PostgREST row by filter.
+/// `filter` e.g. `"id=eq.my-uuid"`
+pub fn supabase_patch(
+    cfg: &SupabaseConfig,
+    table: &str,
+    filter: &str,
+    body: &str,
+    auth_token: Option<&str>,
+) -> Result<String, String> {
+    let url = format!("{}/rest/v1/{}?{}", cfg.url, table, filter);
+
+    let mut req = ureq::patch(&url)
+        .set("apikey", &cfg.anon_key)
+        .set("Content-Type", "application/json");
+
+    if let Some(token) = auth_token {
+        req = req.set("Authorization", &format!("Bearer {}", token));
+    }
+
+    req.send_string(body)
+        .map_err(|e| format!("Supabase PATCH error: {}", e))
+        .and_then(|resp| resp.into_string().map_err(|e| e.to_string()))
 }
 
 // ─── IPC Commands ─────────────────────────────────────────────────────────────
 
 /// invoke('start_tracking', { projectId, userId, token })
+/// Creates a session row in Supabase and starts tracker threads.
 #[tauri::command]
 fn start_tracking(
     app: tauri::AppHandle,
@@ -115,11 +132,11 @@ fn start_tracking(
     user_id: String,
     token: String,
 ) -> TrackingResult {
-    let (api_url, counts, running, auth_arc, db_arc) = {
+    let (cfg, counts, running, auth_arc, db_arc) = {
         let mut s = state.lock().unwrap();
-        *s.auth_token.lock().unwrap() = Some(token);
+        *s.auth_token.lock().unwrap() = Some(token.clone());
         (
-            s.api_url.clone(),
+            SupabaseConfig { url: s.supabase_url.clone(), anon_key: s.supabase_anon_key.clone() },
             Arc::clone(&s.counts),
             Arc::clone(&s.tracking_running),
             Arc::clone(&s.auth_token),
@@ -127,13 +144,21 @@ fn start_tracking(
         )
     };
 
-    // Create backend session
-    let body = serde_json::json!({ "user_id": user_id, "project_id": project_id }).to_string();
-    match http_post(&format!("{}/api/sessions", api_url), Some(&body)) {
+    // Insert session row — PostgREST returns array with Prefer: return=representation
+    let now = chrono::Utc::now().to_rfc3339();
+    let body = serde_json::json!({
+        "user_id": user_id,
+        "project_id": project_id,
+        "started_at": now,
+    }).to_string();
+
+    match supabase_post(&cfg, "sessions", &body, Some(&token), Some("return=representation")) {
         Ok(resp_body) => {
-            match serde_json::from_str::<SessionResponse>(&resp_body) {
-                Ok(data) => {
-                    let session_id = data.session_id.clone();
+            // PostgREST returns an array: [{...}]
+            let rows: Result<Vec<SupabaseSessionRow>, _> = serde_json::from_str(&resp_body);
+            match rows.ok().and_then(|mut v| v.pop()) {
+                Some(row) => {
+                    let session_id = row.id.clone();
                     {
                         let mut s = state.lock().unwrap();
                         s.active_session_id = Some(session_id.clone());
@@ -143,24 +168,24 @@ fn start_tracking(
                     // Reset counters
                     { let mut c = counts.lock().unwrap(); c.mouse_count = 0; c.keyboard_count = 0; }
 
-                    // Start native activity tracking
+                    // Start native trackers
                     tracker::start_sample_loop(
                         app.clone(), Arc::clone(&counts), session_id.clone(),
-                        api_url.clone(), Arc::clone(&running), 60_000, Arc::clone(&db_arc),
-                        Arc::clone(&auth_arc),
+                        cfg.clone(), Arc::clone(&running), 60_000,
+                        Arc::clone(&db_arc), Arc::clone(&auth_arc),
                     );
                     tracker::start_screenshot_loop(
-                        app.clone(), session_id.clone(), api_url.clone(), Arc::clone(&running),
+                        app.clone(), session_id.clone(), cfg.clone(), Arc::clone(&running),
                     );
 
-                    // Start offline sync loop (30s interval)
-                    cache::start_sync_loop(api_url.clone(), Arc::clone(&auth_arc), Arc::clone(&running));
+                    // 30s offline sync loop
+                    cache::start_sync_loop(cfg.clone(), Arc::clone(&auth_arc), Arc::clone(&running));
 
                     TrackingResult { status: "running".to_string(), session_id: Some(session_id), error: None }
                 }
-                Err(e) => TrackingResult {
+                None => TrackingResult {
                     status: "error".to_string(), session_id: None,
-                    error: Some(format!("Parse error: {}", e)),
+                    error: Some(format!("Unexpected response from Supabase: {}", resp_body)),
                 },
             }
         }
@@ -171,14 +196,21 @@ fn start_tracking(
 /// invoke('stop_tracking')
 #[tauri::command]
 fn stop_tracking(state: tauri::State<'_, Mutex<AppState>>) -> TrackingResult {
-    let (api_url, session_id, running) = {
+    let (cfg, token, session_id, running) = {
         let mut s = state.lock().unwrap();
-        (s.api_url.clone(), s.active_session_id.take(), Arc::clone(&s.tracking_running))
+        let token = s.auth_token.lock().unwrap().clone();
+        let cfg = SupabaseConfig { url: s.supabase_url.clone(), anon_key: s.supabase_anon_key.clone() };
+        (cfg, token, s.active_session_id.take(), Arc::clone(&s.tracking_running))
     };
+
     *running.lock().unwrap() = false;
+
     if let Some(sid) = session_id {
-        let _ = http_post(&format!("{}/api/sessions/{}/end", api_url, sid), None);
+        let ended = chrono::Utc::now().to_rfc3339();
+        let body = serde_json::json!({ "ended_at": ended }).to_string();
+        let _ = supabase_patch(&cfg, "sessions", &format!("id=eq.{}", sid), &body, token.as_deref());
     }
+
     TrackingResult { status: "stopped".to_string(), session_id: None, error: None }
 }
 
@@ -195,10 +227,10 @@ fn resume_tracking(
     app: tauri::AppHandle,
     state: tauri::State<'_, Mutex<AppState>>,
 ) -> TrackingResult {
-    let (api_url, session_id, counts, running, auth_arc, db_arc) = {
+    let (cfg, session_id, counts, running, auth_arc, db_arc) = {
         let s = state.lock().unwrap();
         (
-            s.api_url.clone(),
+            SupabaseConfig { url: s.supabase_url.clone(), anon_key: s.supabase_anon_key.clone() },
             s.active_session_id.clone(),
             Arc::clone(&s.counts),
             Arc::clone(&s.tracking_running),
@@ -219,31 +251,22 @@ fn resume_tracking(
 
     tracker::start_sample_loop(
         app.clone(), Arc::clone(&counts), sid.clone(),
-        api_url.clone(), Arc::clone(&running), 60_000, Arc::clone(&db_arc), Arc::clone(&auth_arc),
+        cfg.clone(), Arc::clone(&running), 60_000, Arc::clone(&db_arc), Arc::clone(&auth_arc),
     );
-    tracker::start_screenshot_loop(app.clone(), sid.clone(), api_url.clone(), Arc::clone(&running));
-    cache::start_sync_loop(api_url.clone(), Arc::clone(&auth_arc), Arc::clone(&running));
+    tracker::start_screenshot_loop(app.clone(), sid.clone(), cfg.clone(), Arc::clone(&running));
+    cache::start_sync_loop(cfg.clone(), Arc::clone(&auth_arc), Arc::clone(&running));
 
     TrackingResult { status: "running".to_string(), session_id: Some(sid), error: None }
 }
 
 /// invoke('show_notification_cmd', { title, body })
 #[tauri::command]
-fn show_notification_cmd(
-    app: tauri::AppHandle,
-    title: String,
-    body: String,
-) -> Result<(), String> {
+fn show_notification_cmd(app: tauri::AppHandle, title: String, body: String) -> Result<(), String> {
     use tauri_plugin_notification::NotificationExt;
-    app.notification()
-        .builder()
-        .title(title)
-        .body(body)
-        .show()
-        .map_err(|e| e.to_string())
+    app.notification().builder().title(title).body(body).show().map_err(|e| e.to_string())
 }
 
-/// invoke('install_update') — downloads and installs the pending update
+/// invoke('install_update')
 #[tauri::command]
 async fn install_update(app: tauri::AppHandle) -> Result<(), String> {
     updater::install_update(app).await
@@ -270,10 +293,8 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(move |app| {
-            // Start rdev global input listener (runs for app lifetime)
             tracker::spawn_input_listener(Arc::clone(&counts));
 
-            // Spawn background update check (15s delay)
             let app_handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
                 updater::check_for_updates(app_handle).await;
@@ -296,5 +317,5 @@ pub fn run() {
             set_auth_token,
         ])
         .run(tauri::generate_context!())
-        .expect("error while running DigiReps Tracker");
+        .expect("error while running Trackora");
 }
