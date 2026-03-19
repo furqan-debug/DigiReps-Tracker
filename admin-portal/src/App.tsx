@@ -43,6 +43,47 @@ import { Expenses } from './pages/Expenses';
 import { FavoritesProvider } from './context/FavoritesContext';
 import { AuthProvider } from './context/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+
+/**
+ * Detects Supabase auth tokens in the URL hash (invite / password-reset)
+ * and redirects to the correct page before anything else renders.
+ * Supabase always appends the token to the Site URL root, so this
+ * component must live at the root route.
+ */
+function AuthRedirect() {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (!hash) return;
+
+    // Parse hash parameters
+    const params = new URLSearchParams(hash.replace(/^#/, ''));
+    const type = params.get('type');
+    const accessToken = params.get('access_token');
+    const error = params.get('error');
+    const errorCode = params.get('error_code');
+
+    if (error || errorCode) {
+      // e.g. expired link — show a friendly error on accept-invite page
+      navigate(`/accept-invite${hash}`, { replace: true });
+      return;
+    }
+
+    if (accessToken && type === 'invite') {
+      navigate(`/accept-invite${hash}`, { replace: true });
+    } else if (accessToken && type === 'recovery') {
+      navigate(`/update-password${hash}`, { replace: true });
+    } else if (accessToken && type === 'signup') {
+      // Email confirmation from self-signup
+      navigate(`/dashboard${hash}`, { replace: true });
+    }
+  }, []);
+
+  return null;
+}
 
 function App() {
   return (
@@ -50,8 +91,8 @@ function App() {
       <FavoritesProvider>
         <Router>
           <Routes>
-            {/* ── Public pages ── */}
-            <Route path="/" element={<Landing />} />
+            {/* ── Auth token interceptor: runs on root URL, catches Supabase redirects ── */}
+            <Route path="/" element={<><AuthRedirect /><Landing /></>} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/accept-invite" element={<AcceptInvite />} />
