@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import React from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
@@ -6,8 +6,9 @@ import {
     Search, Plus, Filter, MoreHorizontal,
     X, Check, Users, CreditCard,
     ChevronDown, Trash2, Archive, Pencil,
-    Building2, Square, AlertCircle
+    Building2, AlertCircle
 } from 'lucide-react';
+import clsx from 'clsx';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type ProjectStatus = 'Active' | 'Archived';
@@ -139,23 +140,30 @@ export function Projects() {
     }
 
     return (
-        <div className="flex flex-col h-full bg-[#f9fafb]">
+        <div className="flex flex-col h-full bg-transparent">
             {/* Header */}
-            <div className="px-8 py-6 bg-white border-b border-slate-200">
-                <h1 className="text-2xl font-semibold text-slate-800">Projects</h1>
+            <div className="px-10 py-10 border-b border-black/[0.03] bg-white/[0.01]">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h1 className="text-3xl font-black text-text-primary tracking-tighter leading-none">Project Matrix</h1>
+                        <p className="text-[11px] font-black text-text-muted uppercase tracking-[0.3em] mt-2 font-mono">Global strategic initiatives and resource allocation</p>
+                    </div>
+                </div>
 
                 {/* Tabs */}
-                <div className="flex gap-8 mt-6">
+                <div className="flex gap-12 mt-10">
                     {(['Active', 'Archived'] as const).map(tab => (
                         <button
                             key={tab}
                             onClick={() => { setActiveTab(tab); setSelectedIds(new Set()); }}
-                            className={`pb-3 text-sm font-medium transition-all relative ${activeTab === tab ? 'text-blue-600' : 'text-slate-500 hover:text-slate-700'
-                                }`}
+                            className={clsx(
+                                "pb-5 text-[11px] font-black uppercase tracking-[0.2em] transition-all relative font-mono",
+                                activeTab === tab ? "text-text-primary" : "text-text-muted hover:text-text-primary"
+                            )}
                         >
-                            {tab.toUpperCase()} ({projects.filter(p => p.status === tab).length || (activeTab === tab ? projects.length : 0)})
+                            {tab.toUpperCase()} REGISTRY ({projects.filter(p => p.status === tab).length || (activeTab === tab ? projects.length : 0)})
                             {activeTab === tab && (
-                                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full" />
+                                <div className="absolute bottom-0 left-0 right-0 h-1 bg-primary rounded-full shadow-[0_0_12px_rgba(80,110,248,0.4)]" />
                             )}
                         </button>
                     ))}
@@ -163,140 +171,153 @@ export function Projects() {
             </div>
 
             {/* Content Section */}
-            <div className="p-8 flex-1 overflow-auto shell-scrollbar">
+            <div className="p-10 flex-1 overflow-auto custom-scrollbar">
                 {/* Action Bar */}
-                <div className="flex flex-wrap items-center justify-between gap-6 mb-8">
-                    <div className="flex items-center gap-4">
-                        <div className="relative group">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-blue-500 transition-all duration-300" />
+                <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-6 mb-10">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-5 w-full lg:w-auto">
+                        <div className="relative group lg:w-[400px]">
+                            <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted group-focus-within:text-primary transition-all duration-300" strokeWidth={2.5} />
                             <input
                                 type="text"
-                                placeholder="Search projects..."
+                                placeholder="Identify protocol by name or client..."
                                 value={searchQuery}
                                 onChange={e => setSearchQuery(e.target.value)}
-                                className="pl-11 pr-4 py-2.5 bg-white border border-slate-200 rounded-2xl text-sm w-72 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all shadow-sm group-hover:border-slate-300"
+                                className="w-full pl-12 pr-6 py-3.5 bg-black/[0.02] border border-black/[0.05] rounded-2xl text-[13px] font-black text-text-primary placeholder:text-text-muted outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary/30 transition-all shadow-sm font-mono"
                             />
                         </div>
 
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-4">
                             <button
-                                className="px-4 py-2.5 bg-white border border-slate-200 rounded-2xl text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:border-slate-300 flex items-center gap-2 transition-all shadow-sm disabled:opacity-50"
+                                className="px-6 py-3.5 glass border border-black/[0.05] rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] text-text-primary hover:bg-black/[0.02] flex items-center gap-3.5 transition-all shadow-sm active:scale-95 disabled:opacity-30 font-mono"
                                 onClick={() => { }}
                             >
-                                <Filter className="w-4 h-4 text-slate-400" /> Filters
+                                <Filter className="w-4 h-4 text-primary" strokeWidth={3} /> FILTER MATRIX
                             </button>
 
-                            <div className="h-6 w-px bg-slate-200 mx-1" />
+                            <div className="h-10 w-px bg-black/[0.03] mx-1" />
 
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-4">
                                 <button
                                     disabled={selectedIds.size === 0 || isViewer}
                                     onClick={handleBulkArchive}
-                                    className={`px-4 py-2.5 bg-white border border-slate-200 rounded-2xl text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:border-slate-300 flex items-center gap-2 transition-all shadow-sm disabled:opacity-50 group ${isViewer ? 'cursor-not-allowed hidden' : ''}`}
+                                    className={clsx(
+                                        "px-6 py-3.5 glass border border-black/[0.05] rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all shadow-sm active:scale-95 group font-mono",
+                                        (selectedIds.size === 0 || isViewer) ? "opacity-30 cursor-not-allowed text-text-muted" : "text-text-primary hover:bg-black/[0.02]"
+                                    )}
                                 >
-                                    <Archive className="w-4 h-4 text-slate-400 group-hover:text-blue-500 transition-colors" />
-                                    {activeTab === 'Active' ? 'Archive Selected' : 'Restore Selected'}
+                                    <Archive className="w-4 h-4 text-primary group-hover:scale-110 transition-transform inline-block mr-2" strokeWidth={2.5} />
+                                    {activeTab === 'Active' ? 'BULK DE-ACTIVATE' : 'BULK ACTIVATE'}
                                 </button>
                                 {selectedIds.size > 0 && (
-                                    <span className="text-xs text-blue-600 font-bold bg-blue-50 px-3 py-1.5 rounded-full animate-in fade-in slide-in-from-left-2 transition-all">
-                                        {selectedIds.size} selected
+                                    <span className="text-[10px] font-black text-primary bg-primary/5 px-4 py-2 rounded-full border border-primary/10 uppercase tracking-[0.2em] animate-in fade-in slide-in-from-left-2 transition-all font-mono">
+                                        {selectedIds.size} NODES SELECTED
                                     </span>
                                 )}
                             </div>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-4">
                         <button
                             onClick={() => { if (!isViewer) { setEditingProject(null); setShowModal(true); } }}
                             disabled={isViewer}
-                            className={`px-6 py-2.5 bg-blue-600 text-white rounded-2xl text-sm font-bold hover:bg-blue-700 flex items-center gap-2 transition-all shadow-lg shadow-blue-200 active:scale-[0.98] ${isViewer ? 'hidden' : ''}`}
+                            className={clsx(
+                                "px-10 py-3.5 rounded-[20px] text-[10px] font-black uppercase tracking-[0.3em] transition-all shadow-lg font-mono flex items-center gap-3",
+                                isViewer ? "bg-black/5 text-text-muted cursor-not-allowed" : "bg-primary text-white hover:shadow-primary/20 hover:scale-[1.02] active:scale-95"
+                            )}
                         >
-                            <Plus className="w-4 h-4 stroke-[3]" /> Add Project
+                            <Plus className="w-5 h-5 stroke-[4]" /> CREATE PROJECT
                         </button>
                     </div>
                 </div>
 
                 {/* Table Container */}
-                <div className="bg-white rounded-[24px] border border-slate-200/60 shadow-xl shadow-slate-200/40 overflow-hidden">
-                    <table className="w-full text-left border-collapse">
-                        <thead>
-                            <tr className="bg-slate-50/50 border-b border-slate-100">
-                                <th className="pl-6 py-5 w-12">
-                                    <button
-                                        onClick={toggleSelectAll}
-                                        className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all ${selectedIds.size === filteredProjects.length && filteredProjects.length > 0
-                                            ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
-                                            : 'bg-white border-slate-300 hover:border-blue-400'
-                                            }`}
-                                    >
-                                        {selectedIds.size === filteredProjects.length && filteredProjects.length > 0 && <Check className="w-3.5 h-3.5 stroke-[3]" />}
-                                    </button>
-                                </th>
-                                <th className="px-4 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">Project Name</th>
-                                <th className="px-4 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">Teams</th>
-                                <th className="px-4 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em] text-center">Members</th>
-                                <th className="px-4 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">To-dos</th>
-                                <th className="px-4 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">Budget Status</th>
-                                <th className="px-4 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">Member Limit</th>
-                                <th className="pr-6 py-5 w-16"></th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-50">
-                            {loading ? (
-                                <tr>
-                                    <td colSpan={8} className="py-32 text-center">
-                                        <div className="flex flex-col items-center gap-4">
-                                            <div className="w-10 h-10 border-[3px] border-blue-600 border-t-transparent rounded-full animate-spin shadow-inner" />
-                                            <span className="text-sm font-bold text-slate-400 uppercase tracking-widest">Loading...</span>
-                                        </div>
-                                    </td>
+                <div className="glass rounded-[40px] border border-black/[0.05] shadow-xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-700">
+                    <div className="overflow-x-auto custom-scrollbar">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="border-b border-black/[0.03] bg-black/[0.01]">
+                                    <th className="pl-10 py-7 w-12">
+                                        <button
+                                            onClick={toggleSelectAll}
+                                            className={clsx(
+                                                "w-6 h-6 rounded-lg border flex items-center justify-center transition-all shadow-sm",
+                                                selectedIds.size === filteredProjects.length && filteredProjects.length > 0
+                                                    ? "bg-primary border-primary text-white shadow-primary/20"
+                                                    : "bg-white border-black/[0.1] hover:border-primary"
+                                            )}
+                                        >
+                                            {selectedIds.size === filteredProjects.length && filteredProjects.length > 0 && <Check className="w-4 h-4 stroke-[4]" />}
+                                        </button>
+                                    </th>
+                                    <th className="px-8 py-7 text-[10px] font-black text-text-muted uppercase tracking-[0.3em] font-mono">Initiative Protocol</th>
+                                    <th className="px-8 py-7 text-[10px] font-black text-text-muted uppercase tracking-[0.3em] font-mono">Resource Clusters</th>
+                                    <th className="px-8 py-7 text-[10px] font-black text-text-muted uppercase tracking-[0.3em] font-mono text-center">Unit Count</th>
+                                    <th className="px-8 py-7 text-[10px] font-black text-text-muted uppercase tracking-[0.3em] font-mono">Operational Queue</th>
+                                    <th className="px-8 py-7 text-[10px] font-black text-text-muted uppercase tracking-[0.3em] font-mono">Fiscal Consumption</th>
+                                    <th className="px-8 py-7 text-[10px] font-black text-text-muted uppercase tracking-[0.3em] font-mono">Thresholds</th>
+                                    <th className="pr-10 py-7 w-20"></th>
                                 </tr>
-                            ) : filteredProjects.length === 0 ? (
-                                <tr>
-                                    <td colSpan={8} className="py-32 text-center text-slate-400">
-                                        <div className="flex flex-col items-center gap-6">
-                                            <div className="p-8 bg-slate-50 rounded-[32px]">
-                                                <Square className="w-12 h-12 text-slate-200" />
+                            </thead>
+                            <tbody className="divide-y divide-black/[0.03]">
+                                {loading ? (
+                                    <tr>
+                                        <td colSpan={8} className="py-40 text-center">
+                                            <div className="flex flex-col items-center gap-5">
+                                                <div className="w-10 h-10 border-2 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
+                                                <span className="text-[10px] font-bold text-text-muted uppercase tracking-[0.3em] animate-pulse">Syncing Matrix...</span>
                                             </div>
-                                            <div>
-                                                <p className="font-bold text-slate-800 text-lg">No projects found</p>
-                                                <p className="text-sm text-slate-500 mt-1.5">Try adjusting your search query or filters</p>
+                                        </td>
+                                    </tr>
+                                ) : filteredProjects.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={8} className="py-56 text-center">
+                                            <div className="flex flex-col items-center gap-10 opacity-60">
+                                                <div className="p-12 bg-black/[0.02] border border-black/[0.05] rounded-[48px] shadow-inner">
+                                                    <AlertCircle className="w-16 h-16 text-primary" strokeWidth={1} />
+                                                </div>
+                                                <div>
+                                                    <p className="font-black text-text-primary text-2xl tracking-tighter">No protocols detected</p>
+                                                    <p className="text-[11px] font-black text-text-muted uppercase tracking-[0.4em] mt-3 font-mono">Registry is currently void of active projects</p>
+                                                </div>
+                                                <button 
+                                                    onClick={() => { setSearchQuery(''); setShowModal(true); }}
+                                                    className="text-primary font-black text-xs uppercase tracking-[0.3em] hover:text-primary/70 transition-colors font-mono"
+                                                >
+                                                    INITIALIZE FIRST PROTOCOL
+                                                </button>
                                             </div>
-                                            <button 
-                                                onClick={() => { setSearchQuery(''); setShowModal(true); }}
-                                                className="text-blue-600 font-bold text-sm hover:underline"
-                                            >
-                                                Create your first project
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ) : (
-                                filteredProjects.map(p => (
-                                    <ProjectRow
-                                        key={p.id}
-                                        project={p}
-                                        isSelected={selectedIds.has(p.id)}
-                                        onSelect={() => toggleSelect(p.id)}
-                                        onEdit={(tab) => { 
-                                            setEditingProject(p); 
-                                            setModalInitialTab(tab || 'GENERAL');
-                                            setShowModal(true); 
-                                        }}
-                                        isViewer={isViewer}
-                                        onRefresh={fetchProjects}
-                                    />
-                                ))
-                            )}
-                        </tbody>
-                    </table>
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    filteredProjects.map(p => (
+                                        <ProjectRow
+                                            key={p.id}
+                                            project={p}
+                                            isSelected={selectedIds.has(p.id)}
+                                            onSelect={() => toggleSelect(p.id)}
+                                            onEdit={(tab) => { 
+                                                setEditingProject(p); 
+                                                setModalInitialTab(tab || 'GENERAL');
+                                                setShowModal(true); 
+                                            }}
+                                            isViewer={isViewer}
+                                            onRefresh={fetchProjects}
+                                        />
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
 
-                <div className="mt-8 flex items-center justify-between px-2">
-                    <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">
-                        Page 1 of 1 • {filteredProjects.length} total projects
+                <div className="mt-10 flex items-center justify-between px-6">
+                    <p className="text-[10px] font-black text-text-muted uppercase tracking-[0.3em] font-mono">
+                        REGISTRY MATRIX • {filteredProjects.length} NODE{filteredProjects.length !== 1 ? 'S' : ''} DETECTED
                     </p>
+                    <div className="flex items-center gap-4">
+                        <button className="px-6 py-2.5 glass border border-black/[0.05] rounded-xl text-[10px] font-black uppercase tracking-[0.2em] opacity-30 cursor-not-allowed font-mono">SECTOR ARC 1</button>
+                    </div>
                 </div>
             </div>
 
@@ -322,6 +343,12 @@ function ProjectRow({
 }) {
     const { session } = useAuth();
     const [showMenu, setShowMenu] = useState(false);
+    const dropRef = useRef<HTMLTableCellElement>(null);
+
+    useEffect(() => {
+        function h(e: MouseEvent) { if (dropRef.current && !dropRef.current.contains(e.target as Node)) setShowMenu(false); }
+        document.addEventListener('mousedown', h); return () => document.removeEventListener('mousedown', h);
+    }, []);
 
     async function handleArchive() {
         try {
@@ -358,175 +385,197 @@ function ProjectRow({
     const isOverBudget = limit > 0 && trackedHours > limit;
 
     return (
-        <tr className={`group border-b border-slate-100/80 hover:bg-blue-50/40 transition-all duration-200 ${isSelected ? 'bg-blue-50/60' : ''}`}>
-            <td className="pl-6 py-5">
+        <tr className={clsx(
+            "group/row border-b border-black/[0.02] transition-all duration-300",
+            isSelected ? "bg-primary/[0.02]" : "hover:bg-black/[0.01]"
+        )}>
+            <td className="pl-10 py-8">
                 <button
                     onClick={onSelect}
-                    className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all ${isSelected 
-                        ? 'bg-blue-600 border-blue-600 text-white shadow-sm shadow-blue-200' 
-                        : 'bg-white border-slate-300 group-hover:border-blue-400'
-                        }`}
+                    className={clsx(
+                        "w-6 h-6 rounded-lg border flex items-center justify-center transition-all shadow-sm",
+                        isSelected 
+                            ? "bg-primary border-primary text-white shadow-primary/20" 
+                            : "bg-white border-black/[0.1] group-hover/row:border-primary cursor-pointer"
+                    )}
                 >
-                    {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                    {isSelected && <Check className="w-4 h-4 stroke-[4]" />}
                 </button>
             </td>
-            <td className="px-4 py-5">
-                <div className="flex items-center gap-4">
+            <td className="px-8 py-8">
+                <div className="flex items-center gap-6">
                     <div
-                        className="w-11 h-11 rounded-xl flex items-center justify-center font-bold text-base shrink-0 shadow-sm border border-white/50"
+                        className="w-14 h-14 rounded-2xl flex items-center justify-center font-black text-xl shrink-0 shadow-lg border border-black/[0.05] group-hover/row:scale-110 transition-transform duration-500 font-mono"
                         style={{ 
-                            background: `linear-gradient(135deg, ${project.color}15 0%, ${project.color}30 100%)`, 
-                            color: project.color 
+                            background: `linear-gradient(135deg, ${project.color}15 0%, ${project.color}35 100%)`, 
+                            color: project.color,
+                            boxShadow: `0 10px 20px -5px ${project.color}20`
                         }}
                     >
                         {(project.name || 'P').charAt(0).toUpperCase()}
                     </div>
                     <div className="min-w-0">
-                        <button onClick={() => onEdit('GENERAL')} className="text-sm font-bold text-slate-800 hover:text-blue-600 transition-colors truncate block max-w-[280px]">
+                        <button onClick={() => onEdit('GENERAL')} className="text-base font-black text-text-primary hover:text-primary transition-colors truncate block max-w-[350px] tracking-tight leading-none mb-2">
                             {project.name}
                         </button>
-                        <div className="flex items-center gap-1.5 mt-1">
+                        <div className="flex items-center gap-3 mt-1">
                             {project.client_name ? (
-                                <span className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1 bg-slate-100 px-1.5 py-0.5 rounded">
-                                    <Building2 className="w-3 h-3 text-slate-400" /> {project.client_name}
+                                <span className="text-[10px] font-black text-text-muted uppercase flex items-center gap-2 bg-black/[0.03] px-3 py-1 rounded-lg border border-black/[0.05] font-mono">
+                                    <Building2 className="w-3.5 h-3.5 text-primary" strokeWidth={2.5} /> {project.client_name}
                                 </span>
                             ) : (
-                                <span className="text-[10px] font-bold text-slate-400 uppercase italic">No client</span>
+                                <span className="text-[10px] font-black text-text-muted/40 uppercase italic tracking-[0.2em] font-mono">NO ORIGIN NODE</span>
                             )}
                             {project.billable && (
-                                <span className="text-[10px] font-bold text-emerald-600 uppercase bg-emerald-50 px-1.5 py-0.5 rounded">Billable</span>
+                                <span className="text-[10px] font-black text-emerald-600 uppercase bg-emerald-500/10 px-3 py-1 rounded-lg border border-emerald-500/20 tracking-[0.2em] font-mono">BILLABLE</span>
                             )}
                         </div>
                     </div>
                 </div>
             </td>
-            <td className="px-4 py-5">
-                <div className="flex flex-wrap gap-1.5">
+            <td className="px-8 py-8 font-mono">
+                <div className="flex flex-wrap gap-3">
                     {project.teamCount > 0 ? (
-                        <div className="flex items-center gap-1.5 bg-purple-50 px-2 py-1 rounded-lg border border-purple-100/50">
-                            <Building2 className="w-3.5 h-3.5 text-purple-500" />
-                            <span className="text-xs font-semibold text-purple-700">{project.teamCount} Team{project.teamCount !== 1 ? 's' : ''}</span>
+                        <div className="flex items-center gap-3 bg-primary/5 px-4 py-1.5 rounded-xl border border-primary/10 shadow-sm">
+                            <Building2 className="w-4 h-4 text-primary" strokeWidth={2.5} />
+                            <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">{project.teamCount} UNIT{project.teamCount !== 1 ? 'S' : ''}</span>
                         </div>
                     ) : (
-                        <span className="text-xs text-slate-400 italic">None</span>
+                        <span className="text-[10px] font-black text-text-muted/30 uppercase italic tracking-[0.3em]">STANDALONE</span>
                     )}
                 </div>
             </td>
-            <td className="px-4 py-5 text-center">
+            <td className="px-8 py-8 text-center">
                 <div className="flex items-center justify-center">
-                    <div className="flex items-center -space-x-2">
+                    <div className="flex items-center -space-x-4">
                         {project.memberCount > 0 ? (
                             <>
                                 {Array.from({ length: Math.min(3, project.memberCount) }).map((_, i) => (
-                                    <div key={i} className="w-8 h-8 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center text-[10px] font-bold text-slate-600 shadow-sm overflow-hidden">
-                                        <Users className="w-4 h-4 text-slate-400" />
+                                    <div key={i} className="w-10 h-10 rounded-2xl border-[3px] border-white bg-primary/5 flex items-center justify-center text-[11px] font-black text-primary shadow-md group-hover/row:translate-y-[-4px] transition-transform duration-300 font-mono">
+                                        <Users className="w-5 h-5" strokeWidth={2.5} />
                                     </div>
                                 ))}
                                 {project.memberCount > 3 && (
-                                    <div className="w-8 h-8 rounded-full border-2 border-white bg-blue-50 flex items-center justify-center text-[10px] font-bold text-blue-600 shadow-sm">
+                                    <div className="w-10 h-10 rounded-2xl border-[3px] border-white bg-primary flex items-center justify-center text-[10px] font-black text-white shadow-lg shadow-primary/20 scale-110 font-mono">
                                         +{project.memberCount - 3}
                                     </div>
                                 )}
                             </>
                         ) : (
-                            <div className="w-8 h-8 rounded-full border-2 border-dashed border-slate-200 flex items-center justify-center">
-                                <Plus className="w-3 h-3 text-slate-300" />
+                            <div className="w-10 h-10 rounded-2xl border-2 border-dashed border-black/[0.1] flex items-center justify-center group-hover/row:border-primary/50 transition-colors">
+                                <Plus className="w-5 h-5 text-text-muted/40 group-hover/row:text-primary" strokeWidth={3} />
                             </div>
                         )}
                     </div>
                 </div>
             </td>
-            <td className="px-4 py-5">
-                <div className="flex items-center gap-2">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${project.todoCount > 0 ? 'bg-blue-50 text-blue-600' : 'bg-slate-50 text-slate-400'}`}>
-                        <Check className="w-4 h-4" />
+            <td className="px-8 py-8 font-mono">
+                <div className="flex items-center gap-4">
+                    <div className={clsx(
+                        "w-10 h-10 rounded-xl flex items-center justify-center shadow-sm transition-all",
+                        project.todoCount > 0 ? "bg-primary/10 text-primary border border-primary/20" : "bg-black/[0.03] text-text-muted/30 border border-black/[0.05]"
+                    )}>
+                        <Check className="w-5 h-5" strokeWidth={3} />
                     </div>
                     <div>
-                        <p className="text-sm font-semibold text-slate-700 leading-none">{project.todoCount}</p>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase mt-1">To-dos</p>
+                        <p className="text-base font-black text-text-primary leading-none mb-1">{project.todoCount}</p>
+                        <p className="text-[9px] font-black text-text-muted uppercase tracking-[0.2em]">PENDING</p>
                     </div>
                 </div>
             </td>
-            <td className="px-4 py-5">
-                <div className="flex flex-col gap-1.5 min-w-[120px]">
+            <td className="px-8 py-8 font-mono">
+                <div className="flex flex-col gap-3.5 min-w-[160px]">
                     <div className="flex justify-between items-end">
-                        <span className="text-[10px] font-bold text-slate-500 uppercase">
-                            {(project.budget_type || 'No budget') === 'No budget' ? 'No budget' : (project.budget_type || '').replace('Total ', '')}
+                        <span className="text-[9px] font-black text-text-muted uppercase tracking-[0.2em] font-mono">
+                            {(project.budget_type || 'No budget') === 'No budget' ? 'ORGANIC' : (project.budget_type || '').replace('Total ', '').toUpperCase()}
                         </span>
                         {project.budget_limit && (
-                            <span className={`text-[10px] font-bold ${isOverBudget ? 'text-red-600' : 'text-slate-700'}`}>
-                                {trackedHours.toFixed(1)} / {project.budget_limit}
+                            <span className={clsx(
+                                "text-[11px] font-black",
+                                isOverBudget ? "text-rose-500" : "text-text-primary"
+                            )}>
+                                {trackedHours.toFixed(1)} <span className="text-text-muted opacity-50">/</span> {project.budget_limit}H
                             </span>
                         )}
                     </div>
                     {project.budget_limit ? (
-                        <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden border border-slate-200/50">
+                        <div className="w-full h-2 bg-black/[0.03] rounded-full overflow-hidden p-[1px] shadow-inner">
                             <div 
-                                className={`h-full transition-all duration-500 rounded-full ${isOverBudget ? 'bg-red-500' : 'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.4)]'}`}
+                                className={clsx(
+                                    "h-full transition-all duration-[1500ms] ease-out rounded-full shadow-sm",
+                                    isOverBudget ? "bg-rose-500" : "bg-primary"
+                                )}
                                 style={{ width: `${progress}%` }}
                             />
                         </div>
                     ) : (
-                        <span className="text-xs text-slate-400 italic">None set</span>
+                        <span className="text-[10px] font-black text-text-muted/30 uppercase italic tracking-[0.2em] font-mono">UNCONSTRAINED</span>
                     )}
                 </div>
             </td>
-            <td className="px-4 py-5">
+            <td className="px-8 py-8 font-mono">
                 {project.member_limit ? (
                     <div className="flex items-center gap-2">
-                        <div className="px-2 py-0.5 bg-amber-50 rounded border border-amber-100 text-[10px] font-bold text-amber-600 uppercase">
-                            Limit: {project.member_limit}
+                        <div className="px-4 py-1.5 bg-amber-500/5 rounded-xl border border-amber-500/10 text-[10px] font-black text-amber-600 uppercase tracking-[0.2em] shadow-sm">
+                            MAX: {project.member_limit}
                         </div>
                     </div>
                 ) : (
-                    <span className="text-xs text-slate-400 italic">Unlimited</span>
+                    <span className="text-[10px] font-black text-text-muted/30 uppercase italic tracking-[0.3em] font-mono">UNLIMITED</span>
                 )}
             </td>
-            <td className="pr-6 py-5 text-right">
-                <div className="relative inline-block text-left">
-                    <button
-                        onClick={() => setShowMenu(!showMenu)}
-                        className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 transition-colors group-hover:text-slate-600"
-                    >
-                        <MoreHorizontal className="w-5 h-5" />
-                    </button>
+            <td className="pr-10 py-8 text-right relative" ref={dropRef}>
+                <button
+                    onClick={() => setShowMenu(!showMenu)}
+                    className="p-3.5 glass border border-black/[0.05] rounded-[18px] text-text-muted hover:text-text-primary transition-all shadow-sm active:scale-90 group-hover/row:border-primary/20"
+                >
+                    <MoreHorizontal className="w-6 h-6" strokeWidth={2.5} />
+                </button>
 
-                    {showMenu && (
-                        <>
-                            <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
-                            <div className="absolute right-0 mt-2 w-52 rounded-2xl bg-white border border-slate-200 shadow-2xl z-20 py-2 overflow-hidden animate-in fade-in zoom-in duration-200">
-                                <button onClick={() => { setShowMenu(false); onEdit('GENERAL'); }} className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-3">
-                                    <Pencil className="w-4 h-4 text-slate-400" /> {isViewer ? 'View details' : 'Edit project'}
-                                </button>
-                                <button 
-                                    onClick={() => { if (!isViewer) { setShowMenu(false); onEdit('MEMBERS'); } }} 
-                                    className={`w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 ${isViewer ? 'text-slate-400 cursor-not-allowed grayscale opacity-70' : 'text-slate-700 hover:bg-slate-50'}`}
-                                >
-                                    <Users className="w-4 h-4 text-slate-400" /> Manage members
-                                </button>
-                                <button 
-                                    onClick={() => { if (!isViewer) { setShowMenu(false); onEdit('BUDGET & LIMITS'); } }} 
-                                    className={`w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 ${isViewer ? 'text-slate-400 cursor-not-allowed grayscale opacity-70' : 'text-slate-700 hover:bg-slate-50'}`}
-                                >
-                                    <CreditCard className="w-4 h-4 text-slate-400" /> Edit budget
-                                </button>
-                                <div className="h-px bg-slate-100 my-1.5 mx-2" />
-                                <button 
-                                    onClick={() => { if (!isViewer) { setShowMenu(false); handleArchive(); } }} 
-                                    className={`w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 ${isViewer ? 'text-slate-400 cursor-not-allowed grayscale opacity-70' : 'text-slate-700 hover:bg-slate-50'}`}
-                                >
-                                    <Archive className="w-4 h-4 text-slate-400" /> {project.status === 'Active' ? 'Archive' : 'Restore'} project
-                                </button>
-                                <button 
-                                    onClick={() => { if (!isViewer) { setShowMenu(false); handleDelete(); } }} 
-                                    className={`w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 ${isViewer ? 'text-slate-400 cursor-not-allowed grayscale opacity-70' : 'text-red-600 hover:bg-red-50'}`}
-                                >
-                                    <Trash2 className="w-4 h-4 text-red-500" /> Delete project
-                                </button>
-                            </div>
-                        </>
-                    )}
-                </div>
+                {showMenu && (
+                    <div className="absolute right-10 top-20 w-64 glass border border-black/[0.08] shadow-2xl z-20 py-3 rounded-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                        <button onClick={() => { setShowMenu(false); onEdit('GENERAL'); }} className="w-full px-6 py-4 text-left text-[11px] font-black uppercase tracking-[0.2em] text-text-muted hover:text-text-primary hover:bg-black/[0.02] flex items-center gap-4 transition-colors font-mono">
+                            <Pencil className="w-4.5 h-4.5 text-primary" strokeWidth={2.5} /> {isViewer ? 'INSPECT PROTOCOL' : 'ADJUST SETTINGS'}
+                        </button>
+                        <button 
+                            onClick={() => { if (!isViewer) { setShowMenu(false); onEdit('MEMBERS'); } }} 
+                            className={clsx(
+                                "w-full px-6 py-4 text-left text-[11px] font-black uppercase tracking-[0.2em] flex items-center gap-4 transition-colors font-mono",
+                                isViewer ? "opacity-30 cursor-not-allowed" : "text-text-muted hover:text-text-primary hover:bg-black/[0.02]"
+                            )}
+                        >
+                            <Users className="w-4.5 h-4.5 text-primary" strokeWidth={2.5} /> MEMBER GRID
+                        </button>
+                        <button 
+                            onClick={() => { if (!isViewer) { setShowMenu(false); onEdit('BUDGET & LIMITS'); } }} 
+                            className={clsx(
+                                "w-full px-6 py-4 text-left text-[11px] font-black uppercase tracking-[0.2em] flex items-center gap-4 transition-colors font-mono",
+                                isViewer ? "opacity-30 cursor-not-allowed" : "text-text-muted hover:text-text-primary hover:bg-black/[0.02]"
+                            )}
+                        >
+                            <CreditCard className="w-4.5 h-4.5 text-primary" strokeWidth={2.5} /> FISCAL THRESHOLDS
+                        </button>
+                        <div className="h-px bg-black/[0.03] my-3 mx-4" />
+                        <button 
+                            onClick={() => { if (!isViewer) { setShowMenu(false); handleArchive(); } }} 
+                            className={clsx(
+                                "w-full px-6 py-4 text-left text-[11px] font-black uppercase tracking-[0.2em] flex items-center gap-4 transition-colors font-mono",
+                                isViewer ? "opacity-30 cursor-not-allowed" : "text-text-muted hover:text-text-primary hover:bg-black/[0.02]"
+                            )}
+                        >
+                            <Archive className="w-4.5 h-4.5 text-primary" strokeWidth={2.5} /> {project.status === 'Active' ? 'ARCHIVE PROTOCOL' : 'RESTORE PROTOCOL'}
+                        </button>
+                        <button 
+                            onClick={() => { if (!isViewer) { setShowMenu(false); handleDelete(); } }} 
+                            className={clsx(
+                                "w-full px-6 py-4 text-left text-[11px] font-black uppercase tracking-[0.2em] flex items-center gap-4 transition-colors font-mono",
+                                isViewer ? "opacity-30 cursor-not-allowed" : "text-rose-500 hover:bg-rose-500/10"
+                            )}
+                        >
+                            <Trash2 className="w-4.5 h-4.5 text-rose-600" strokeWidth={2.5} /> PURGE METADATA
+                        </button>
+                    </div>
+                )}
             </td>
         </tr>
     );
@@ -537,20 +586,28 @@ function ProjectRow({
 
 function ToggleItem({ label, active, onToggle, hint }: { label: string; active: boolean; onToggle: () => void; hint?: string }) {
     return (
-        <div className="flex items-center justify-between py-2.5 px-1">
-            <div>
-                <span className="text-sm font-semibold text-slate-800">{label}</span>
-                {hint && <p className="text-[11px] text-slate-400 mt-0.5">{hint}</p>}
+        <div className="flex items-center justify-between py-4 px-2">
+            <div className="flex-1">
+                <span className="text-[13px] font-black text-text-primary tracking-tight leading-none block mb-1">{label}</span>
+                {hint && <p className="text-[10px] font-black text-text-muted uppercase tracking-widest mt-1 font-mono">{hint}</p>}
             </div>
-            <button type="button" onClick={onToggle}
-                className={`relative w-11 h-6 rounded-full transition-all duration-300 focus:outline-none ${active ? 'bg-blue-600 shadow-inner shadow-blue-900/20' : 'bg-slate-200'}`}>
-                <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-md transition-all duration-300 ${active ? 'left-6' : 'left-1'}`} />
+            <button 
+                type="button" 
+                onClick={onToggle}
+                className={clsx(
+                    "relative w-12 h-6 rounded-full transition-all duration-300 focus:outline-none shadow-inner",
+                    active ? 'bg-primary' : 'bg-black/[0.08]'
+                )}
+            >
+                <span className={clsx(
+                    "absolute top-1 w-4 h-4 bg-white rounded-full shadow-md transition-all duration-300",
+                    active ? 'left-7' : 'left-1'
+                )} />
             </button>
         </div>
     );
 }
-
-function MemberPicker({ label, description, members, selectedIds, onToggle, memberSearch, color }: {
+  function MemberPicker({ label, description, members, selectedIds, onToggle, memberSearch, color }: {
     label: string; description: string; members: Member[]; selectedIds: Set<string>;
     onToggle: (id: string) => void; memberSearch: string; color: string;
 }) {
@@ -559,31 +616,51 @@ function MemberPicker({ label, description, members, selectedIds, onToggle, memb
         m.email.toLowerCase().includes(memberSearch.toLowerCase())
     );
     return (
-        <div className="space-y-1.5">
-            <div>
-                <p className={`text-xs font-bold uppercase tracking-wider ${color}`}>{label}</p>
-                <p className="text-[11px] text-slate-400">{description}</p>
+        <div className="space-y-4">
+            <div className="flex items-center justify-between">
+                <div>
+                    <h4 className={clsx("text-[10px] font-black uppercase tracking-[0.2em] font-mono", color)}>{label}</h4>
+                    <p className="text-[10px] font-black text-text-muted uppercase tracking-widest mt-1 font-mono">{description}</p>
+                </div>
+                <span className="text-[10px] font-black text-text-muted opacity-50 font-mono">{filtered.length} NODES</span>
             </div>
-            <div className="border border-slate-200 rounded-xl overflow-hidden">
+            <div className="glass border border-black/[0.05] rounded-2xl overflow-hidden shadow-sm">
                 {filtered.length === 0 ? (
-                    <p className="text-center py-4 text-slate-400 text-xs italic">No members available</p>
+                    <div className="py-12 text-center">
+                        <p className="text-[10px] font-black text-text-muted uppercase tracking-[0.3em] font-mono italic">Registry void in this sector</p>
+                    </div>
                 ) : (
-                    <div className="divide-y divide-slate-100 max-h-[140px] overflow-y-auto">
+                    <div className="divide-y divide-black/[0.03] max-h-[220px] overflow-y-auto custom-scrollbar">
                         {filtered.map(m => {
                             const isSelected = selectedIds.has(m.id);
                             const initials = m.full_name.split(' ').map((w: string) => w[0]).join('').slice(0,2).toUpperCase();
                             return (
-                                <button type="button" key={m.id} onClick={() => onToggle(m.id)}
-                                    className={`w-full flex items-center justify-between px-4 py-2.5 transition-all ${isSelected ? 'bg-blue-50' : 'bg-white hover:bg-slate-50'}`}>
-                                    <div className="flex items-center gap-3">
-                                        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${isSelected ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-600'}`}>{initials}</div>
-                                        <div className="text-left">
-                                            <p className="text-xs font-semibold text-slate-800 leading-tight">{m.full_name}</p>
-                                            <p className="text-[10px] text-slate-400">{m.email}</p>
+                                <button 
+                                    type="button" 
+                                    key={m.id} 
+                                    onClick={() => onToggle(m.id)}
+                                    className={clsx(
+                                        "w-full flex items-center justify-between px-5 py-4 transition-all group/member",
+                                        isSelected ? "bg-primary/[0.03]" : "bg-white hover:bg-black/[0.01]"
+                                    )}
+                                >
+                                    <div className="flex items-center gap-4">
+                                        <div className={clsx(
+                                            "w-10 h-10 rounded-xl flex items-center justify-center text-[11px] font-black shrink-0 shadow-sm border border-black/[0.03] transition-all group-hover/member:scale-110",
+                                            isSelected ? "bg-primary text-white" : "bg-black/[0.03] text-text-primary"
+                                        )}>
+                                            {initials}
+                                        </div>
+                                        <div className="text-left min-w-0">
+                                            <p className="text-[13px] font-black text-text-primary leading-none truncate mb-1">{m.full_name}</p>
+                                            <p className="text-[10px] font-black text-text-muted uppercase tracking-tight font-mono truncate">{m.email}</p>
                                         </div>
                                     </div>
-                                    <div className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 ${isSelected ? 'bg-blue-600 border-blue-600' : 'border-slate-300'}`}>
-                                        {isSelected && <Check className="w-2.5 h-2.5 text-white stroke-[3]" />}
+                                    <div className={clsx(
+                                        "w-5 h-5 rounded-lg border-2 flex items-center justify-center shrink-0 transition-all",
+                                        isSelected ? "bg-primary border-primary shadow-sm" : "border-black/[0.1] group-hover/member:border-primary/50"
+                                    )}>
+                                        {isSelected && <Check className="w-3.5 h-3.5 text-white stroke-[4]" />}
                                     </div>
                                 </button>
                             );
@@ -699,197 +776,275 @@ function ProjectModal({ project, initialTab = 'GENERAL', onClose, onSuccess }: {
     const modalTabs = ['GENERAL', 'MEMBERS', 'BUDGET & LIMITS', 'TEAMS'] as const;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
-            style={{ background: 'rgba(15,23,42,0.65)', backdropFilter: 'blur(8px)' }}>
-            <div className="bg-white rounded-3xl w-full max-w-[560px] shadow-2xl flex flex-col my-auto border border-slate-200/60 overflow-hidden"
-                style={{ animation: 'modalIn 0.2s ease-out' }}>
-                <style>{`@keyframes modalIn{from{opacity:0;transform:scale(0.96) translateY(8px)}to{opacity:1;transform:scale(1) translateY(0)}}`}</style>
-
-                <div className="px-7 pt-6 pb-0 bg-gradient-to-br from-slate-50 to-white">
-                    <div className="flex items-start justify-between mb-5">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-2xl flex items-center justify-center border border-white/60 shadow"
-                                style={{ background: `linear-gradient(135deg,${color}25 0%,${color}45 100%)`, color }}>
-                                <span className="font-black text-base">{(name || 'P').charAt(0).toUpperCase()}</span>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 overflow-y-auto bg-text-primary/10 backdrop-blur-xl animate-in fade-in duration-300">
+            <div className="bg-white rounded-[40px] w-full max-w-[620px] shadow-[0_32px_120px_rgba(0,0,0,0.12)] flex flex-col my-auto border border-black/[0.05] overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-8 duration-500">
+                
+                {/* Modal Header */}
+                <div className="px-10 pt-10 pb-0 bg-black/[0.01]">
+                    <div className="flex items-start justify-between mb-8">
+                        <div className="flex items-center gap-5">
+                            <div className="w-14 h-14 rounded-2xl flex items-center justify-center border border-black/[0.05] shadow-sm transform -rotate-3 hover:rotate-0 transition-transform duration-500"
+                                style={{ background: `linear-gradient(135deg, ${color}15 0%, ${color}35 100%)`, color }}>
+                                <span className="font-black text-2xl font-mono">{(name || 'P').charAt(0).toUpperCase()}</span>
                             </div>
                             <div>
-                                <h2 className="text-lg font-bold text-slate-900 leading-tight">{project ? 'Edit project' : 'New project'}</h2>
-                                <p className="text-[11px] text-slate-400">Fill in the details to {project ? 'update' : 'create'} this project</p>
+                                <h2 className="text-2xl font-black text-text-primary tracking-tighter leading-none mb-2">{project ? 'Edit Protocol' : 'New Protocol'}</h2>
+                                <p className="text-[11px] font-black text-text-muted uppercase tracking-[0.3em] font-mono">Project configuration and resource mapping</p>
                             </div>
                         </div>
-                        <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-xl transition-colors text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
+                        <button onClick={onClose} className="p-3 bg-black/[0.03] hover:bg-black/[0.08] rounded-2xl transition-all text-text-muted hover:text-text-primary shadow-sm hover:scale-110 active:scale-90"><X className="w-5 h-5" strokeWidth={3} /></button>
                     </div>
-                    <div className="flex gap-0.5">
+
+                    {/* Tabs */}
+                    <div className="flex gap-2">
                         {modalTabs.map(tab => (
                             <button key={tab} onClick={() => setActiveTab(tab)}
-                                className={`px-4 py-2.5 text-[10px] font-bold tracking-wide relative transition-all rounded-t-lg ${activeTab === tab ? 'text-blue-600 bg-white shadow-sm border-t border-l border-r border-slate-200/70' : 'text-slate-400 hover:text-slate-600 hover:bg-white/60'}`}>
+                                className={clsx(
+                                    "px-6 py-4 text-[10px] font-black tracking-[0.2em] relative transition-all rounded-t-2xl font-mono overflow-hidden",
+                                    activeTab === tab 
+                                        ? "text-primary bg-white shadow-[0_-8px_20px_rgba(0,0,0,0.02)] border-t border-l border-r border-black/[0.03]" 
+                                        : "text-text-muted hover:text-text-primary hover:bg-black/[0.02]"
+                                )}
+                            >
                                 {tab}
-                                {activeTab === tab && <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-blue-600 rounded-t" />}
+                                {activeTab === tab && <div className="absolute bottom-0 left-0 right-0 h-1 bg-primary rounded-full shadow-[0_0_12px_rgba(80,110,248,0.4)]" />}
                             </button>
                         ))}
                     </div>
                 </div>
 
-                <div className="px-7 py-5 max-h-[58vh] overflow-y-auto">
+                <div className="px-10 py-10 max-h-[65vh] overflow-y-auto custom-scrollbar bg-white">
                     {activeTab === 'GENERAL' && (
-                        <div className="space-y-5">
+                        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                             <div>
-                                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Project Name *</label>
-                                <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Website Redesign"
-                                    className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-slate-300" />
+                                <label className="block text-[10px] font-black text-text-muted uppercase tracking-[0.3em] font-mono mb-3">Initiative Identity *</label>
+                                <input 
+                                    value={name} 
+                                    onChange={e => setName(e.target.value)} 
+                                    placeholder="DESIGNATE PROJECT NAME..."
+                                    className="w-full bg-black/[0.02] border border-black/[0.05] rounded-2xl px-6 py-4 text-[13px] font-black text-text-primary focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary/20 transition-all font-mono placeholder:text-text-muted/30 uppercase" 
+                                />
                             </div>
                             <div>
-                                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Project Color</label>
-                                <div className="flex gap-2 flex-wrap">
+                                <label className="block text-[10px] font-black text-text-muted uppercase tracking-[0.3em] font-mono mb-4">Color Signature</label>
+                                <div className="flex gap-3.5 flex-wrap">
                                     {COLORS.map(c => (
                                         <button key={c} type="button" onClick={() => setColor(c)}
-                                            className={`w-7 h-7 rounded-full shadow-sm transition-all ${color===c ? 'ring-2 ring-offset-2 scale-110 shadow-md':'hover:scale-110'}`}
-                                            style={{ background: c }} />
+                                            className={clsx(
+                                                "w-9 h-9 rounded-[14px] shadow-sm transition-all relative overflow-hidden",
+                                                color===c ? "ring-[3px] ring-primary/20 scale-110 shadow-lg" : "hover:scale-110 grayscale-[30%] hover:grayscale-0"
+                                            )}
+                                            style={{ background: c }}
+                                        >
+                                            {color === c && (
+                                                <div className="absolute inset-0 flex items-center justify-center bg-white/20">
+                                                    <Check className="w-5 h-5 text-white stroke-[4]" />
+                                                </div>
+                                            )}
+                                        </button>
                                     ))}
                                 </div>
                             </div>
-                            <div className="bg-slate-50/80 rounded-2xl px-4 py-1 border border-slate-100 divide-y divide-slate-100">
-                                <ToggleItem label="Billable" active={billable} onToggle={() => setBillable(!billable)} />
-                                <ToggleItem label="Disable activity" active={disableActivity} onToggle={() => setDisableActivity(!disableActivity)} hint="Disables keyboard + mouse activity tracking" />
-                                <ToggleItem label="Allow project tracking" active={allowTracking} onToggle={() => setAllowTracking(!allowTracking)} hint="Members can log time to this project" />
-                                <ToggleItem label="Disable idle time" active={disableIdle} onToggle={() => setDisableIdle(!disableIdle)} hint="Idle time will not be tracked" />
+                            
+                            <div className="space-y-2">
+                                <label className="block text-[10px] font-black text-text-muted uppercase tracking-[0.3em] font-mono mb-1">Operational Parameters</label>
+                                <div className="glass border border-black/[0.03] rounded-3xl px-3 py-2 divide-y divide-black/[0.03] overflow-hidden shadow-sm">
+                                    <ToggleItem label="Billable Output" active={billable} onToggle={() => setBillable(!billable)} hint="FINANCIAL RECOGNITION ENABLED" />
+                                    <ToggleItem label="Active Forensics" active={!disableActivity} onToggle={() => setDisableActivity(!disableActivity)} hint="KEYBOARD + MOUSE TELEMETRY" />
+                                    <ToggleItem label="Temporal Log" active={allowTracking} onToggle={() => setAllowTracking(!allowTracking)} hint="CHRONO-LOGGING PERMISSIONS" />
+                                    <ToggleItem label="Stasis Filter" active={!disableIdle} onToggle={() => setDisableIdle(!disableIdle)} hint="IDLE STATE SUPPRESSION" />
+                                </div>
                             </div>
+
                             <div>
-                                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Client</label>
-                                <div className="relative">
-                                    <select value={clientId} onChange={e => setClientId(e.target.value)}
-                                        className="w-full pl-4 pr-10 py-3 bg-white border border-slate-200 rounded-xl text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-700 font-medium">
-                                        <option value="">Select a client</option>
-                                        {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                <label className="block text-[10px] font-black text-text-muted uppercase tracking-[0.3em] font-mono mb-3">Client Affiliation</label>
+                                <div className="relative group">
+                                    <select 
+                                        value={clientId} 
+                                        onChange={e => setClientId(e.target.value)}
+                                        className="w-full pl-6 pr-12 py-4 bg-black/[0.02] border border-black/[0.05] rounded-2xl text-[13px] font-black text-text-primary appearance-none focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all font-mono uppercase cursor-pointer"
+                                    >
+                                        <option value="" className="bg-white">NO CLIENT ASSIGNMENT</option>
+                                        {clients.map(c => <option key={c.id} value={c.id} className="bg-white">{c.name.toUpperCase()}</option>)}
                                     </select>
-                                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                                    <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted pointer-events-none group-hover:text-primary transition-colors" strokeWidth={3} />
                                 </div>
                             </div>
                         </div>
                     )}
 
                     {activeTab === 'MEMBERS' && (
-                        <div className="space-y-5">
-                            <div className="relative">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
-                                <input value={memberSearch} onChange={e => setMemberSearch(e.target.value)} placeholder="Search members…"
-                                    className="w-full pl-10 pr-4 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all" />
+                        <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            <div className="relative group">
+                                <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted group-focus-within:text-primary transition-colors" strokeWidth={2.5} />
+                                <input 
+                                    value={memberSearch} 
+                                    onChange={e => setMemberSearch(e.target.value)} 
+                                    placeholder="QUERY PERSONNEL NODES..."
+                                    className="w-full pl-13 pr-6 py-4 bg-black/[0.02] border border-black/[0.05] rounded-[20px] text-[12px] font-black text-text-primary focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all font-mono placeholder:text-text-muted/40 uppercase" 
+                                />
                             </div>
-                            <MemberPicker label="Managers" description="Oversees and manages the project" color="text-purple-600"
-                                members={managers} selectedIds={managerIds} onToggle={id => toggleId(managerIds, setManagerIds, id)} memberSearch={memberSearch} />
-                            <MemberPicker label="Users" description="Works on the project (most common)" color="text-blue-600"
-                                members={users} selectedIds={userIds} onToggle={id => toggleId(userIds, setUserIds, id)} memberSearch={memberSearch} />
-                            <MemberPicker label="Viewers" description="Can view team reports for this project" color="text-emerald-600"
-                                members={viewers} selectedIds={viewerIds} onToggle={id => toggleId(viewerIds, setViewerIds, id)} memberSearch={memberSearch} />
+                            <div className="space-y-10">
+                                <MemberPicker label="EXECUTIVE COMMAND" description="Strategic oversight and admin rights" color="text-purple-600"
+                                    members={managers} selectedIds={managerIds} onToggle={id => toggleId(managerIds, setManagerIds, id)} memberSearch={memberSearch} />
+                                <MemberPicker label="OPERATIONAL UNITS" description="Core project execution nodes" color="text-primary"
+                                    members={users} selectedIds={userIds} onToggle={id => toggleId(userIds, setUserIds, id)} memberSearch={memberSearch} />
+                                <MemberPicker label="INTELLIGENCE OBSERVERS" description="Read-only analytic access" color="text-emerald-600"
+                                    members={viewers} selectedIds={viewerIds} onToggle={id => toggleId(viewerIds, setViewerIds, id)} memberSearch={memberSearch} />
+                            </div>
                         </div>
                     )}
 
                     {activeTab === 'BUDGET & LIMITS' && (
-                        <div className="space-y-5">
-                            <div className="flex gap-1 bg-slate-100 rounded-xl p-1">
+                        <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            <div className="flex p-1.5 bg-black/[0.03] rounded-2xl">
                                 {(['project','member'] as const).map(s => (
                                     <button key={s} onClick={() => setBudgetSubTab(s)}
-                                        className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${budgetSubTab===s?'bg-white text-slate-800 shadow-sm':'text-slate-400 hover:text-slate-600'}`}>
-                                        {s === 'project' ? 'Project budget' : 'Member limits'}
+                                        className={clsx(
+                                            "flex-1 py-3 rounded-[14px] text-[10px] font-black uppercase tracking-[0.2em] transition-all font-mono",
+                                            budgetSubTab===s ? "bg-white text-primary shadow-sm" : "text-text-muted hover:text-text-primary"
+                                        )}
+                                    >
+                                        {s === 'project' ? 'TOTAL CAPACITY' : 'UNIT CONSTRAINTS'}
                                     </button>
                                 ))}
                             </div>
+
                             {budgetSubTab === 'project' && (
-                                <div className="space-y-4">
-                                    <div className="grid grid-cols-3 gap-3">
-                                        <div>
-                                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Type *</label>
+                                <div className="space-y-8">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        <div className="space-y-3">
+                                            <label className="block text-[10px] font-black text-text-muted uppercase tracking-[0.3em] font-mono">Metric Type</label>
                                             <div className="relative">
-                                                <select value={budgetType} onChange={e => setBudgetType(e.target.value as BudgetType)}
-                                                    className="w-full pl-3 pr-7 py-2.5 bg-white border border-slate-200 rounded-xl text-xs appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-700">
-                                                    {['No budget','Total hours','Total amount','Monthly hours','Monthly amount'].map(t => <option key={t}>{t}</option>)}
+                                                <select 
+                                                    value={budgetType} 
+                                                    onChange={e => setBudgetType(e.target.value as BudgetType)}
+                                                    className="w-full pl-4 pr-10 py-3.5 bg-black/[0.02] border border-black/[0.05] rounded-2xl text-[12px] font-black text-text-primary appearance-none focus:outline-none transition-all font-mono uppercase"
+                                                >
+                                                    {['No budget','Total hours','Total amount','Monthly hours','Monthly amount'].map(t => <option key={t} value={t} className="bg-white">{t.toUpperCase()}</option>)}
                                                 </select>
-                                                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400 pointer-events-none" />
+                                                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted pointer-events-none" strokeWidth={3} />
                                             </div>
                                         </div>
-                                        <div>
-                                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Based On *</label>
+                                        <div className="space-y-3">
+                                            <label className="block text-[10px] font-black text-text-muted uppercase tracking-[0.3em] font-mono">Reference Hub</label>
                                             <div className="relative">
-                                                <select value={basedOn} onChange={e => setBasedOn(e.target.value)}
-                                                    className="w-full pl-3 pr-7 py-2.5 bg-white border border-slate-200 rounded-xl text-xs appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-700">
-                                                    {['Pay rate','Bill rate','Custom'].map(r => <option key={r}>{r}</option>)}
+                                                <select 
+                                                    value={basedOn} 
+                                                    onChange={e => setBasedOn(e.target.value)}
+                                                    className="w-full pl-4 pr-10 py-3.5 bg-black/[0.02] border border-black/[0.05] rounded-2xl text-[12px] font-black text-text-primary appearance-none focus:outline-none transition-all font-mono uppercase"
+                                                >
+                                                    {['Pay rate','Bill rate','Custom'].map(r => <option key={r} value={r} className="bg-white">{r.toUpperCase()}</option>)}
                                                 </select>
-                                                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400 pointer-events-none" />
+                                                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted pointer-events-none" strokeWidth={3} />
                                             </div>
                                         </div>
-                                        <div>
-                                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Cost *</label>
-                                            <div className="flex border border-slate-200 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-blue-500/20">
-                                                <span className="px-2.5 py-2.5 bg-slate-50 text-xs font-bold text-slate-500 border-r border-slate-200">$</span>
-                                                <input type="number" value={budgetCost} onChange={e => setBudgetCost(e.target.value)} placeholder="0.0" className="flex-1 px-2.5 py-2.5 text-sm focus:outline-none" />
+                                        <div className="space-y-3">
+                                            <label className="block text-[10px] font-black text-text-muted uppercase tracking-[0.3em] font-mono">Threshold *</label>
+                                            <div className="flex bg-black/[0.02] border border-black/[0.05] rounded-2xl overflow-hidden focus-within:ring-4 focus-within:ring-primary/10 transition-all group">
+                                                <span className="px-4 py-3.5 bg-black/[0.03] text-[11px] font-black text-primary border-r border-black/[0.05] font-mono">$</span>
+                                                <input 
+                                                    type="number" 
+                                                    value={budgetCost} 
+                                                    onChange={e => setBudgetCost(e.target.value)} 
+                                                    placeholder="0.00" 
+                                                    className="flex-1 min-w-0 bg-transparent px-4 py-3.5 text-[13px] font-black text-text-primary focus:outline-none font-mono placeholder:text-text-muted/30" 
+                                                />
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="bg-slate-50 rounded-2xl px-4 py-1 border border-slate-100 divide-y divide-slate-100">
-                                        <ToggleItem label="Notify project members" active={budgetNotify} onToggle={() => setBudgetNotify(!budgetNotify)} />
-                                    </div>
-                                    {budgetNotify && (
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <div>
-                                                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Notify At</label>
-                                                <div className="flex border border-slate-200 rounded-xl overflow-hidden">
-                                                    <input type="number" value={notifyAt} onChange={e => setNotifyAt(e.target.value)} placeholder="80" className="flex-1 px-3 py-2.5 text-sm focus:outline-none" />
-                                                    <span className="px-2.5 py-2.5 bg-slate-50 text-[10px] font-bold text-slate-400 border-l border-slate-200">% of budget</span>
+
+                                    <div className="glass border border-black/[0.03] rounded-[28px] overflow-hidden shadow-sm">
+                                        <ToggleItem label="Automated Alerts" active={budgetNotify} onToggle={() => setBudgetNotify(!budgetNotify)} hint="TRANSMIT STATUS UPDATES" />
+                                        {budgetNotify && (
+                                            <div className="p-6 bg-black/[0.01] border-t border-black/[0.03] animate-in slide-in-from-top-4 duration-300">
+                                                <div className="grid grid-cols-2 gap-6">
+                                                    <div className="space-y-3">
+                                                        <label className="block text-[10px] font-black text-text-muted uppercase tracking-[0.3em] font-mono">Trigger Point</label>
+                                                        <div className="flex bg-white border border-black/[0.1] rounded-xl overflow-hidden shadow-sm">
+                                                            <input type="number" value={notifyAt} onChange={e => setNotifyAt(e.target.value)} placeholder="80" className="flex-1 min-w-0 px-4 py-3 text-[13px] font-black font-mono focus:outline-none" />
+                                                            <span className="px-4 py-3 bg-black/[0.03] text-[9px] font-black text-text-muted border-l border-black/[0.05] font-mono uppercase">% LOAD</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="space-y-3">
+                                                        <label className="block text-[10px] font-black text-text-muted uppercase tracking-[0.3em] font-mono">Transmission Target</label>
+                                                        <div className="relative">
+                                                            <select value={notifyWho} onChange={e => setNotifyWho(e.target.value)}
+                                                                className="w-full pl-4 pr-10 py-3 bg-white border border-black/[0.1] rounded-xl text-[12px] font-black text-text-primary appearance-none focus:outline-none font-mono uppercase shadow-sm">
+                                                                {['Project members','Managers only','Admins only'].map(t => <option key={t} value={t}>{t.toUpperCase()}</option>)}
+                                                            </select>
+                                                            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted pointer-events-none" strokeWidth={3} />
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
-                                            <div>
-                                                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Who to Notify</label>
-                                                <div className="relative">
-                                                    <select value={notifyWho} onChange={e => setNotifyWho(e.target.value)}
-                                                        className="w-full pl-3 pr-7 py-2.5 bg-white border border-slate-200 rounded-xl text-xs appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-700">
-                                                        {['Project members','Managers only','Admins only'].map(t => <option key={t}>{t}</option>)}
-                                                    </select>
-                                                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400 pointer-events-none" />
+                                        )}
+                                        <div className="border-t border-black/[0.03]">
+                                            <ToggleItem label="Automatic Termination" active={stopTimers} onToggle={() => setStopTimers(!stopTimers)} hint="CEASE OPS AT LIMIT" />
+                                            {stopTimers && (
+                                                <div className="p-6 bg-black/[0.01] border-t border-black/[0.03] animate-in slide-in-from-top-4 duration-300">
+                                                    <div className="space-y-3">
+                                                        <label className="block text-[10px] font-black text-text-muted uppercase tracking-[0.3em] font-mono">Kill switch at</label>
+                                                        <div className="flex bg-white border border-black/[0.1] rounded-xl overflow-hidden max-w-xs shadow-sm">
+                                                            <input type="number" value={stopAt} onChange={e => setStopAt(e.target.value)} placeholder="100" className="flex-1 min-w-0 px-4 py-3 text-[13px] font-black font-mono focus:outline-none" />
+                                                            <span className="px-4 py-3 bg-black/[0.03] text-[9px] font-black text-text-muted border-l border-black/[0.05] font-mono uppercase">% LOAD</span>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                            </div>
+                                            )}
                                         </div>
-                                    )}
-                                    <div className="bg-slate-50 rounded-2xl px-4 py-1 border border-slate-100 divide-y divide-slate-100">
-                                        <ToggleItem label="Stop timers when budget is reached" active={stopTimers} onToggle={() => setStopTimers(!stopTimers)} />
                                     </div>
-                                    {stopTimers && (
-                                        <div>
-                                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Stop Timers At</label>
-                                            <div className="flex border border-slate-200 rounded-xl overflow-hidden">
-                                                <input type="number" value={stopAt} onChange={e => setStopAt(e.target.value)} placeholder="100" className="flex-1 px-3 py-2.5 text-sm focus:outline-none" />
-                                                <span className="px-3 py-2.5 bg-slate-50 text-[10px] font-bold text-slate-400 border-l border-slate-200">% of budget</span>
-                                            </div>
-                                        </div>
-                                    )}
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div>
-                                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Resets *</label>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                        <div className="space-y-3">
+                                            <label className="block text-[10px] font-black text-text-muted uppercase tracking-[0.3em] font-mono">Refresh Protocol</label>
                                             <div className="relative">
-                                                <select value={resets} onChange={e => setResets(e.target.value)}
-                                                    className="w-full pl-3 pr-7 py-2.5 bg-white border border-slate-200 rounded-xl text-xs appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-700">
-                                                    {['Never','Weekly','Monthly','Yearly'].map(r => <option key={r}>{r}</option>)}
+                                                <select 
+                                                    value={resets} 
+                                                    onChange={e => setResets(e.target.value)}
+                                                    className="w-full pl-6 pr-12 py-4 bg-black/[0.02] border border-black/[0.05] rounded-[20px] text-[12px] font-black text-text-primary appearance-none focus:outline-none font-mono uppercase"
+                                                >
+                                                    {['Never','Weekly','Monthly','Yearly'].map(r => <option key={r} value={r} className="bg-white">{r.toUpperCase()}</option>)}
                                                 </select>
-                                                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400 pointer-events-none" />
+                                                <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted pointer-events-none transition-colors" strokeWidth={3} />
                                             </div>
                                         </div>
-                                        <div>
-                                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Start Date</label>
-                                            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
-                                                className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-700 transition-all" />
+                                        <div className="space-y-3">
+                                            <label className="block text-[10px] font-black text-text-muted uppercase tracking-[0.3em] font-mono">Initiation Pulse</label>
+                                            <input 
+                                                type="date" 
+                                                value={startDate} 
+                                                onChange={e => setStartDate(e.target.value)}
+                                                className="w-full px-6 py-4 bg-black/[0.02] border border-black/[0.05] rounded-[20px] text-[12px] font-black text-text-primary focus:outline-none font-mono text-center" 
+                                            />
                                         </div>
                                     </div>
-                                    <div className="bg-slate-50 rounded-2xl px-4 py-1 border border-slate-100 divide-y divide-slate-100">
-                                        <ToggleItem label="Include non-billable time" active={includeNonBillable} onToggle={() => setIncludeNonBillable(!includeNonBillable)} />
+                                    <div className="glass border border-black/[0.03] rounded-3xl overflow-hidden shadow-sm">
+                                        <ToggleItem label="Telemetry Inclusion" active={includeNonBillable} onToggle={() => setIncludeNonBillable(!includeNonBillable)} hint="INCLUDE NON-BILLABLE METRICS" />
                                     </div>
                                 </div>
                             )}
+
                             {budgetSubTab === 'member' && (
-                                <div className="space-y-4">
-                                    <p className="text-xs text-slate-500 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">Set a weekly hour limit that applies to all members on this project.</p>
-                                    <div>
-                                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Weekly Hour Limit per Member</label>
-                                        <input type="number" value={memberLimit} onChange={e => setMemberLimit(e.target.value)} placeholder="Leave empty for unlimited"
-                                            className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all" />
+                                <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                    <div className="flex gap-4 p-6 bg-primary/5 border border-primary/10 rounded-3xl">
+                                        <AlertCircle className="w-6 h-6 text-primary shrink-0" strokeWidth={2.5} />
+                                        <p className="text-[12px] font-black text-primary uppercase tracking-wider font-mono leading-relaxed">System-wide constraint: Set a weekly temporal threshold for all units assigned to this node.</p>
+                                    </div>
+                                    <div className="space-y-4">
+                                        <label className="block text-[10px] font-black text-text-muted uppercase tracking-[0.3em] font-mono">Weekly Hour Ceiling</label>
+                                        <div className="relative group">
+                                            <input 
+                                                type="number" 
+                                                value={memberLimit} 
+                                                onChange={e => setMemberLimit(e.target.value)} 
+                                                placeholder="ZERO FOR UNCONSTRAINED"
+                                                className="w-full bg-black/[0.02] border border-black/[0.05] rounded-3xl px-8 py-6 text-xl font-black text-primary placeholder:text-text-muted/20 outline-none focus:ring-8 focus:ring-primary/5 focus:border-primary/30 transition-all font-mono text-center tracking-tighter" 
+                                            />
+                                            <div className="absolute right-8 top-1/2 -translate-y-1/2 text-[10px] font-black text-text-muted uppercase tracking-[0.2em] pointer-events-none group-focus-within:text-primary opacity-50 font-mono">
+                                                HOURS / WEEK
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             )}
@@ -897,37 +1052,61 @@ function ProjectModal({ project, initialTab = 'GENERAL', onClose, onSuccess }: {
                     )}
 
                     {activeTab === 'TEAMS' && (
-                        <div className="space-y-4">
-                            <div className="flex items-center gap-3">
-                                <div className="relative flex-1">
-                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
-                                    <input value={teamSearch} onChange={e => setTeamSearch(e.target.value)} placeholder="Search teams…"
-                                        className="w-full pl-10 pr-4 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all" />
+                        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            <div className="flex items-center gap-6">
+                                <div className="relative flex-1 group">
+                                    <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted group-focus-within:text-primary transition-colors" strokeWidth={2.5} />
+                                    <input 
+                                        value={teamSearch} 
+                                        onChange={e => setTeamSearch(e.target.value)} 
+                                        placeholder="QUERY TEAM CLUSTERS..."
+                                        className="w-full pl-13 pr-6 py-4 bg-black/[0.02] border border-black/[0.05] rounded-[20px] text-[12px] font-black text-text-primary focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all font-mono placeholder:text-text-muted/40 uppercase" 
+                                    />
                                 </div>
                                 {filteredTeams.length > 0 && (
-                                    <button onClick={() => setSelectedTeamIds(selectedTeamIds.size===filteredTeams.length ? new Set() : new Set(filteredTeams.map(t => t.id)))}
-                                        className="text-xs font-bold text-blue-600 hover:underline whitespace-nowrap">
-                                        {selectedTeamIds.size===filteredTeams.length ? 'Deselect all' : 'Select all'}
+                                    <button 
+                                        onClick={() => setSelectedTeamIds(selectedTeamIds.size===filteredTeams.length ? new Set() : new Set(filteredTeams.map(t => t.id)))}
+                                        className="text-[10px] font-black text-primary hover:text-primary/70 uppercase tracking-[0.2em] font-mono whitespace-nowrap px-4 py-2 bg-primary/5 rounded-xl border border-primary/10 transition-all active:scale-95"
+                                    >
+                                        {selectedTeamIds.size===filteredTeams.length ? 'PURGE SELECTION' : 'SELECT ALL NODES'}
                                     </button>
                                 )}
                             </div>
                             {filteredTeams.length === 0 ? (
-                                <p className="text-center py-10 text-slate-400 text-xs italic">No teams found</p>
+                                <div className="py-24 text-center">
+                                    <div className="w-20 h-20 bg-black/[0.02] border border-black/[0.05] rounded-[40px] flex items-center justify-center mx-auto mb-6">
+                                        <Users className="w-8 h-8 text-text-muted/30" />
+                                    </div>
+                                    <p className="text-[11px] font-black text-text-muted uppercase tracking-[0.3em] font-mono">No cluster matches detected</p>
+                                </div>
                             ) : (
-                                <div className="border border-slate-200 rounded-xl overflow-hidden divide-y divide-slate-100">
+                                <div className="glass border border-black/[0.08] rounded-[32px] overflow-hidden divide-y divide-black/[0.03] shadow-lg">
                                     {filteredTeams.map(t => {
                                         const isSel = selectedTeamIds.has(t.id);
                                         return (
                                             <button key={t.id} onClick={() => toggleId(selectedTeamIds, setSelectedTeamIds, t.id)}
-                                                className={`w-full flex items-center justify-between px-5 py-3.5 transition-all ${isSel ? 'bg-blue-50' : 'bg-white hover:bg-slate-50'}`}>
-                                                <div className="flex items-center gap-3">
-                                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-[11px] ${isSel ? 'bg-blue-600 text-white' : 'bg-purple-100 text-purple-700'}`}>
+                                                className={clsx(
+                                                    "w-full flex items-center justify-between px-8 py-6 transition-all group/team",
+                                                    isSel ? "bg-primary/[0.03]" : "bg-white hover:bg-black/[0.01]"
+                                                )}
+                                            >
+                                                <div className="flex items-center gap-6">
+                                                    <div className={clsx(
+                                                        "w-12 h-12 rounded-[18px] flex items-center justify-center font-black text-[13px] shadow-sm transform transition-all group-hover/team:scale-110 group-hover/team:-rotate-3 font-mono border border-black/[0.03]",
+                                                        isSel ? "bg-primary text-white" : "bg-purple-50 text-purple-600"
+                                                    )}>
                                                         {t.name.slice(0,2).toUpperCase()}
                                                     </div>
-                                                    <span className="text-sm font-semibold text-slate-800">{t.name}</span>
+                                                    <div className="text-left">
+                                                        <span className="text-base font-black text-text-primary tracking-tight leading-none block mb-1">{t.name}</span>
+                                                        <span className="text-[10px] font-black text-text-muted uppercase tracking-widest font-mono">OPERATIONAL CLUSTER</span>
+                                                    </div>
                                                 </div>
-                                                <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${isSel ? 'bg-blue-600 border-blue-600' : 'border-slate-300'}`}>
-                                                    {isSel && <Check className="w-2.5 h-2.5 text-white stroke-[3]" />}
+                                                <div className={clsx(
+                                                    "w-6 h-6 rounded-lg border-[2.5px] flex items-center justify-center transition-all",
+                                                    isSel ? "bg-primary border-primary shadow-sm" : "border-black/[0.1] group-hover/team:border-primary/50"
+                                                )}>
+                                                    {isSel && <Check className="w-4 h-4 text-white stroke-[4]" />}
                                                 </div>
                                             </button>
                                         );
@@ -938,20 +1117,24 @@ function ProjectModal({ project, initialTab = 'GENERAL', onClose, onSuccess }: {
                     )}
                 </div>
 
-                <div className="px-7 py-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between gap-4">
+                <div className="px-10 py-8 border-t border-black/[0.05] bg-black/[0.01] flex items-center justify-between gap-10">
                     <div className="flex-1 min-w-0">
                         {error && (
-                            <div className="flex items-center gap-1.5 text-red-500 text-xs font-medium">
-                                <AlertCircle className="w-3.5 h-3.5 shrink-0" /><span className="truncate">{error}</span>
+                            <div className="flex items-center gap-3 text-rose-600 text-[11px] font-black uppercase tracking-widest font-mono p-4 bg-rose-50 border border-rose-100 rounded-2xl animate-shake">
+                                <AlertCircle className="w-5 h-5 shrink-0" strokeWidth={2.5} /><span className="truncate">{error}</span>
                             </div>
                         )}
                     </div>
-                    <div className="flex gap-3 shrink-0">
-                        <button onClick={onClose} className="px-5 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-500 hover:bg-white hover:border-slate-300 transition-all">Cancel</button>
+                    <div className="flex gap-4 shrink-0">
+                        <button onClick={onClose} className="px-8 py-4 rounded-2xl border border-black/[0.1] text-[11px] font-black text-text-muted hover:text-text-primary hover:bg-white hover:border-black/[0.2] transition-all uppercase tracking-[0.2em] font-mono active:scale-95 shadow-sm">DISMISS</button>
                         <button onClick={handleSave} disabled={loading || isViewer}
-                            className={`px-7 py-2.5 rounded-xl text-white text-sm font-bold transition-all shadow-lg flex items-center gap-2 ${isViewer ? 'bg-slate-400 cursor-not-allowed opacity-60' : 'bg-blue-600 hover:bg-blue-700 shadow-blue-200/60 disabled:opacity-50 active:scale-[0.98]'}`}>
-                            {loading && <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-                            {isViewer ? 'Read-only' : loading ? 'Saving…' : 'Save'}
+                            className={clsx(
+                                "px-12 py-4 rounded-2xl text-[11px] font-black transition-all shadow-xl flex items-center gap-3 uppercase tracking-[0.3em] font-mono active:scale-95",
+                                isViewer ? "bg-black/20 text-text-muted cursor-not-allowed" : "bg-primary text-white hover:shadow-primary/30 hover:scale-[1.02] disabled:opacity-50"
+                            )}
+                        >
+                            {loading && <div className="w-4 h-4 border-[3px] border-white/30 border-t-white rounded-full animate-spin" />}
+                            {isViewer ? 'PROTOCOL LOCKED' : loading ? 'SYNCING...' : 'COMMIT CHANGES'}
                         </button>
                     </div>
                 </div>

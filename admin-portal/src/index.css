@@ -1,24 +1,24 @@
 @import "tailwindcss";
 
 @theme {
-  /* Trackora Professional Dark Palette */
-  --color-primary: #6366f1;
-  --color-primary-hover: #4f46e5;
-  --color-secondary: #94a3b8;
+  /* Trackora Premium Light Palette */
+  --color-primary: #506ef8;
+  --color-primary-hover: #3d59e0;
+  --color-secondary: #5c6b8a;
   
-  --color-background: #05060f;
-  --color-surface: #0e1120;
-  --color-surface-subtle: #141829;
-  --color-surface-hover: #1a2038;
+  --color-background: #f4f6fc;
+  --color-surface: #ffffff;
+  --color-surface-subtle: #f8fafc;
+  --color-surface-hover: #f1f5f9;
 
   /* Borders & Dividers */
-  --color-border: rgba(255, 255, 255, 0.06);
-  --color-border-subtle: rgba(255, 255, 255, 0.04);
+  --color-border: rgba(41, 61, 99, 0.08);
+  --color-border-subtle: rgba(41, 61, 99, 0.04);
 
   /* Typography */
-  --color-text-primary: #f1f5ff;
-  --color-text-secondary: #94a3b8;
-  --color-text-muted: #4b5a76;
+  --color-text-primary: #293d63;   /* Dark Navy */
+  --color-text-secondary: #5c6b8a; /* Muted Navy */
+  --color-text-muted: #94a3b8;    /* Soft Gray */
 
   /* Radius */
   --radius-sm: 8px;
@@ -26,10 +26,11 @@
   --radius-lg: 16px;
   --radius-xl: 24px;
 
-  /* Shadows */
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
-  --shadow-md: 0 4px 12px -1px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.5);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.5), 0 4px 6px -4px rgb(0 0 0 / 0.5);
+  /* Shadows - Subtle and soft for light mode */
+  --shadow-sm: 0 1px 2px 0 rgba(41, 61, 99, 0.05);
+  --shadow-md: 0 4px 12px -1px rgba(41, 61, 99, 0.08), 0 2px 4px -2px rgba(41, 61, 99, 0.04);
+  --shadow-lg: 0 10px 25px -3px rgba(41, 61, 99, 0.1), 0 4px 12px -4px rgba(41, 61, 99, 0.05);
+  --shadow-xl: 0 20px 50px -12px rgba(41, 61, 99, 0.15);
 
   /* Animations & Transitions */
   --transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
@@ -37,22 +38,22 @@
 
 /* Custom Utilities */
 @utility glass {
-  background: rgba(14, 17, 32, 0.7);
+  background: rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(41, 61, 99, 0.08);
 }
 
 @utility text-gradient {
-  background: linear-gradient(135deg, #6366f1, #a855f7);
+  background: linear-gradient(135deg, #506ef8, #8b5cf6);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 @utility bg-gradient-mesh {
-  background: radial-gradient(circle at 100% 0%, rgba(99, 102, 241, 0.15), transparent 50%),
-              radial-gradient(circle at 0% 100%, rgba(168, 85, 247, 0.1), transparent 50%);
+  background: radial-gradient(circle at 100% 0%, rgba(80, 110, 248, 0.08), transparent 50%),
+              radial-gradient(circle at 0% 100%, rgba(139, 92, 246, 0.05), transparent 50%);
 }
 
 body {
@@ -77,9 +78,24 @@ h1, h2, h3, h4, .font-head {
   background: transparent;
 }
 .shell-scrollbar::-webkit-scrollbar-thumb {
-  background-color: var(--color-border);
+  background-color: rgba(41, 61, 99, 0.1);
   border-radius: 9999px;
 }
 .shell-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: var(--color-text-muted);
+  background-color: rgba(41, 61, 99, 0.2);
+}
+
+/* Custom Scrollbar for list areas */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(41, 61, 99, 0.1);
+  border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(41, 61, 99, 0.2);
 }

@@ -1,10 +1,15 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-
+import { User, Phone, Lock, Eye, EyeOff, AlertCircle, Rocket, Download, LayoutDashboard, ArrowRight } from 'lucide-react';
+import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
+import { Card } from '../components/ui/Card';
+import { useNavigate } from 'react-router-dom';
 
 type Step = 'loading' | 'form' | 'success' | 'error';
 
 export function AcceptInvite() {
+    const navigate = useNavigate();
     const [step, setStep] = useState<Step>('loading');
     const [errorMsg, setErrorMsg] = useState('');
 
@@ -17,13 +22,11 @@ export function AcceptInvite() {
     const [submitting, setSubmitting] = useState(false);
     const [formError, setFormError] = useState<string | null>(null);
 
-    // Supabase session (set from the invite link's access_token in the URL hash)
+    // Supabase session
     const [userId, setUserId] = useState<string | null>(null);
     const [role, setRole] = useState<string>('User');
 
     useEffect(() => {
-        // Supabase puts the session in the URL hash after the user clicks the invite link.
-        // onAuthStateChange fires with SIGNED_IN when the token is consumed from the URL hash.
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
             if (event === 'SIGNED_IN' || event === 'PASSWORD_RECOVERY') {
                 if (session) {
@@ -34,7 +37,6 @@ export function AcceptInvite() {
                 setUserId(session.user.id);
                 setStep('form');
             } else if (!session && step === 'loading') {
-                // Wait a moment for hash to be processed
                 setTimeout(async () => {
                     const { data: { session: s } } = await supabase.auth.getSession();
                     if (s) {
@@ -61,15 +63,12 @@ export function AcceptInvite() {
 
         setSubmitting(true);
         try {
-            // 1. Get the current session token
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) throw new Error('Session expired. Please use the invite link again.');
 
-            // 2. Update password in Supabase Auth
             const { error: pwError } = await supabase.auth.updateUser({ password });
             if (pwError) throw new Error(pwError.message);
 
-            // 3. Complete member profile via Vercel serverless function
             const res = await fetch('/api/complete-setup', {
                 method: 'POST',
                 headers: { 
@@ -92,231 +91,214 @@ export function AcceptInvite() {
         }
     }
 
-    // ── Loading ──────────────────────────────────────────────────────────────
     if (step === 'loading') {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 flex items-center justify-center">
-                <div className="flex flex-col items-center gap-3 text-white/60">
-                    <div className="w-8 h-8 border-2 border-white/20 border-t-white/70 rounded-full animate-spin" />
-                    <p className="text-sm">Verifying your invite link…</p>
+            <div className="min-h-screen bg-background relative overflow-hidden flex items-center justify-center p-4">
+                <div className="absolute inset-0 bg-gradient-mesh z-0" />
+                <div className="flex flex-col items-center gap-4 text-text-secondary">
+                    <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+                    <p className="text-sm font-bold tracking-widest uppercase opacity-60">Verifying invite...</p>
                 </div>
             </div>
         );
     }
 
-    // ── Error ────────────────────────────────────────────────────────────────
     if (step === 'error') {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 flex items-center justify-center p-4">
-                <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 text-center">
-                    <div className="w-14 h-14 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                        <span className="text-2xl">⚠️</span>
-                    </div>
-                    <h1 className="text-xl font-bold text-slate-900 mb-2">Invite link invalid</h1>
-                    <p className="text-sm text-slate-500">{errorMsg}</p>
+            <div className="min-h-screen bg-background relative overflow-hidden flex items-center justify-center p-4">
+                <div className="absolute inset-0 bg-gradient-mesh z-0" />
+                <div className="relative z-10 w-full max-w-[440px] text-center">
+                    <Card className="p-10 shadow-2xl space-y-6">
+                        <div className="w-20 h-20 bg-rose-500/10 border border-rose-500/20 rounded-2xl flex items-center justify-center mx-auto shadow-lg shadow-rose-500/10">
+                            <AlertCircle className="w-10 h-10 text-rose-400" />
+                        </div>
+                        <div className="space-y-2">
+                            <h1 className="text-2xl font-bold text-text-primary font-head">Invite unavailable</h1>
+                            <p className="text-sm text-text-secondary leading-relaxed">{errorMsg}</p>
+                        </div>
+                        <Button
+                            className="w-full"
+                            onClick={() => navigate('/')}
+                        >
+                            Back to home
+                        </Button>
+                    </Card>
                 </div>
             </div>
         );
     }
 
-    // ── Success ──────────────────────────────────────────────────────────────
     if (step === 'success') {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 flex items-center justify-center p-4">
-                <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden border border-white/20">
-                    <div className="bg-blue-600 px-8 py-10 flex flex-col items-center text-center gap-4 text-white">
-                        <div className="w-20 h-20 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-inner">
-                            <span className="text-4xl">🚀</span>
+            <div className="min-h-screen bg-background relative overflow-hidden flex items-center justify-center p-4">
+                <div className="absolute inset-0 bg-gradient-mesh z-0" />
+                <div className="relative z-10 w-full max-w-[560px]">
+                    <Card className="overflow-hidden border-none shadow-2xl">
+                        <div className="bg-gradient-to-br from-indigo-600 to-violet-700 px-8 py-12 text-center text-white relative overflow-hidden">
+                            <div className="absolute inset-0 bg-black/10" />
+                            <div className="relative z-10">
+                                <div className="w-20 h-20 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl border border-white/20">
+                                    <Rocket className="w-10 h-10" />
+                                </div>
+                                <h1 className="text-4xl font-bold tracking-tight mb-2 font-head">Account Activated!</h1>
+                                <p className="text-indigo-100 font-medium">Welcome to the team, {fullName.split(' ')[0]}!</p>
+                            </div>
                         </div>
-                        <div>
-                            <h1 className="text-3xl font-bold tracking-tight">Account Activated!</h1>
-                            <p className="text-blue-100 mt-2 font-medium">
-                                Welcome to the team, {fullName.split(' ')[0]}!
-                            </p>
-                        </div>
-                    </div>
 
-                    <div className="p-8 space-y-8">
-                        {role === 'User' ? (
-                            <div className="space-y-6">
-                                <div className="space-y-4">
-                                    <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                                        <div className="w-1.5 h-6 bg-blue-500 rounded-full"></div>
-                                        Next Steps to Start Working
-                                    </h2>
-                                    <div className="grid gap-4">
-                                        <div className="flex gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-100">
-                                            <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold shrink-0">1</div>
-                                            <div>
-                                                <p className="font-bold text-slate-800">Download the Tracker</p>
-                                                <p className="text-sm text-slate-500">Install the Trackora (by DigiReps) app on your computer.</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-100">
-                                            <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold shrink-0">2</div>
-                                            <div>
-                                                <p className="font-bold text-slate-800">Sign In</p>
-                                                <p className="text-sm text-slate-500">Use your email and the password you just created.</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-100">
-                                            <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold shrink-0">3</div>
-                                            <div>
-                                                <p className="font-bold text-slate-800">Start Tracking</p>
-                                                <p className="text-sm text-slate-500">Select your project and click 'Start' to begin your shift.</p>
-                                            </div>
+                        <div className="p-10 space-y-10">
+                            {role === 'User' ? (
+                                <div className="space-y-8">
+                                    <div className="space-y-4 text-center">
+                                        <h2 className="text-xl font-bold text-text-primary font-head uppercase tracking-wider">Next Steps</h2>
+                                        <div className="grid gap-4 text-left">
+                                            {[
+                                                { icon: <Download className="w-5 h-5" />, title: 'Download Tracker', desc: 'Install the Trackora app to begin tracking your work.' },
+                                                { icon: <User className="w-5 h-5" />, title: 'Sign In', desc: 'Use your work email and the new password to log in.' },
+                                                { icon: <Rocket className="w-5 h-5" />, title: 'Start Working', desc: 'Select your project and click "Start" to begin your shift.' },
+                                            ].map((step, i) => (
+                                                <div key={i} className="flex gap-4 p-4 rounded-xl bg-white/5 border border-white/10 hover:border-white/20 transition-colors">
+                                                    <div className="w-10 h-10 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-400 shrink-0 border border-indigo-500/20">
+                                                        {step.icon}
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-bold text-text-primary text-sm">{step.title}</p>
+                                                        <p className="text-xs text-text-secondary">{step.desc}</p>
+                                                    </div>
+                                                </div>
+                                            ))}
                                         </div>
                                     </div>
+                                    <Button className="w-full py-4 text-base" leftIcon={<Download className="w-5 h-5" />}>
+                                        Download Tracker App
+                                    </Button>
                                 </div>
-
-                                <div className="pt-2">
-                                    <button 
-                                        onClick={() => window.alert('The download will start in a moment...')}
-                                        className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 rounded-2xl transition-all shadow-xl shadow-slate-200 flex items-center justify-center gap-2"
+                            ) : (
+                                <div className="space-y-6 text-center">
+                                    <div className="space-y-3">
+                                        <h2 className="text-xl font-bold text-text-primary font-head uppercase tracking-wider">Manager Access</h2>
+                                        <p className="text-sm text-text-secondary leading-relaxed max-w-sm mx-auto">
+                                            As a <span className="text-indigo-400 font-bold">{role}</span>, you have full access to manage teams, review activity, and view reports.
+                                        </p>
+                                    </div>
+                                    <Button 
+                                        className="w-full py-4" 
+                                        onClick={() => navigate('/login')}
+                                        leftIcon={<LayoutDashboard className="w-5 h-5" />}
                                     >
-                                        <span>Download Tracker App</span>
-                                        <span className="text-xs opacity-50 font-normal">(Windows/MacOS)</span>
-                                    </button>
+                                        Go to Admin Dashboard
+                                    </Button>
                                 </div>
-                            </div>
-                        ) : (
-                            <div className="space-y-6">
-                                <div className="space-y-4">
-                                    <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                                        <div className="w-1.5 h-6 bg-blue-500 rounded-full"></div>
-                                        Management Portal
-                                    </h2>
-                                    <p className="text-slate-600 leading-relaxed">
-                                        As a <strong>{role}</strong>, you can manage teams, review activity, and view reports from the admin dashboard.
-                                    </p>
-                                </div>
-                                <a
-                                    href="/login"
-                                    className="inline-flex w-full items-center justify-center bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-2xl transition-all shadow-xl shadow-blue-200"
-                                >
-                                    Go to Dashboard
-                                </a>
-                            </div>
-                        )}
+                            )}
 
-                        <div className="pt-6 border-t border-slate-100 text-center">
-                            <p className="text-xs text-slate-400">
-                                Need help? Contact your manager or support at support@trackora.ai
-                            </p>
+                            <div className="pt-8 border-t border-border text-center">
+                                <p className="text-[11px] text-text-muted font-medium uppercase tracking-widest">
+                                    Need help? Contact support@trackora.ai
+                                </p>
+                            </div>
                         </div>
-                    </div>
+                    </Card>
                 </div>
             </div>
         );
     }
 
-    // ── Setup Form ───────────────────────────────────────────────────────────
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 flex items-center justify-center p-4">
-            {/* Logo / Brand */}
-            <div className="w-full max-w-md space-y-6">
-                <div className="text-center">
-                    <div className="inline-flex items-center gap-2.5 mb-4">
-                        <div className="w-9 h-9 bg-blue-500 rounded-xl flex items-center justify-center shadow-lg">
-                            <span className="text-white font-bold text-lg">D</span>
+        <div className="min-h-screen bg-background relative overflow-hidden flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-gradient-mesh z-0" />
+            <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-500/10 blur-[120px] rounded-full z-0" />
+            <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-violet-600/10 blur-[120px] rounded-full z-0" />
+            
+            <div className="relative z-10 w-full max-w-[480px]">
+                <div className="mb-8 text-center">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full glass mb-6">
+                        <div className="w-5 h-5 rounded-md bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                             <div className="w-2.5 h-2.5 border-2 border-white rounded-[1px] rotate-45" />
                         </div>
-                        <span className="text-white text-xl font-bold tracking-tight">Trackora</span>
+                        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-text-secondary">Trackora Invitation</span>
                     </div>
-                    <h1 className="text-2xl font-bold text-white">Welcome to Trackora</h1>
-                    <p className="text-blue-200/70 text-sm mt-1">Set up your account to get started</p>
+                    
+                    <h1 className="text-3xl font-bold tracking-tight text-text-primary mb-3 font-head">
+                        Welcome to the team
+                    </h1>
+                    <p className="text-sm text-text-secondary font-medium">
+                        Set up your professional profile to get started
+                    </p>
                 </div>
 
-                <form onSubmit={handleSubmit} className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 space-y-4 shadow-2xl">
-                    {/* Full Name */}
-                    <div>
-                        <label className="block text-xs font-semibold text-blue-200/80 uppercase tracking-wide mb-1.5">
-                            Full Name *
-                        </label>
-                        <input
+                <Card className="p-8 shadow-2xl">
+                    <form onSubmit={handleSubmit} className="space-y-5">
+                        <Input
+                            label="Full Name"
                             type="text"
+                            required
                             value={fullName}
                             onChange={e => setFullName(e.target.value)}
-                            placeholder="Jane Smith"
-                            required
-                            className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-2.5 text-white placeholder-white/30 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+                            placeholder="Taylor Reid"
+                            leftIcon={<User className="w-4 h-4 text-text-muted" />}
                         />
-                    </div>
 
-                    {/* Phone (optional) */}
-                    <div>
-                        <label className="block text-xs font-semibold text-blue-200/80 uppercase tracking-wide mb-1.5">
-                            Phone <span className="text-white/30 normal-case font-normal">(optional)</span>
-                        </label>
-                        <input
+                        <Input
+                            label="Phone Number"
                             type="tel"
                             value={phone}
                             onChange={e => setPhone(e.target.value)}
-                            placeholder="+1 555 000 0000"
-                            className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-2.5 text-white placeholder-white/30 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+                            placeholder="+1 (555) 000-0000"
+                            leftIcon={<Phone className="w-4 h-4 text-text-muted" />}
                         />
-                    </div>
 
-                    {/* Password */}
-                    <div>
-                        <label className="block text-xs font-semibold text-blue-200/80 uppercase tracking-wide mb-1.5">
-                            Password *
-                        </label>
-                        <div className="relative">
-                            <input
-                                type={showPw ? 'text' : 'password'}
-                                value={password}
-                                onChange={e => setPassword(e.target.value)}
-                                placeholder="Min. 8 characters"
-                                required
-                                className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-2.5 pr-10 text-white placeholder-white/30 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
-                            />
-                            <button type="button" onClick={() => setShowPw(p => !p)}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70 text-xs">
-                                {showPw ? 'Hide' : 'Show'}
-                            </button>
+                        <div className="space-y-1.5 border-t border-border pt-5 mt-5">
+                            <label className="text-xs font-bold text-text-secondary uppercase tracking-wider opacity-80 pl-0.5">Secure Password</label>
+                            <div className="relative">
+                                <Input
+                                    type={showPw ? 'text' : 'password'}
+                                    required
+                                    value={password}
+                                    onChange={e => setPassword(e.target.value)}
+                                    placeholder="At least 8 characters"
+                                    leftIcon={<Lock className="w-4 h-4 text-text-muted" />}
+                                    className="pr-10"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPw(!showPw)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary transition-colors mt-3"
+                                >
+                                    {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                </button>
+                            </div>
                         </div>
-                        {password.length > 0 && password.length < 8 && (
-                            <p className="text-xs text-amber-400 mt-1">At least 8 characters required</p>
-                        )}
-                    </div>
 
-                    {/* Confirm Password */}
-                    <div>
-                        <label className="block text-xs font-semibold text-blue-200/80 uppercase tracking-wide mb-1.5">
-                            Confirm Password *
-                        </label>
-                        <input
+                        <Input
+                            label="Confirm Password"
                             type={showPw ? 'text' : 'password'}
+                            required
                             value={confirmPassword}
                             onChange={e => setConfirmPassword(e.target.value)}
-                            placeholder="Repeat your password"
-                            required
-                            className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-2.5 text-white placeholder-white/30 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+                            placeholder="Repeat password"
+                            leftIcon={<Lock className="w-4 h-4 text-text-muted" />}
+                            error={confirmPassword && password !== confirmPassword ? "Passwords don't match" : undefined}
                         />
-                        {confirmPassword.length > 0 && password !== confirmPassword && (
-                            <p className="text-xs text-rose-400 mt-1">Passwords don't match</p>
+
+                        {formError && (
+                            <div className="flex items-start gap-2.5 p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-medium">
+                                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                                <p>{formError}</p>
+                            </div>
                         )}
-                    </div>
 
-                    {/* Form error */}
-                    {formError && (
-                        <div className="bg-red-500/10 border border-red-500/30 text-red-300 text-sm px-4 py-2.5 rounded-xl">
-                            {formError}
-                        </div>
-                    )}
+                        <Button
+                            type="submit"
+                            disabled={submitting || !fullName.trim() || password.length < 8 || password !== confirmPassword}
+                            className="w-full py-4"
+                            rightIcon={!submitting && <ArrowRight className="w-4 h-4" />}
+                        >
+                            {submitting ? 'Activating account...' : 'Activate Account'}
+                        </Button>
+                    </form>
+                </Card>
 
-                    {/* Submit */}
-                    <button
-                        type="submit"
-                        disabled={submitting || !fullName.trim() || password.length < 8 || password !== confirmPassword}
-                        className="w-full bg-blue-500 hover:bg-blue-400 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold rounded-xl py-3 text-sm transition-all duration-200 shadow-lg shadow-blue-500/25 mt-2"
-                    >
-                        {submitting ? 'Activating account…' : 'Activate Account'}
-                    </button>
-                </form>
-
-                <p className="text-center text-xs text-white/30">
-                    Having issues? Contact your administrator.
+                <p className="mt-8 text-center text-[11px] text-text-muted font-medium px-4 leading-relaxed">
+                    By activating, you agree to your organization's data policies and Trackora's <a href="#" className="underline">Terms of Service</a>.
                 </p>
             </div>
         </div>

@@ -1,9 +1,15 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { Lock, Eye, EyeOff, CheckCircle2, AlertCircle, ShieldCheck, ArrowRight } from 'lucide-react';
+import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
+import { Card } from '../components/ui/Card';
+import { useNavigate } from 'react-router-dom';
 
 type Step = 'loading' | 'form' | 'success' | 'error';
 
 export function UpdatePassword() {
+    const navigate = useNavigate();
     const [step, setStep] = useState<Step>('loading');
     const [errorMsg, setErrorMsg] = useState('');
 
@@ -14,8 +20,6 @@ export function UpdatePassword() {
     const [formError, setFormError] = useState<string | null>(null);
 
     useEffect(() => {
-        // Supabase puts the recovery session in the URL hash after the user
-        // clicks the password-reset email link. getSession() reads it automatically.
         supabase.auth.getSession().then(({ data: { session }, error }) => {
             if (error || !session) {
                 setErrorMsg(
@@ -48,136 +52,139 @@ export function UpdatePassword() {
         }
     }
 
-    const brand = (
-        <div className="inline-flex items-center gap-2.5 mb-4">
-            <div className="w-9 h-9 bg-blue-500 rounded-xl flex items-center justify-center shadow-lg">
-                <span className="text-white font-bold text-lg">D</span>
-            </div>
-            <span className="text-white text-xl font-bold tracking-tight">Trackora</span>
-        </div>
-    );
-
     if (step === 'loading') {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 flex items-center justify-center">
-                <div className="flex flex-col items-center gap-3 text-white/60">
-                    <div className="w-8 h-8 border-2 border-white/20 border-t-white/70 rounded-full animate-spin" />
-                    <p className="text-sm">Verifying reset link…</p>
-                </div>
+        <div className="min-h-screen bg-background relative overflow-hidden flex items-center justify-center p-8">
+            <div className="absolute inset-0 bg-gradient-mesh opacity-40 z-0" />
+            <div className="flex flex-col items-center gap-6 text-text-primary">
+                <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+                <p className="text-[11px] font-black tracking-[0.4em] uppercase opacity-40 font-mono animate-pulse">Synchronizing Security Matrix...</p>
             </div>
+        </div>
         );
     }
 
     if (step === 'error') {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 flex items-center justify-center p-4">
-                <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 text-center space-y-3">
-                    <div className="w-14 h-14 bg-red-100 rounded-2xl flex items-center justify-center mx-auto">
-                        <span className="text-2xl">⚠️</span>
+        <div className="min-h-screen bg-background relative overflow-hidden flex items-center justify-center p-8">
+            <div className="absolute inset-0 bg-gradient-mesh opacity-40 z-0" />
+            <div className="relative z-10 w-full max-w-[480px] text-center">
+                <Card className="p-12 shadow-[0_40px_100px_rgba(0,0,0,0.08)] bg-white/80 backdrop-blur-3xl border-black/[0.03] rounded-[64px] space-y-10">
+                    <div className="w-24 h-24 bg-rose-500/[0.05] border border-rose-500/10 rounded-[32px] flex items-center justify-center mx-auto shadow-xl shadow-rose-500/10 rotate-3">
+                        <AlertCircle className="w-12 h-12 text-rose-500" strokeWidth={3} />
                     </div>
-                    <h1 className="text-xl font-bold text-slate-900">Link expired</h1>
-                    <p className="text-sm text-slate-500">{errorMsg}</p>
-                    <a
-                        href="/forgot-password"
-                        className="inline-block mt-2 text-sm text-blue-600 underline hover:text-blue-700"
+                    <div className="space-y-4">
+                        <h1 className="text-4xl font-black text-text-primary uppercase italic tracking-tight">Sequence Expired</h1>
+                        <p className="text-[11px] font-black text-text-muted uppercase tracking-[0.2em] font-mono leading-relaxed opacity-60">{errorMsg}</p>
+                    </div>
+                    <button
+                        className="w-full py-5 rounded-[28px] bg-primary text-white text-[12px] font-black uppercase tracking-[0.4em] shadow-xl hover:shadow-primary/30 active:scale-95 transition-all"
+                        onClick={() => navigate('/forgot-password')}
                     >
-                        Request a new reset link
-                    </a>
-                </div>
+                        Request New Sequence
+                    </button>
+                </Card>
             </div>
+        </div>
         );
     }
 
     if (step === 'success') {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 flex items-center justify-center p-4">
-                <div className="w-full max-w-md space-y-6">
-                    <div className="text-center">{brand}</div>
-                    <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 shadow-2xl text-center space-y-4">
-                        <div className="w-16 h-16 bg-emerald-500/20 rounded-2xl flex items-center justify-center mx-auto">
-                            <span className="text-3xl">✅</span>
-                        </div>
-                        <h1 className="text-xl font-bold text-white">Password updated!</h1>
-                        <p className="text-sm text-blue-200/70">
-                            Your password has been changed successfully. You can now sign in to the
-                            Trackora (by DigiReps) desktop app with your new password.
+        <div className="min-h-screen bg-background relative overflow-hidden flex items-center justify-center p-8">
+            <div className="absolute inset-0 bg-gradient-mesh opacity-40 z-0" />
+            <div className="relative z-10 w-full max-w-[480px] text-center">
+                <Card className="p-12 shadow-[0_40px_100px_rgba(0,0,0,0.08)] bg-white/80 backdrop-blur-3xl border-black/[0.03] rounded-[64px] space-y-10">
+                    <div className="w-24 h-24 bg-primary/[0.05] border border-primary/10 rounded-[32px] flex items-center justify-center mx-auto shadow-xl shadow-primary/10 rotate-3 animate-in zoom-in duration-700">
+                        <CheckCircle2 className="w-12 h-12 text-primary" strokeWidth={3} />
+                    </div>
+                    <div className="space-y-4">
+                        <h1 className="text-4xl font-black text-text-primary uppercase italic tracking-tight">Access Restored</h1>
+                        <p className="text-[11px] font-black text-text-muted uppercase tracking-[0.2em] font-mono leading-relaxed opacity-60">
+                            Your security credentials have been successfully updated. Your account is now fortified.
                         </p>
                     </div>
-                </div>
+                    <button
+                        className="w-full py-5 rounded-[28px] bg-primary text-white text-[12px] font-black uppercase tracking-[0.4em] shadow-xl hover:shadow-primary/30 active:scale-95 transition-all"
+                        onClick={() => navigate('/login')}
+                    >
+                        Authorize Login
+                    </button>
+                </Card>
             </div>
+        </div>
         );
     }
 
-    // ── New-password form ─────────────────────────────────────────────────────
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 flex items-center justify-center p-4">
-            <div className="w-full max-w-md space-y-6">
-                <div className="text-center">
-                    {brand}
-                    <h1 className="text-2xl font-bold text-white">Set a new password</h1>
-                    <p className="text-blue-200/70 text-sm mt-1">
-                        Choose a strong password for your account.
+        <div className="min-h-screen bg-background relative overflow-hidden flex items-center justify-center p-8">
+            <div className="absolute inset-0 bg-gradient-mesh opacity-40 z-0" />
+            <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-primary/5 blur-[160px] rounded-full z-0 animate-pulse" />
+            
+            <div className="relative z-10 w-full max-w-[480px]">
+                <div className="mb-12 text-center">
+                    <div className="inline-flex items-center gap-4 px-5 py-2.5 rounded-[24px] bg-white border border-black/[0.05] shadow-xl mb-10 group">
+                        <ShieldCheck className="w-5 h-5 text-primary group-hover:scale-110 transition-transform" strokeWidth={2.5} />
+                        <span className="text-[11px] font-black uppercase tracking-[0.3em] text-text-primary font-mono italic">Security Protocol</span>
+                    </div>
+                    
+                    <h1 className="text-5xl font-black tracking-tight text-text-primary mb-5 uppercase italic leading-none">
+                        New <span className="text-primary underline underline-offset-8 decoration-primary/20">Identity</span>
+                    </h1>
+                    <p className="text-[11px] font-black text-text-muted uppercase tracking-[0.3em] font-mono leading-relaxed opacity-60">
+                        Establish a high-entropy security key
                     </p>
                 </div>
 
-                <form onSubmit={handleSubmit} className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 space-y-4 shadow-2xl">
-                    {/* New Password */}
-                    <div>
-                        <label className="block text-xs font-semibold text-blue-200/80 uppercase tracking-wide mb-1.5">
-                            New Password *
-                        </label>
+                <Card className="p-12 shadow-[0_40px_100px_rgba(0,0,0,0.08)] bg-white/80 backdrop-blur-3xl border-black/[0.03] rounded-[64px]">
+                    <form onSubmit={handleSubmit} className="space-y-10">
                         <div className="relative">
-                            <input
+                            <Input
+                                label="Primary Key (New Password)"
                                 type={showPw ? 'text' : 'password'}
                                 value={password}
                                 onChange={e => setPassword(e.target.value)}
-                                placeholder="Min. 8 characters"
+                                placeholder="••••••••"
                                 required
                                 autoFocus
-                                className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-2.5 pr-10 text-white placeholder-white/30 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+                                leftIcon={<Lock className="w-5 h-5 text-primary" strokeWidth={2.5} />}
                             />
-                            <button type="button" onClick={() => setShowPw(p => !p)}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70 text-xs">
-                                {showPw ? 'Hide' : 'Show'}
+                            <button
+                                type="button"
+                                onClick={() => setShowPw(!showPw)}
+                                className="absolute right-5 top-[52px] text-text-muted hover:text-primary transition-all"
+                            >
+                                {showPw ? <EyeOff className="w-5 h-5" strokeWidth={2.5} /> : <Eye className="w-5 h-5" strokeWidth={2.5} />}
                             </button>
                         </div>
-                        {password.length > 0 && password.length < 8 && (
-                            <p className="text-xs text-amber-400 mt-1">At least 8 characters required</p>
-                        )}
-                    </div>
 
-                    {/* Confirm Password */}
-                    <div>
-                        <label className="block text-xs font-semibold text-blue-200/80 uppercase tracking-wide mb-1.5">
-                            Confirm Password *
-                        </label>
-                        <input
+                        <Input
+                            label="Verification Sequence (Confirm)"
                             type={showPw ? 'text' : 'password'}
                             value={confirmPassword}
                             onChange={e => setConfirmPassword(e.target.value)}
-                            placeholder="Repeat your password"
+                            placeholder="Repeat password"
                             required
-                            className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-2.5 text-white placeholder-white/30 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+                            leftIcon={<Lock className="w-5 h-5 text-primary" strokeWidth={2.5} />}
+                            error={confirmPassword && password !== confirmPassword ? "Sequences do not match" : undefined}
                         />
-                        {confirmPassword.length > 0 && password !== confirmPassword && (
-                            <p className="text-xs text-rose-400 mt-1">Passwords don't match</p>
+
+                        {formError && (
+                            <div className="p-5 rounded-[28px] bg-rose-500/[0.05] border border-rose-500/10 text-rose-600 text-xs font-black uppercase tracking-wider font-mono">
+                                {formError}
+                            </div>
                         )}
-                    </div>
 
-                    {formError && (
-                        <div className="bg-red-500/10 border border-red-500/30 text-red-300 text-sm px-4 py-2.5 rounded-xl">
-                            {formError}
-                        </div>
-                    )}
-
-                    <button
-                        type="submit"
-                        disabled={submitting || password.length < 8 || password !== confirmPassword}
-                        className="w-full bg-blue-500 hover:bg-blue-400 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold rounded-xl py-3 text-sm transition-all duration-200 shadow-lg shadow-blue-500/25 mt-2"
-                    >
-                        {submitting ? 'Updating password…' : 'Update password'}
-                    </button>
-                </form>
+                        <Button
+                            type="submit"
+                            disabled={submitting || password.length < 8 || password !== confirmPassword}
+                            className="w-full py-5 rounded-[28px] text-[12px] font-black uppercase tracking-[0.4em] shadow-xl hover:shadow-primary/30 active:scale-95 transition-all"
+                            rightIcon={!submitting && <ArrowRight className="w-5 h-5 stroke-[3]" />}
+                        >
+                            {submitting ? 'ENCRYPTING...' : 'FINALIZE KEY'}
+                        </Button>
+                    </form>
+                </Card>
             </div>
         </div>
     );

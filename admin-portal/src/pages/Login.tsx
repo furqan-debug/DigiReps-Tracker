@@ -59,140 +59,109 @@ export function Login() {
     };
 
     return (
-        <div className="min-h-screen bg-background relative overflow-hidden flex items-center justify-center p-4">
+        <div className="min-h-screen bg-background relative overflow-hidden flex items-center justify-center p-8">
             {/* Background Elements */}
-            <div className="absolute inset-0 bg-gradient-mesh z-0" />
-            <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-500/10 blur-[120px] rounded-full z-0" />
-            <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-violet-600/10 blur-[120px] rounded-full z-0" />
+            <div className="absolute inset-0 bg-gradient-mesh opacity-40 z-0" />
+            <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-primary/5 blur-[160px] rounded-full z-0 animate-pulse" />
+            <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-violet-500/5 blur-[160px] rounded-full z-0 animate-pulse" style={{ animationDelay: '2s' }} />
             
-            <div className="relative z-10 w-full max-w-[440px]">
-                <div className="mb-8 text-center">
+            <div className="relative z-10 w-full max-w-[480px]">
+                <div className="mb-12 text-center">
                     <button
                         type="button"
                         onClick={() => navigate('/')}
-                        className="inline-flex items-center gap-2 px-3 py-1 rounded-full glass hover:bg-white/5 transition-colors mb-6"
+                        className="inline-flex items-center gap-4 px-5 py-2.5 rounded-[24px] bg-white border border-black/[0.05] shadow-xl hover:shadow-2xl hover:scale-105 transition-all mb-10 group"
                     >
-                        <div className="w-5 h-5 rounded-md bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center">
-                             <div className="w-2.5 h-2.5 border-2 border-white rounded-[1px] rotate-45" />
+                        <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20 group-hover:rotate-12 transition-transform">
+                             <div className="w-4 h-4 border-4 border-white rounded-[2px] rotate-45" />
                         </div>
-                        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-text-secondary">Trackora Admin</span>
+                        <span className="text-[11px] font-black uppercase tracking-[0.3em] text-text-primary font-mono italic">Trackora Intelligence</span>
                     </button>
                     
-                    <h1 className="text-3xl font-bold tracking-tight text-text-primary mb-3 font-head">
-                        Welcome back
+                    <h1 className="text-5xl font-black tracking-tight text-text-primary mb-5 uppercase italic leading-none">
+                        Access <span className="text-primary underline underline-offset-8 decoration-primary/20">Matrix</span>
                     </h1>
-                                At a glance
-                            </p>
-                            <p className="mt-2 text-sm font-semibold text-slate-900">Dashboard, activity, and payroll in one place.</p>
-                            <p className="mt-1 text-[11px] leading-relaxed text-slate-500">
-                                Switch between timesheets, reports, and teams without losing context.
-                            </p>
-                        </div>
-                        <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-                                For admins & managers
-                            </p>
-                            <p className="mt-2 text-sm font-semibold text-slate-900">Role‑aware access out of the box.</p>
-                            <p className="mt-1 text-[11px] leading-relaxed text-slate-500">
-                                Your permissions and views are tailored to your role in Trackora.
-                            </p>
-                        </div>
-                    </div>
-                </section>
-
-                {/* Form */}
-                <section className="md:w-[380px]">
-                    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                        <h2 className="text-base font-semibold tracking-tight text-slate-900">
-                            Sign in
-                        </h2>
-                        <p className="mt-1 text-xs text-slate-500">
-                            Enter your work email and password to access the admin portal.
-                        </p>
-
-                        <form onSubmit={handleLogin} className="mt-6 space-y-4">
-                            <div>
-                                <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                                    Email
-                                </label>
-                                <div className="relative">
-                                    <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                                    <input
-                                        type="email"
-                                        required
-                                        value={email}
-                                        onChange={e => setEmail(e.target.value)}
-                                        placeholder="you@company.com"
-                                        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-9 py-2.5 text-sm text-slate-900 placeholder-slate-400 outline-none ring-0 transition focus:border-slate-900 focus:bg-white focus:ring-1 focus:ring-slate-900/60"
-                                    />
-                                </div>
-                            </div>
-
-                            <div>
-                                <div className="mb-1.5 flex items-center justify-between">
-                                    <label className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                                        Password
-                                    </label>
-                                    <button
-                                        type="button"
-                                        onClick={() => navigate('/forgot-password')}
-                                        className="text-[11px] font-medium text-slate-600 underline-offset-2 hover:text-slate-900 hover:underline"
-                                    >
-                                        Forgot?
-                                    </button>
-                                </div>
-                                <div className="relative">
-                                    <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                                    <input
-                                        type={showPw ? 'text' : 'password'}
-                                        required
-                                        value={password}
-                                        onChange={e => setPassword(e.target.value)}
-                                        placeholder="••••••••"
-                                        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-9 py-2.5 pr-10 text-sm text-slate-900 placeholder-slate-400 outline-none ring-0 transition focus:border-slate-900 focus:bg-white focus:ring-1 focus:ring-slate-900/60"
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowPw(!showPw)}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
-                                    >
-                                        {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                                    </button>
-                                </div>
-                            </div>
-
-                            {error && (
-                                <div className="flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] text-rose-700">
-                                    <AlertCircle className="mt-[2px] h-3.5 w-3.5 shrink-0" />
-                                    <p>{error}</p>
-                                </div>
-                            )}
-
-                            <button
-                                type="submit"
-                                disabled={loading}
-                                className="mt-2 w-full rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-                            >
-                                {loading ? 'Signing in…' : 'Sign in'}
-                            </button>
-                        </form>
-
-                        <p className="mt-4 text-[11px] text-slate-500">
-                            New to Trackora?{' '}
-                            <button
-                                type="button"
-                                onClick={() => navigate('/signup')}
-                                className="font-semibold text-slate-900 underline-offset-2 hover:underline"
-                            >
-                                Create an account
-                            </button>
-                        </p>
-                    </div>
-
-                    <p className="mt-4 text-[11px] text-slate-400">
-                        For security, make sure you&apos;re signing in on the official Trackora domain.
+                    <p className="text-[11px] font-black text-text-muted uppercase tracking-[0.3em] font-mono leading-relaxed opacity-60">
+                        Synchronize with your operational workspace
                     </p>
-                </section>
+                </div>
+
+                <Card className="p-12 shadow-[0_40px_100px_rgba(0,0,0,0.08)] bg-white/80 backdrop-blur-3xl border-black/[0.03] rounded-[64px]">
+                    <form onSubmit={handleLogin} className="space-y-10">
+                        <Input
+                            label="Operational ID (Email)"
+                            type="email"
+                            required
+                            value={email}
+                            onChange={e => setEmail(e.target.value)}
+                            placeholder="agent@trackora.ai"
+                            leftIcon={<Mail className="w-5 h-5 text-primary" strokeWidth={2.5} />}
+                        />
+
+                        <div className="space-y-4">
+                            <div className="flex justify-between items-center px-1">
+                                <label className="text-[11px] font-black text-text-muted uppercase tracking-[0.2em] font-mono opacity-60 italic">Key Protocol</label>
+                                <button
+                                    type="button"
+                                    onClick={() => navigate('/forgot-password')}
+                                    className="text-[10px] font-black text-primary hover:underline underline-offset-4 uppercase tracking-[0.1em] transition-all font-mono"
+                                >
+                                    Lost Key?
+                                </button>
+                            </div>
+                            <div className="relative">
+                                <Input
+                                    type={showPw ? 'text' : 'password'}
+                                    required
+                                    value={password}
+                                    onChange={e => setPassword(e.target.value)}
+                                    placeholder="••••••••"
+                                    leftIcon={<Lock className="w-5 h-5 text-primary" strokeWidth={2.5} />}
+                                    className="pr-14"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPw(!showPw)}
+                                    className="absolute right-5 top-1/2 -translate-y-1/2 text-text-muted hover:text-primary transition-all mt-4"
+                                >
+                                    {showPw ? <EyeOff className="w-5 h-5" strokeWidth={2.5} /> : <Eye className="w-5 h-5" strokeWidth={2.5} />}
+                                </button>
+                            </div>
+                        </div>
+
+                        {error && (
+                            <div className="flex items-start gap-4 p-5 rounded-[28px] bg-rose-500/[0.05] border border-rose-500/10 text-rose-600 text-xs font-black uppercase tracking-wider font-mono">
+                                <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" strokeWidth={3} />
+                                <p>{error}</p>
+                            </div>
+                        )}
+
+                        <Button
+                            type="submit"
+                            disabled={loading}
+                            className="w-full py-5 rounded-[28px] text-[12px] font-black uppercase tracking-[0.4em] shadow-xl hover:shadow-primary/30 active:scale-95 transition-all"
+                            rightIcon={!loading && <ArrowRight className="w-5 h-5 stroke-[3]" />}
+                        >
+                            {loading ? 'INITIALIZING...' : 'INFILTRATE'}
+                        </Button>
+                    </form>
+
+                    <div className="mt-12 pt-10 border-t border-black/[0.03] flex flex-col items-center gap-6 text-center">
+                        <p className="text-[11px] font-black text-text-muted uppercase tracking-[0.2em] font-mono opacity-50 italic">
+                            New Operative?
+                        </p>
+                        <button 
+                            onClick={() => navigate('/signup')}
+                            className="w-full py-5 rounded-[28px] border border-black/[0.1] text-text-primary text-[11px] font-black uppercase tracking-[0.3em] font-mono hover:bg-black/[0.02] hover:border-black/[0.2] transition-all active:scale-95 shadow-sm"
+                        >
+                            Establish Credential
+                        </button>
+                    </div>
+                </Card>
+
+                <p className="mt-12 text-center text-[10px] font-black text-text-muted uppercase tracking-[0.3em] font-mono px-8 leading-relaxed opacity-40 italic">
+                    Protected by multi-layer <span className="text-primary font-black">Trackora Guard</span>. Verify domain authenticity: trackora.ai
+                </p>
             </div>
         </div>
     );

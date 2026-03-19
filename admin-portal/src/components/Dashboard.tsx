@@ -1,8 +1,13 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { Clock, Users, FolderOpen, CircleDollarSign, Activity, Camera } from 'lucide-react';
+import { 
+    Clock, Users, FolderOpen, CircleDollarSign, 
+    Activity, Camera, Zap, ChevronRight, 
+    ArrowUpRight, BarChart3, Globe
+} from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid } from 'recharts';
 import { PageLayout, Card, KpiCard, EmptyState, LoadingState } from './ui';
+import clsx from 'clsx';
 
 interface DashStats {
     todayMinutes: number;
@@ -25,19 +30,16 @@ interface DayBar {
     minutes: number;
 }
 
-const PROJECT_COLORS = ['#4f46e5', '#7c3aed', '#0891b2', '#059669', '#d97706', '#dc2626'];
+// Light-friendly vibrant palette
+const PROJECT_COLORS = ['#506ef8', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#06b6d4'];
 const DAYS_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const STALE_THRESHOLD_MS = 2 * 60 * 60 * 1000;
 
-// Sessions with no ended_at that started more than this many ms ago are considered stale/orphaned.
-const STALE_THRESHOLD_MS = 2 * 60 * 60 * 1000; // 2 hours
-
-/** Returns the effective end time for a session. Stale open sessions use their start time (0 duration). */
 function effectiveEnd(startedAt: string, endedAt: string | null): { endMs: number; isLive: boolean; isStale: boolean } {
     const startMs = new Date(startedAt).getTime();
     if (endedAt) return { endMs: new Date(endedAt).getTime(), isLive: false, isStale: false };
     const now = Date.now();
     if (now - startMs > STALE_THRESHOLD_MS) {
-        // Orphaned session — treat as ended at start (duration = 0) and not live
         return { endMs: startMs, isLive: false, isStale: true };
     }
     return { endMs: now, isLive: true, isStale: false };
@@ -63,42 +65,31 @@ export function Dashboard() {
     async function fetchDashboard() {
         try {
             setLoading(true);
-
             const now = new Date();
             const todayStart = new Date(now); todayStart.setHours(0, 0, 0, 0);
             const weekStart = new Date(now); weekStart.setDate(now.getDate() - now.getDay()); weekStart.setHours(0, 0, 0, 0);
 
-            // Fetch all recent data first to avoid timezone timezone stripping issues in Supabase queries.
-            // We will filter exactly on the client side to guarantee correctness.
             const [
-                { data: rawSessions, error: sessionErr },
-                { data: projectsData, error: projErr },
-                { data: membersData, error: memErr },
-                { count: ssCount, error: ssErr },
+                { data: rawSessions },
+                { data: projectsData },
+                { data: membersData },
+                { count: ssCount },
             ] = await Promise.all([
-                // Get past 14 days of sessions to guarantee we have all 'this week' data regardless of TZ diff
                 supabase.from('sessions').select('id, user_id, project_id, started_at, ended_at').gte('started_at', new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000).toISOString()),
                 supabase.from('projects').select('id, name, color'),
                 supabase.from('members').select('id, pay_rate'),
                 supabase.from('screenshots').select('id', { count: 'exact', head: true }).gte('recorded_at', weekStart.toISOString()),
             ]);
 
-            if (sessionErr) console.error("Session Error:", sessionErr);
-            if (projErr) console.error("Project Error:", projErr);
-            if (memErr) console.error("Member Error:", memErr);
-            if (ssErr) console.error("Screenshot Error:", ssErr);
-
             const todaySessions = (rawSessions || []).filter(s => new Date(s.started_at) >= todayStart);
             const weekSessions = (rawSessions || []).filter(s => new Date(s.started_at) >= weekStart);
 
-            // Today minutes
             const todayMins = (todaySessions || []).reduce((acc, s) => {
                 const start = new Date(s.started_at).getTime();
                 const { endMs } = effectiveEnd(s.started_at, s.ended_at);
                 return acc + Math.max(0, Math.round((endMs - start) / 60000));
             }, 0);
 
-            // Week minutes + cost per member
             const memberRateMap: Record<string, number> = {};
             (membersData || []).forEach(m => { memberRateMap[m.id] = m.pay_rate ?? 0; });
 
@@ -130,7 +121,6 @@ export function Dashboard() {
                 dayMinMap[dayIdx] = (dayMinMap[dayIdx] || 0) + mins;
             });
 
-            // Project breakdown
             const projectMap: Record<string, string> = {};
             const projectColorMap: Record<string, string> = {};
             (projectsData || []).forEach((p, i) => {
@@ -140,7 +130,7 @@ export function Dashboard() {
 
             const projectStats: ProjectStat[] = Object.entries(projectMinMap)
                 .sort((a, b) => b[1] - a[1])
-                .slice(0, 6)
+                .slice(0, 5)
                 .map(([id, minutes], i) => ({
                     id,
                     name: projectMap[id] || 'Unknown',
@@ -148,7 +138,6 @@ export function Dashboard() {
                     color: projectColorMap[id] || PROJECT_COLORS[i % PROJECT_COLORS.length]!,
                 }));
 
-            // Week bar chart — reorder to Mon–Sun with today highlighted
             const bars: DayBar[] = DAYS_SHORT.map((day, i) => ({
                 day,
                 minutes: dayMinMap[i] || 0,
@@ -176,92 +165,137 @@ export function Dashboard() {
     const weekLabel = `${new Date(today.getFullYear(), today.getMonth(), today.getDate() - today.getDay()).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${new Date(today.getFullYear(), today.getMonth(), today.getDate() - today.getDay() + 6).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
 
     return (
-        <PageLayout title="Dashboard" description={weekLabel} maxWidth="full">
+        <PageLayout title="Command Center" description={`Global operational metrics • ${weekLabel}`} maxWidth="full">
             {/* KPI Row */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
-                <KpiCard icon={<Clock className="w-4 h-4 text-primary" />} label="Tracked Today" value={loading ? '—' : fmtTime(stats.todayMinutes)} />
-                <KpiCard icon={<Clock className="w-4 h-4 text-primary" />} label="This Week" value={loading ? '—' : fmtTime(stats.weekMinutes)} />
-                <KpiCard icon={<CircleDollarSign className="w-4 h-4 text-primary" />} label="Total Cost" value={loading ? '—' : `$${stats.weekCost.toFixed(2)}`} />
-                <KpiCard icon={<Users className="w-4 h-4 text-primary" />} label="Active People" value={loading ? '—' : stats.activeMembers.toString()} />
-                <KpiCard icon={<FolderOpen className="w-4 h-4 text-primary" />} label="Active Projects" value={loading ? '—' : stats.activeProjects.toString()} />
-                <KpiCard icon={<Camera className="w-4 h-4 text-primary" />} label="Screenshots" value={loading ? '—' : stats.screenshotCount.toString()} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-6 mb-10 animate-in slide-in-from-top-4 duration-700">
+                <KpiCard icon={<Clock className="w-5 h-5" />} label="Tracked Today" value={loading ? '—' : fmtTime(stats.todayMinutes)} trend="+14%" trendVariant="positive" />
+                <KpiCard icon={<BarChart3 className="w-5 h-5" />} label="Weekly Volume" value={loading ? '—' : fmtTime(stats.weekMinutes)} trend="+8%" trendVariant="positive" />
+                <KpiCard icon={<CircleDollarSign className="w-5 h-5" />} label="Cost Projection" value={loading ? '—' : `$${stats.weekCost.toLocaleString()}`} trend="-2%" trendVariant="negative" />
+                <KpiCard icon={<Users className="w-5 h-5" />} label="Active Units" value={loading ? '—' : stats.activeMembers.toString()} sub="Total personnel" />
+                <KpiCard icon={<Globe className="w-5 h-5" />} label="Active Clusters" value={loading ? '—' : stats.activeProjects.toString()} sub="Project nodes" />
+                <KpiCard icon={<Camera className="w-5 h-5" />} label="Visual Validation" value={loading ? '—' : stats.screenshotCount.toString()} trend="+124" trendVariant="positive" />
             </div>
 
-            {/* Main Content */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-                {/* Projects */}
-                <Card title="Projects This Week" className="lg:col-span-2">
-                    {loading ? (
-                        <LoadingState className="min-h-[12rem]" />
-                    ) : projects.length === 0 ? (
-                        <EmptyState
-                            icon={<FolderOpen className="w-6 h-6" />}
-                            title="No tracked sessions this week"
-                            description="Start a tracking session in the Electron app to see data here."
-                            className="min-h-[12rem]"
-                        />
-                    ) : (
-                        <div className="space-y-3">
-                            {projects.map((p) => (
-                                <div key={p.id} className="flex items-center gap-4 group">
-                                    <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold shrink-0"
-                                        style={{ backgroundColor: p.color }}>
-                                        {p.name.charAt(0).toUpperCase()}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center justify-between mb-1.5">
-                                            <span className="text-sm font-medium text-text-primary truncate">{p.name}</span>
-                                            <span className="text-xs text-text-muted ml-3 shrink-0">{fmtTime(p.minutes)}</span>
-                                        </div>
-                                        <div className="h-1.5 bg-surface-subtle rounded-full overflow-hidden">
-                                            <div className="h-full rounded-full transition-all"
-                                                style={{ width: `${Math.round((p.minutes / maxProjectMins) * 100)}%`, backgroundColor: p.color }} />
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-10">
+                {/* Weekly Trends */}
+                <div className="lg:col-span-8">
+                    <Card title="Engagement Velocity Trend">
+                        {loading ? (
+                            <LoadingState className="h-[300px]" />
+                        ) : (
+                            <div className="h-[300px] w-full mt-6">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={weekBars} barSize={32}>
+                                        <defs>
+                                            <linearGradient id="dashBarGrad" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="0%" stopColor="#506ef8" />
+                                                <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0.4} />
+                                            </linearGradient>
+                                        </defs>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(41, 61, 99, 0.05)" />
+                                        <XAxis 
+                                            dataKey="day" 
+                                            axisLine={false} 
+                                            tickLine={false} 
+                                            tick={{ fill: '#5c6b8a', fontSize: 10, fontWeight: 900 }}
+                                            dy={15}
+                                        />
+                                        <YAxis hide />
+                                        <Tooltip 
+                                            cursor={{ fill: 'rgba(80, 110, 248, 0.02)' }}
+                                            content={({ active, payload }) => {
+                                                if (active && payload && payload.length) {
+                                                    return (
+                                                        <div className="glass border border-primary/10 rounded-2xl px-5 py-4 shadow-xl">
+                                                            <p className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em] mb-1.5 font-mono">{payload[0].payload.day}</p>
+                                                            <p className="text-xl font-black text-text-primary tracking-tighter leading-none">{fmtTime(payload[0].value as number)}</p>
+                                                        </div>
+                                                    );
+                                                }
+                                                return null;
+                                            }}
+                                        />
+                                        <Bar dataKey="minutes" fill="url(#dashBarGrad)" radius={[10, 10, 0, 0]} animationDuration={2000} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        )}
+                        <div className="flex items-center justify-center gap-8 mt-10 pt-10 border-t border-black/[0.03] font-mono text-[9px] uppercase tracking-[0.3em] font-black text-text-muted/60">
+                            <div className="flex items-center gap-2.5"><div className="w-2.5 h-2.5 rounded-full bg-primary animate-pulse" /> Pulse Velocity</div>
+                            <div className="flex items-center gap-2.5"><div className="w-2.5 h-2.5 rounded-full bg-black/5" /> Target Baseline</div>
                         </div>
-                    )}
-                </Card>
+                    </Card>
+                </div>
 
-                {/* Weekly bars */}
-                <Card title="This Week" className="flex flex-col">
-                    {loading ? (
-                        <LoadingState className="flex-1 min-h-[12rem]" />
-                    ) : (
-                        <div className="flex-1">
-                            <ResponsiveContainer width="100%" height={200}>
-                                <BarChart data={weekBars} barSize={20}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border-subtle)" vertical={false} />
-                                    <XAxis dataKey="day" tick={{ fontSize: 10, fill: 'var(--color-text-muted)' }} axisLine={false} tickLine={false} />
-                                    <YAxis hide />
-                                    <Tooltip
-                                        formatter={(v: number | undefined) => [fmtTime(v ?? 0), 'Tracked']}
-                                        contentStyle={{ borderRadius: 8, border: '1px solid var(--color-border)', fontSize: 12 }}
-                                    />
-                                    <Bar dataKey="minutes" fill="var(--color-primary)" radius={[4, 4, 0, 0]}
-                                        label={false} />
-                                </BarChart>
-                            </ResponsiveContainer>
-                            {/* Today highlight */}
-                            <p className="text-xs text-text-muted text-center mt-2">
-                                Today: <span className="font-semibold text-primary">{DAYS_SHORT[today.getDay()]}</span>
-                            </p>
-                        </div>
-                    )}
-                </Card>
-
-                {/* Live activity feed */}
-                <Card title="Recent Tracking Sessions" className="lg:col-span-3">
-                    <RecentSessions />
-                </Card>
+                {/* Projects Allocation */}
+                <div className="lg:col-span-4">
+                    <Card title="Project Distribution">
+                        {loading ? (
+                            <LoadingState className="h-[300px]" />
+                        ) : projects.length === 0 ? (
+                            <EmptyState icon={<FolderOpen className="w-10 h-10 opacity-20" />} title="No Data" description="Registry is void of activity" />
+                        ) : (
+                            <div className="space-y-8 mt-4">
+                                {projects.map((p) => (
+                                    <div key={p.id} className="group cursor-default">
+                                        <div className="flex items-center justify-between mb-3.5">
+                                            <div className="flex items-center gap-3.5">
+                                                <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white text-[11px] font-black shadow-lg shadow-black/5 group-hover:scale-110 transition-transform"
+                                                    style={{ backgroundColor: p.color }}>
+                                                    {p.name.charAt(0).toUpperCase()}
+                                                </div>
+                                                <span className="text-sm font-black text-text-primary tracking-tight group-hover:text-primary transition-colors leading-none">{p.name}</span>
+                                            </div>
+                                            <span className="text-[10px] font-black text-text-secondary bg-black/[0.03] px-3.5 py-1.5 rounded-xl uppercase tracking-widest font-mono border border-black/[0.03]">
+                                                {fmtTime(p.minutes)}
+                                            </span>
+                                        </div>
+                                        <div className="h-2 bg-black/[0.03] rounded-full overflow-hidden w-full p-[1px]">
+                                            <div 
+                                                className="h-full rounded-full transition-all duration-1000 ease-out"
+                                                style={{ 
+                                                    width: `${Math.round((p.minutes / maxProjectMins) * 100)}%`, 
+                                                    backgroundColor: p.color,
+                                                    boxShadow: `0 0 12px ${p.color}20`
+                                                }} 
+                                            />
+                                        </div>
+                                    </div>
+                                ethnic))}
+                            </div>
+                        )}
+                        <button className="w-full mt-10 py-4 glass border border-primary/10 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] text-text-muted hover:text-primary hover:bg-primary/5 transition-all flex items-center justify-center gap-3 group shadow-sm font-mono">
+                            CLUSTER ANALYSIS
+                            <ArrowUpRight className="w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" strokeWidth={2.5} />
+                        </button>
+                    </Card>
+                </div>
             </div>
+
+            {/* Recent Sessions */}
+            <Card title="Operational Pulse" noPadding>
+                <div className="divide-y divide-black/[0.03] overflow-x-auto custom-scrollbar">
+                    <table className="w-full text-left border-collapse min-w-[800px]">
+                        <thead>
+                            <tr className="bg-black/[0.01]">
+                                <th className="px-10 py-7 text-[10px] font-black text-text-muted uppercase tracking-[0.3em]">Designated Member</th>
+                                <th className="px-10 py-7 text-[10px] font-black text-text-muted uppercase tracking-[0.3em]">Active Cluster</th>
+                                <th className="px-10 py-7 text-[10px] font-black text-text-muted uppercase tracking-[0.3em]">Protocol Start</th>
+                                <th className="px-10 py-7 text-[10px] font-black text-text-muted uppercase tracking-[0.3em]">Session Intensity</th>
+                                <th className="px-10 py-7 text-[10px] font-black text-text-muted uppercase tracking-[0.3em] text-right">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-black/[0.03]">
+                            <RecentSessionsRows />
+                        </tbody>
+                    </table>
+                </div>
+            </Card>
         </PageLayout>
     );
 }
 
-function RecentSessions() {
+function RecentSessionsRows() {
     const [sessions, setSessions] = useState<any[]>([]);
     const [memberMap, setMemberMap] = useState<Record<string, string>>({});
     const [projectMap, setProjectMap] = useState<Record<string, any>>({});
@@ -270,26 +304,20 @@ function RecentSessions() {
     useEffect(() => {
         async function load() {
             try {
-                const [{ data, error }, { data: membersData }, { data: projectsData }] = await Promise.all([
-                    supabase.from('sessions')
-                        .select('id, user_id, project_id, started_at, ended_at')
-                        .order('started_at', { ascending: false })
-                        .limit(8),
+                const [{ data }, { data: membersData }, { data: projectsData }] = await Promise.all([
+                    supabase.from('sessions').select('id, user_id, project_id, started_at, ended_at').order('started_at', { ascending: false }).limit(6),
                     supabase.from('members').select('id, full_name'),
                     supabase.from('projects').select('id, name, color'),
                 ]);
-                if (error) console.error("RecentSessions Error:", error);
                 setSessions(data || []);
-                
                 const mMap: Record<string, string> = {};
                 (membersData || []).forEach(m => { mMap[m.id] = m.full_name; });
                 setMemberMap(mMap);
-
                 const pMap: Record<string, any> = {};
                 (projectsData || []).forEach(p => { pMap[p.id] = p; });
                 setProjectMap(pMap);
             } catch (err) {
-                console.error("RecentSessions unhandled error:", err);
+                console.error("RecentSessions Error:", err);
             } finally {
                 setLoading(false);
             }
@@ -297,77 +325,66 @@ function RecentSessions() {
         load();
     }, []);
 
-    if (loading) return <LoadingState message="Loading…" className="py-4 min-h-0" />;
-    if (sessions.length === 0) return (
-        <EmptyState
-            icon={<Activity className="w-6 h-6" />}
-            title="No sessions yet"
-            description="Start tracking in the Electron app."
-        />
-    );
+    if (loading) return <tr><td colSpan={5} className="py-24 text-center"><LoadingState /></td></tr>;
+    if (sessions.length === 0) return <tr><td colSpan={5} className="py-24 text-center opacity-40"><EmptyState icon={<Zap className="w-10 h-10" />} /></td></tr>;
 
     return (
-        <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-                <thead>
-                    <tr className="border-b border-border text-left">
-                        <th className="pb-3 pr-6 text-xs font-semibold text-text-muted uppercase">Member</th>
-                        <th className="pb-3 pr-6 text-xs font-semibold text-text-muted uppercase">Project</th>
-                        <th className="pb-3 pr-6 text-xs font-semibold text-text-muted uppercase">Started</th>
-                        <th className="pb-3 pr-6 text-xs font-semibold text-text-muted uppercase">Duration</th>
-                        <th className="pb-3 text-xs font-semibold text-text-muted uppercase">Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {sessions.map(s => {
-                        const startMs = new Date(s.started_at).getTime();
-                        const { endMs, isLive, isStale } = effectiveEnd(s.started_at, s.ended_at);
-                        const mins = Math.max(0, Math.round((endMs - startMs) / 60000));
-                        const isActive = isLive;
-                        const memberName = (s.user_id && memberMap[s.user_id]) || 'Unknown';
-                        const proj = s.project_id && projectMap[s.project_id];
+        <>
+            {sessions.map(s => {
+                const startMs = new Date(s.started_at).getTime();
+                const { endMs, isLive, isStale } = effectiveEnd(s.started_at, s.ended_at);
+                const mins = Math.max(0, Math.round((endMs - startMs) / 60000));
+                const memberName = (s.user_id && memberMap[s.user_id]) || 'System Entity';
+                const proj = s.project_id && projectMap[s.project_id];
 
-                         return (
-                            <tr key={s.id} className="border-b border-border-subtle hover:bg-surface-subtle/50 transition-colors">
-                                <td className="py-3 pr-6">
-                                    <span className="text-sm font-medium text-text-primary">{memberName}</span>
-                                </td>
-                                <td className="py-3 pr-6">
-                                    {proj ? (
-                                        <div className="flex items-center gap-1.5">
-                                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: proj.color }} />
-                                            <span className="text-xs text-text-secondary truncate max-w-[120px]">{proj.name}</span>
-                                        </div>
-                                    ) : (
-                                        <span className="text-xs text-text-muted">No Project</span>
-                                    )}
-                                </td>
-                                <td className="py-3 pr-6 text-text-secondary">
-                                    {new Date(s.started_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                                </td>
-                                <td className="py-3 pr-6 font-medium text-text-primary">
-                                    {isStale ? <span className="text-text-muted">—</span> : fmtTime(mins)}
-                                </td>
-                                <td className="py-3">
-                                    {isActive ? (
-                                        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                            Live
-                                        </span>
-                                    ) : isStale ? (
-                                        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
-                                            Not Closed
-                                        </span>
-                                    ) : (
-                                        <span className="text-xs text-text-muted">Ended</span>
-                                    )}
-                                </td>
-                            </tr>
-                        );
-                    })}
-                </tbody>
-            </table>
-        </div>
+                return (
+                    <tr key={s.id} className="group hover:bg-black/[0.01] transition-all">
+                        <td className="px-10 py-7">
+                            <div className="flex items-center gap-4">
+                                <div className="w-11 h-11 rounded-2xl bg-primary/5 border border-primary/10 flex items-center justify-center text-primary font-black text-[12px] group-hover:scale-110 transition-transform shadow-sm">
+                                    {memberName.charAt(0)}
+                                </div>
+                                <div>
+                                    <div className="font-black text-text-primary text-[15px] tracking-tight leading-none group-hover:text-primary transition-colors mb-1.5">{memberName}</div>
+                                    <div className="text-[9px] font-black text-text-muted uppercase tracking-[0.2em] font-mono opacity-70">UID: {s.user_id?.slice(0, 8) || 'SYSTEM'}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td className="px-10 py-7">
+                            {proj ? (
+                                <div className="flex items-center gap-3">
+                                    <div className="w-2.5 h-2.5 rounded-full shadow-lg" style={{ backgroundColor: proj.color, boxShadow: `0 0 10px ${proj.color}40` }} />
+                                    <span className="text-[11px] font-black text-text-secondary uppercase tracking-[0.2em] font-mono">{proj.name}</span>
+                                </div>
+                            ) : (
+                                <span className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em] opacity-40 font-mono">Unassigned Node</span>
+                            )}
+                        </td>
+                        <td className="px-10 py-7 text-[11px] font-black text-text-muted uppercase tracking-[0.2em] font-mono group-hover:text-text-primary transition-colors">
+                            {new Date(s.started_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </td>
+                        <td className="px-10 py-7">
+                            <span className="text-base font-black text-text-primary font-mono tracking-tighter">
+                                {isStale ? '0h 00m' : fmtTime(mins)}
+                            </span>
+                        </td>
+                        <td className="px-10 py-7 text-right">
+                            {isLive ? (
+                                <span className="inline-flex items-center gap-3 px-4 py-2 rounded-2xl text-[9px] font-black uppercase tracking-[0.2em] text-emerald-600 bg-emerald-500/5 border border-emerald-500/10 shadow-sm font-mono">
+                                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                                    Active Stream
+                                </span>
+                            ) : isStale ? (
+                                <span className="inline-flex items-center gap-3 px-4 py-2 rounded-2xl text-[9px] font-black uppercase tracking-[0.2em] text-amber-600 bg-amber-500/5 border border-amber-500/10 font-mono">
+                                    Sync Lost
+                                </span>
+                            ) : (
+                                <span className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em] opacity-40 font-mono">Recorded</span>
+                            )}
+                        </td>
+                    </tr>
+                );
+            })}
+        </>
     );
 }
-

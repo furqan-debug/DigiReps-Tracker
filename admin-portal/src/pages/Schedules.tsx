@@ -1,6 +1,11 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react';
+import { 
+    ChevronLeft, ChevronRight, 
+    Activity, TrendingUp, ShieldCheck, 
+    RefreshCw
+} from 'lucide-react';
+import clsx from 'clsx';
 
 const HOURS = Array.from({ length: 14 }, (_, i) => i + 7); // 7am – 8pm
 const DAYS_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -37,7 +42,6 @@ export function Schedules() {
             .gte('recorded_at', weekStart.toISOString())
             .lte('recorded_at', weekEnd.toISOString());
 
-        // Build activity blocks: { date, hour } → count of non-idle samples
         const blockMap: Record<string, number> = {};
         (data || []).forEach(a => {
             if (a.idle) return;
@@ -55,7 +59,6 @@ export function Schedules() {
         setLoading(false);
     }
 
-    // Build week days array
     const weekDays = Array.from({ length: 7 }, (_, i) => {
         const d = new Date(weekStart);
         d.setDate(weekStart.getDate() + i);
@@ -67,145 +70,214 @@ export function Schedules() {
     }
 
     function blockOpacity(count: number): number {
-        // Scale: 1 sample = 0.15, 10+ = 1.0
-        return Math.min(1, 0.15 + (count / 10) * 0.85);
+        return Math.min(1, 0.2 + (count / 15) * 0.8);
     }
 
     const totalActiveHours = blocks.reduce((a, b) => a + b.count, 0);
-    const peakDay = weekDays.reduce((best, d) => {
+    const peakDay = weekDays.length > 0 ? weekDays.reduce((best, d) => {
         const ds = d.toISOString().split('T')[0];
         const dayTotal = blocks.filter(b => b.date === ds).reduce((a, b) => a + b.count, 0);
-        const bestTotal = blocks.filter(b => b.date === best.toISOString().split('T')[0]).reduce((a, b) => a + b.count, 0);
+        const bestTotal = blocks.filter(b => b.date === (best?.toISOString().split('T')[0] || '')).reduce((a, b) => a + b.count, 0);
         return dayTotal > bestTotal ? d : best;
-    }, weekDays[0]!);
+    }, weekDays[0]!) : weekDays[0];
 
-    const formatHeader = (d: Date) =>
-        `${d.toLocaleString('en-US', { month: 'short' })} ${weekStart.getDate()} – ${weekEnd.getDate()}, ${weekStart.getFullYear()}`;
+    const formatHeader = () =>
+        `${weekStart.toLocaleString('en-US', { month: 'short' })} ${weekStart.getDate()} – ${weekEnd.toLocaleString('en-US', { month: 'short' })} ${weekEnd.getDate()}, ${weekStart.getFullYear()}`;
 
     return (
-        <div className="p-8 max-w-[1600px] mx-auto w-full">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-8">
-                <div>
-                    <h1 className="text-2xl font-semibold text-slate-900">Schedules</h1>
-                    <p className="text-slate-500 text-sm mt-1">When your team is working</p>
-                </div>
-                <div className="flex items-center gap-3">
-                    <button onClick={() => setWeekOffset(w => w - 1)}
-                        className="p-2 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
-                        <ChevronLeft className="w-4 h-4 text-slate-600" />
-                    </button>
-                    <span className="text-sm font-medium text-slate-700 min-w-[200px] text-center">
-                        {formatHeader(weekStart)}
-                    </span>
-                    <button onClick={() => setWeekOffset(w => w + 1)}
-                        className="p-2 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
-                        <ChevronRight className="w-4 h-4 text-slate-600" />
-                    </button>
-                    <button onClick={() => setWeekOffset(0)}
-                        className="px-3 py-2 border border-slate-200 rounded-lg text-sm hover:bg-slate-50 transition-colors text-slate-600">
-                        Today
-                    </button>
-                </div>
-            </div>
+        <div className="flex flex-col h-full bg-transparent animate-in fade-in duration-700">
+            {/* Header section with Summary */}
+            <div className="px-10 py-12 border-b border-black/[0.05] bg-white/[0.01]">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-12">
+                    <div className="space-y-2">
+                        <div className="flex items-center gap-4 mb-2">
+                            <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20 shadow-sm">
+                                <Activity className="w-6 h-6 text-primary" strokeWidth={2.5} />
+                            </div>
+                            <h1 className="text-3xl font-black text-text-primary tracking-tighter leading-none">Operational Velocity</h1>
+                        </div>
+                        <p className="text-[11px] font-black text-text-muted uppercase tracking-[0.3em] font-mono leading-relaxed">Real-time workforce distribution and activity saturation analytics</p>
+                    </div>
 
-            {/* Summary */}
-            <div className="grid grid-cols-3 gap-4 mb-8">
-                <SummaryCard label="Active Samples This Week" value={totalActiveHours.toLocaleString()} color="text-blue-600" />
-                <SummaryCard
-                    label="Peak Day"
-                    value={peakDay ? DAYS_SHORT[peakDay.getDay()] + ', ' + peakDay.getDate() : '—'}
-                    color="text-purple-600"
-                />
-                <SummaryCard
-                    label="Hours Covered"
-                    value={`${new Set(blocks.map(b => b.hour)).size} unique hours`}
-                    color="text-emerald-600"
-                />
-            </div>
-
-            {/* Calendar Heatmap */}
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-                    <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Activity Heatmap</h2>
-                    <div className="flex items-center gap-2 text-xs text-slate-400">
-                        <span>Less</span>
-                        {[0.15, 0.35, 0.6, 0.85, 1].map(o => (
-                            <div key={o} className="w-3 h-3 rounded-sm bg-blue-500" style={{ opacity: o }} />
-                        ))}
-                        <span>More</span>
+                    <div className="flex items-center gap-6">
+                        <div className="flex bg-black/[0.02] border border-black/[0.05] p-1.5 rounded-[24px] shadow-inner items-center">
+                            <button 
+                                onClick={() => setWeekOffset(w => w - 1)}
+                                className="p-3.5 hover:bg-white rounded-xl transition-all text-text-muted hover:text-primary hover:shadow-sm"
+                            >
+                                <ChevronLeft className="w-5 h-5" strokeWidth={3} />
+                            </button>
+                            <div className="px-8 min-w-[280px] text-center">
+                                <span className="text-[11px] font-black text-text-primary uppercase tracking-[0.2em] font-mono whitespace-nowrap">
+                                    {formatHeader()}
+                                </span>
+                            </div>
+                            <button 
+                                onClick={() => setWeekOffset(w => w + 1)}
+                                className="p-3.5 hover:bg-white rounded-xl transition-all text-text-muted hover:text-primary hover:shadow-sm"
+                            >
+                                <ChevronRight className="w-5 h-5" strokeWidth={3} />
+                            </button>
+                        </div>
+                        <button
+                            onClick={() => setWeekOffset(0)}
+                            className="px-8 py-5 rounded-[20px] bg-white border border-black/[0.1] text-[10px] font-black text-text-muted hover:text-text-primary hover:border-text-primary transition-all active:scale-95 shadow-sm uppercase tracking-[0.2em] font-mono"
+                        >
+                            Sync to Present
+                        </button>
                     </div>
                 </div>
 
-                {loading ? (
-                    <div className="flex items-center justify-center h-48 text-slate-400">Building schedule...</div>
-                ) : (
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-xs border-collapse">
-                            <thead>
-                                <tr>
-                                    <th className="w-16 px-4 py-3 text-slate-400 font-medium text-right border-r border-slate-100">Time</th>
-                                    {weekDays.map((d, i) => {
-                                        const isToday = d.toDateString() === today.toDateString();
-                                        return (
-                                            <th key={i} className="py-3 text-center font-medium">
-                                                <span className={`block ${isToday ? 'text-blue-600 font-bold' : 'text-slate-500'}`}>
-                                                    {DAYS_SHORT[d.getDay()]}
-                                                </span>
-                                                <span className={`block text-sm mt-0.5 ${isToday ? 'text-blue-600 font-bold' : 'text-slate-400'}`}>
-                                                    {d.getDate()}
-                                                </span>
-                                            </th>
-                                        );
-                                    })}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {HOURS.map(hour => (
-                                    <tr key={hour} className="border-t border-slate-50">
-                                        <td className="px-4 py-2 text-slate-400 text-right border-r border-slate-100 text-[11px]">
-                                            {hour < 12 ? `${hour}am` : hour === 12 ? '12pm' : `${hour - 12}pm`}
-                                        </td>
-                                        {weekDays.map((d, di) => {
-                                            const dateStr = d.toISOString().split('T')[0];
-                                            const block = getBlock(dateStr!, hour);
+                {/* KPI Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <StatsCard 
+                        label="Active Samples" 
+                        value={totalActiveHours.toLocaleString()} 
+                        icon={<Activity className="w-5 h-5" strokeWidth={2.5} />} 
+                        subtitle="Current week volume"
+                        color="indigo" 
+                    />
+                    <StatsCard 
+                        label="Peak Distribution" 
+                        value={peakDay ? DAYS_SHORT[peakDay.getDay()] + ', ' + peakDay.getDate() : '—'} 
+                        icon={<TrendingUp className="w-5 h-5" strokeWidth={2.5} />} 
+                        subtitle="Max reach capacity"
+                        color="violet" 
+                    />
+                    <StatsCard 
+                        label="Coverage Index" 
+                        value={`${new Set(blocks.map(b => b.hour)).size} hr`} 
+                        icon={<ShieldCheck className="w-5 h-5" strokeWidth={2.5} />} 
+                        subtitle="Operational width"
+                        color="emerald" 
+                    />
+                </div>
+            </div>
+
+            {/* Heatmap Section */}
+            <div className="p-10 flex-1 overflow-auto custom-scrollbar bg-white/[0.01]">
+                <div className="glass border border-black/[0.05] rounded-[48px] shadow-2xl overflow-hidden relative group bg-white mb-20 transition-all duration-700 hover:shadow-primary/5">
+                    <div className="px-10 py-10 border-b border-black/[0.03] bg-black/[0.01] flex flex-col md:flex-row md:items-center justify-between gap-6">
+                        <div>
+                            <h2 className="text-2xl font-black text-text-primary tracking-tighter leading-none mb-3 uppercase">Activity Saturation Matrix</h2>
+                            <p className="text-[11px] font-black text-text-muted uppercase tracking-[0.2em] font-mono leading-relaxed">Cross-jurisdictional intensity mapping by hour and node registry</p>
+                        </div>
+                        <div className="flex items-center gap-6 bg-black/[0.03] border border-black/[0.05] rounded-[24px] px-6 py-4 shadow-inner">
+                            <span className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em] font-mono italic opacity-60">Saturation Index:</span>
+                            <div className="flex items-center gap-2">
+                                {[0.2, 0.4, 0.6, 0.8, 1].map(o => (
+                                    <div 
+                                        key={o} 
+                                        className="w-4 h-4 rounded-md bg-primary shadow-sm transition-all hover:scale-125 cursor-help" 
+                                        style={{ opacity: o }} 
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    {loading ? (
+                        <div className="h-[600px] flex items-center justify-center">
+                            <div className="flex flex-col items-center gap-6">
+                                <RefreshCw className="w-12 h-12 text-primary animate-spin" strokeWidth={3} />
+                                <span className="text-[11px] font-black text-text-muted uppercase tracking-[0.5em] animate-pulse font-mono">Reconstructing Matrix Core...</span>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="overflow-x-auto custom-scrollbar p-10">
+                            <table className="w-full border-separate border-spacing-3">
+                                <thead>
+                                    <tr>
+                                        <th className="w-32 pb-8 text-right pr-10 text-[10px] font-black text-text-muted uppercase tracking-[0.3em] font-mono italic opacity-60">Node Registry</th>
+                                        {weekDays.map((d, i) => {
+                                            const isToday = d.toDateString() === today.toDateString();
                                             return (
-                                                <td key={di} className="p-1 text-center">
-                                                    {block ? (
-                                                        <div
-                                                            title={`${block.count} samples at ${hour}:00`}
-                                                            className="mx-auto h-7 rounded-md cursor-pointer hover:ring-2 hover:ring-blue-400 transition-all"
-                                                            style={{
-                                                                backgroundColor: '#3b82f6',
-                                                                opacity: blockOpacity(block.count),
-                                                                width: '80%',
-                                                            }}
-                                                        />
-                                                    ) : (
-                                                        <div className="mx-auto h-7 rounded-md bg-slate-50" style={{ width: '80%' }} />
-                                                    )}
-                                                </td>
+                                                <th key={i} className="pb-8">
+                                                    <div className={clsx(
+                                                        "flex flex-col items-center p-5 rounded-[28px] transition-all duration-700 border",
+                                                        isToday 
+                                                            ? "bg-primary text-white border-primary shadow-xl shadow-primary/20 scale-105 -translate-y-1" 
+                                                            : "bg-black/[0.02] border-black/[0.05] hover:bg-black/[0.04]"
+                                                    )}>
+                                                        <span className={clsx(
+                                                            "text-[10px] font-black uppercase tracking-[0.2em] mb-2",
+                                                            isToday ? "text-white/70" : "text-text-muted"
+                                                        )}>
+                                                            {DAYS_SHORT[d.getDay()]}
+                                                        </span>
+                                                        <span className="text-2xl font-black tracking-tighter">
+                                                            {d.getDate()}
+                                                        </span>
+                                                    </div>
+                                                </th>
                                             );
                                         })}
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
+                                </thead>
+                                <tbody>
+                                    {HOURS.map(hour => (
+                                        <tr key={hour} className="group/row">
+                                            <td className="py-4 text-right pr-10 font-mono text-[12px] font-black text-text-muted group-hover/row:text-text-primary transition-all duration-500 uppercase tracking-tighter italic">
+                                                {hour < 12 ? `${hour}:00 AM` : hour === 12 ? '12:00 PM' : `${hour - 12}:00 PM`}
+                                            </td>
+                                            {weekDays.map((d, di) => {
+                                                const dateStr = d.toISOString().split('T')[0];
+                                                const block = getBlock(dateStr!, hour);
+                                                return (
+                                                    <td key={di} className="p-0">
+                                                        {block ? (
+                                                            <div
+                                                                title={`${block.count} active samples at ${hour}:00`}
+                                                                className="h-16 w-full rounded-[18px] bg-primary border border-primary/20 transition-all duration-700 hover:scale-[1.08] hover:rotate-2 hover:shadow-2xl hover:shadow-primary/30 cursor-pointer group/cell relative"
+                                                                style={{
+                                                                    opacity: blockOpacity(block.count),
+                                                                }}
+                                                            >
+                                                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/cell:opacity-100 transition-all duration-500 bg-primary rounded-[18px] shadow-inner ring-1 ring-white/20">
+                                                                    <span className="text-[12px] font-black text-white">{block.count}</span>
+                                                                </div>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="h-16 w-full rounded-[18px] bg-black/[0.01] border border-black/[0.02] group-hover/row:border-black/[0.05] group-hover/row:bg-black/[0.02] transition-all duration-500" />
+                                                        )}
+                                                    </td>
+                                                );
+                                            })}
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                    
+                    {/* Background decoration */}
+                    <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/5 blur-[120px] rounded-full -mr-48 -mt-48 pointer-events-none group-hover:bg-indigo-500/10 transition-colors duration-1000" />
+                </div>
             </div>
         </div>
     );
 }
 
-function SummaryCard({ label, value, color }: { label: string; value: string; color: string }) {
+function StatsCard({ label, value, icon, subtitle, color }: { label: string; value: string; icon: React.ReactNode; subtitle: string; color: 'indigo' | 'violet' | 'emerald' }) {
+    const colorClasses = {
+        indigo: { bg: 'bg-primary/5', border: 'border-primary/20', text: 'text-primary', glow: 'bg-primary/5' },
+        emerald: { bg: 'bg-emerald-500/5', border: 'border-emerald-500/20', text: 'text-emerald-600', glow: 'bg-emerald-500/5' },
+        violet: { bg: 'bg-violet-500/5', border: 'border-violet-500/20', text: 'text-violet-600', glow: 'bg-violet-500/5' }
+    };
+
     return (
-        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm flex items-center gap-4">
-            <CalendarDays className="w-8 h-8 text-slate-200 shrink-0" />
-            <div>
-                <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">{label}</p>
-                <p className={`text-xl font-semibold mt-0.5 ${color}`}>{value}</p>
+        <div className="glass p-10 rounded-[44px] border border-black/[0.03] hover:border-primary/20 transition-all group overflow-hidden relative shadow-sm hover:shadow-xl duration-700 bg-white">
+            <div className={clsx("absolute top-0 right-0 w-32 h-32 rounded-full -translate-y-16 translate-x-16 group-hover:scale-125 transition-transform duration-1000", colorClasses[color].glow)} />
+            <div className="flex items-center gap-6 mb-6">
+                <div className={clsx("w-12 h-12 rounded-[18px] flex items-center justify-center border shadow-sm group-hover:scale-110 group-hover:rotate-6 transition-all duration-700", colorClasses[color].bg, colorClasses[color].border, colorClasses[color].text)}>
+                    {icon}
+                </div>
+                <div>
+                    <p className="text-[10px] font-black text-text-muted uppercase tracking-[0.3em] font-mono leading-none mb-2">{label}</p>
+                    <p className="text-[9px] font-black text-text-muted/40 uppercase tracking-[0.2em] font-mono leading-none">{subtitle}</p>
+                </div>
             </div>
+            <h2 className="text-5xl font-black text-text-primary tracking-tighter leading-none">{value}</h2>
         </div>
     );
 }

@@ -23,21 +23,23 @@ export function KpiCard({
 }: KpiCardProps) {
     const trendClass =
         trendVariant === 'positive'
-            ? 'bg-emerald-50 text-emerald-700 ring-emerald-500/10'
+            ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/10'
             : trendVariant === 'negative'
-              ? 'bg-red-50 text-red-700 ring-red-500/10'
-              : 'bg-surface-subtle text-text-secondary ring-border';
+              ? 'bg-rose-500/10 text-rose-600 border-rose-500/10'
+              : 'bg-black/5 text-text-muted border-black/5';
 
     return (
-        <div className="bg-surface border border-border rounded-shell-lg shadow-shell-sm p-5 flex flex-col">
-            <div className="flex items-start justify-between gap-2 mb-3">
-                <div className="w-10 h-10 rounded-shell-md bg-surface-subtle border border-border flex items-center justify-center text-primary shrink-0">
+        <div className="glass rounded-3xl p-6 flex flex-col relative overflow-hidden group hover:shadow-xl hover:shadow-primary/5 transition-all duration-500 border border-black/[0.03]">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 blur-2xl rounded-full -mr-12 -mt-12 group-hover:bg-primary/10 transition-colors" />
+            
+            <div className="flex items-start justify-between mb-5 relative z-10">
+                <div className="w-12 h-12 rounded-2xl bg-primary/5 border border-primary/10 flex items-center justify-center text-primary shrink-0 group-hover:scale-110 group-hover:bg-primary/10 transition-all duration-500 shadow-sm">
                     {icon}
                 </div>
                 {trend && (
                     <span
                         className={clsx(
-                            'text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full ring-1',
+                            'text-[10px] font-black uppercase tracking-wider px-2.5 py-1.5 rounded-xl border backdrop-blur-md transition-transform duration-500 group-hover:-translate-x-1 font-mono',
                             trendClass
                         )}
                     >
@@ -45,15 +47,21 @@ export function KpiCard({
                     </span>
                 )}
             </div>
-            <p className="text-xs font-medium text-text-muted uppercase tracking-wider">
-                {label}
-            </p>
-            <p className="text-xl font-semibold text-text-primary tracking-tight mt-0.5">
-                {value}
-            </p>
-            {sub && (
-                <p className="text-xs text-text-muted mt-1">{sub}</p>
-            )}
+            
+            <div className="relative z-10">
+                <p className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em] mb-1.5 opacity-80">
+                    {label}
+                </p>
+                <h3 className="text-3xl font-black text-text-primary tracking-tighter leading-none font-head">
+                    {value}
+                </h3>
+                {sub && (
+                    <div className="flex items-center gap-1.5 mt-3 opacity-80">
+                        <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                        <p className="text-[10px] font-black uppercase tracking-widest text-text-muted">{sub}</p>
+                    </div>
+                )}
+            </div>
         </div>
     );
 }

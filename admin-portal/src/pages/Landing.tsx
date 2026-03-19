@@ -63,144 +63,151 @@ export function Landing() {
     ];
 
     return (
-        <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
+        <div className="min-h-screen bg-background font-sans text-text-primary overflow-x-hidden selection:bg-primary/10 selection:text-primary">
+            {/* Ambient Background Elements */}
+            <div className="fixed inset-0 bg-gradient-mesh opacity-30 z-0 pointer-events-none" />
+            <div className="fixed top-[-10%] left-[-10%] w-[50%] h-[50%] bg-primary/5 blur-[120px] rounded-full z-0 pointer-events-none animate-pulse" />
+            <div className="fixed bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-violet-500/5 blur-[120px] rounded-full z-0 pointer-events-none animate-pulse" style={{ animationDelay: '3s' }} />
+
             {/* Top navigation */}
-            <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white/80 backdrop-blur-md">
-                <nav className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 md:px-6">
+            <header className="fixed top-0 left-0 right-0 z-50 border-b border-black/[0.03] bg-white/60 backdrop-blur-2xl">
+                <nav className="mx-auto flex max-w-7xl items-center justify-between px-8 py-6">
                     <button
                         type="button"
                         onClick={() => navigate('/')}
-                        className="flex items-center gap-2.5"
+                        className="flex items-center gap-4 group"
                     >
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-slate-900 text-xs font-semibold tracking-tight text-white">
-                            DR
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-white shadow-lg shadow-primary/20 group-hover:rotate-12 transition-transform duration-500">
+                             <div className="w-5 h-5 border-4 border-white rounded-[2px] rotate-45" />
                         </div>
-                        <div className="hidden flex-col text-left sm:flex">
-                            <span className="text-sm font-semibold tracking-tight">Trackora</span>
-                            <span className="text-[11px] font-medium uppercase tracking-[0.16em] text-slate-400">
-                                Rep Operations OS
+                        <div className="flex flex-col text-left">
+                            <span className="text-lg font-black tracking-tighter uppercase italic leading-none">Trackora</span>
+                            <span className="text-[9px] font-black uppercase tracking-[0.3em] text-text-muted font-mono leading-none mt-1">
+                                Operational Intelligence
                             </span>
                         </div>
                     </button>
 
-                    <div className="hidden items-center gap-8 text-sm font-medium text-slate-600 md:flex">
-                        <a href="#features" className="hover:text-slate-900">
-                            Product
-                        </a>
-                        <a href="#how-it-works" className="hover:text-slate-900">
-                            How it works
-                        </a>
-                        <a href="#pricing" className="hover:text-slate-900">
-                            Pricing
-                        </a>
+                    <div className="hidden items-center gap-12 text-[11px] font-black text-text-muted uppercase tracking-[0.2em] font-mono md:flex">
+                        <a href="#features" className="hover:text-primary transition-colors italic">Capabilities</a>
+                        <a href="#how-it-works" className="hover:text-primary transition-colors italic">Protocols</a>
+                        <a href="#pricing" className="hover:text-primary transition-colors italic">Tiers</a>
                     </div>
 
-                    <div className="flex items-center gap-3 text-sm">
+                    <div className="flex items-center gap-6">
                         <button
                             type="button"
                             onClick={() => navigate('/login')}
-                            className="rounded-full px-3 py-1.5 text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                            className="text-[11px] font-black text-text-muted uppercase tracking-[0.2em] font-mono hover:text-primary transition-colors"
                         >
-                            Sign in
+                            Authorize
                         </button>
                         <button
                             type="button"
                             onClick={() => navigate('/signup')}
-                            className="rounded-full bg-slate-900 px-4 py-1.5 font-semibold text-white shadow-sm hover:bg-slate-800"
+                            className="bg-primary hover:bg-primary-dark text-white px-8 py-3.5 rounded-[20px] text-[11px] font-black uppercase tracking-[0.3em] font-mono shadow-xl shadow-primary/20 hover:shadow-primary/40 hover:scale-105 active:scale-95 transition-all"
                         >
-                            Start trial
+                            Deploy Matrix
                         </button>
                     </div>
                 </nav>
             </header>
 
             {/* Hero */}
-            <main>
-                <section className="mx-auto flex max-w-6xl flex-col gap-12 px-4 pb-16 pt-16 md:flex-row md:items-center md:gap-16 md:px-6 lg:pt-20">
-                    <div className="flex-1">
-                        <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-slate-500">
-                            <Zap className="h-3 w-3 text-amber-500" />
-                            <span>Made for modern sales teams</span>
+            <main className="relative z-10 pt-24">
+                <section className="mx-auto flex max-w-7xl flex-col gap-20 px-8 py-32 md:flex-row md:items-center md:px-12">
+                    <div className="flex-1 space-y-12">
+                        <div className="inline-flex items-center gap-4 rounded-full border border-black/[0.05] bg-white px-6 py-2.5 shadow-xl">
+                            <Zap className="h-4 w-4 text-primary animate-pulse" strokeWidth={3} />
+                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-text-primary font-mono italic">Phase 2: Global Rollout Active</span>
                         </div>
-                        <h1 className="mt-6 text-4xl font-semibold tracking-tight text-slate-900 sm:text-5xl lg:text-[3.1rem]">
-                            See how every rep<br />
-                            actually works.
+                        
+                        <h1 className="text-6xl font-black tracking-tighter text-text-primary leading-[0.9] uppercase italic sm:text-7xl lg:text-8xl">
+                            Verify <span className="text-primary underline underline-offset-[16px] decoration-primary/10">Absolute</span><br />
+                            Performance.
                         </h1>
-                        <p className="mt-4 max-w-xl text-sm leading-relaxed text-slate-600 sm:text-base">
-                            Trackora combines activity, time, and outcomes into a single, honest view of your team&apos;s
-                            workday—so you can coach better, forecast with confidence, and pay teams fairly.
+                        
+                        <p className="max-w-xl text-[13px] font-black text-text-muted uppercase tracking-widest font-mono leading-relaxed opacity-60">
+                            Trackora synchronizes human output with digital pulse. A unified intelligence matrix for distributed teams that demands total transparency and operational excellence.
                         </p>
 
-                        <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
+                        <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
                             <button
                                 type="button"
                                 onClick={() => navigate('/signup')}
-                                className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 sm:w-auto"
+                                className="flex items-center justify-center gap-4 rounded-[28px] bg-primary px-10 py-5 text-[12px] font-black text-white shadow-2xl shadow-primary/30 hover:shadow-primary/50 hover:scale-105 active:scale-95 transition-all uppercase tracking-[0.3em] font-mono group"
                             >
-                                Start 14‑day free trial
-                                <ChevronRight className="h-4 w-4" />
+                                Initiate Trial
+                                <ChevronRight className="h-5 w-5 group-hover:translate-x-2 transition-transform" strokeWidth={3} />
                             </button>
                             <button
                                 type="button"
-                                className="w-full rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-800 hover:bg-slate-50 sm:w-auto"
+                                className="px-10 py-5 rounded-[28px] border border-black/[0.1] bg-white text-[11px] font-black text-text-primary uppercase tracking-[0.3em] font-mono hover:bg-black/[0.02] hover:border-black/[0.2] transition-all active:scale-95 shadow-sm"
                             >
-                                Book a live walkthrough
+                                View Mechanics
                             </button>
                         </div>
 
-                        <p className="mt-4 text-xs text-slate-500">
-                            No credit card required. Get your first workspace set up in under 5 minutes.
-                        </p>
-
-                        <div className="mt-8 flex flex-col gap-3 text-xs text-slate-500 sm:flex-row sm:items-center sm:gap-6">
-                            <div className="flex items-center gap-2">
-                                <div className="flex -space-x-2">
-                                    <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-900 text-[10px] font-semibold text-white">
-                                        NL
-                                    </span>
-                                    <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-800 text-[10px] font-semibold text-white ring-2 ring-slate-50">
-                                        BA
-                                    </span>
+                        <div className="flex flex-col gap-6 pt-8 border-t border-black/[0.03]">
+                            <div className="flex items-center gap-6">
+                                <div className="flex -space-x-4">
+                                    {[1,2,3].map(i => (
+                                        <div key={i} className="w-12 h-12 rounded-2xl bg-white border-4 border-background shadow-xl flex items-center justify-center overflow-hidden">
+                                            <div className={`w-full h-full bg-gradient-to-br ${i === 1 ? 'from-primary to-indigo-400' : i === 2 ? 'from-violet-400 to-fuchsia-400' : 'from-emerald-400 to-teal-400'} opacity-30`} />
+                                        </div>
+                                    ))}
                                 </div>
-                                <span>Trusted by distributed teams across SaaS, agencies, and support.</span>
+                                <div className="space-y-1">
+                                    <div className="flex items-center gap-2">
+                                        {[1,2,3,4,5].map(i => (
+                                            <Zap key={i} className="w-3 h-3 text-primary fill-primary" />
+                                        ))}
+                                    </div>
+                                    <p className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em] font-mono italic">Vetted by 500+ Distributed Nodes</p>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <div className="flex-1">
-                        <div className="relative mx-auto max-w-md">
-                            <div className="absolute inset-x-6 -top-8 h-40 rounded-3xl bg-gradient-to-b from-slate-200/80 to-slate-50 blur-2xl" />
-                            <div className="relative overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_18px_60px_rgba(15,23,42,0.16)]">
-                                <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 text-xs text-slate-500">
-                                    <span className="font-medium text-slate-700">Team overview</span>
-                                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">
-                                        Sample workspace
-                                    </span>
+                    <div className="flex-1 relative">
+                        <div className="absolute inset-0 bg-primary/10 blur-[120px] rounded-full -z-10 animate-pulse" />
+                        <div className="relative p-1 bg-white/40 backdrop-blur-3xl border border-black/[0.03] rounded-[56px] shadow-[0_60px_120px_rgba(0,0,0,0.15)] group hover:scale-[1.02] transition-all duration-1000">
+                            <div className="relative overflow-hidden rounded-[52px] bg-white border border-black/[0.05]">
+                                <div className="flex items-center justify-between bg-black/[0.02] border-b border-black/[0.03] px-8 py-5">
+                                    <span className="text-[10px] font-black uppercase tracking-[0.3em] text-text-muted font-mono italic">Operational Matrix</span>
+                                    <div className="flex gap-2">
+                                        <div className="w-2.5 h-2.5 rounded-full bg-rose-400/20 border border-rose-400/40" />
+                                        <div className="w-2.5 h-2.5 rounded-full bg-amber-400/20 border border-amber-400/40" />
+                                        <div className="w-2.5 h-2.5 rounded-full bg-emerald-400/20 border border-emerald-400/40" />
+                                    </div>
                                 </div>
-                                <div className="grid grid-cols-3 gap-3 border-b border-slate-100 px-4 py-3 text-xs">
-                                    <Metric label="Tracked today" value="132h" />
-                                    <Metric label="Active reps" value="18" />
-                                    <Metric label="At risk" value="3" tone="warning" />
+                                <div className="grid grid-cols-3 divide-x divide-black/[0.03] border-b border-black/[0.03]">
+                                    <Metric label="Matrix Pulse" value="1,492h" />
+                                    <Metric label="Active Units" value="84" />
+                                    <Metric label="Risk Level" value="0.2%" tone="warning" />
                                 </div>
-                                <div className="grid grid-cols-1 gap-0 divide-y divide-slate-100 text-xs">
+                                <div className="p-4 space-y-4">
                                     {[
-                                        { name: 'Outbound pod', status: 'Focus time', activity: 'High', color: 'bg-emerald-500' },
-                                        { name: 'Expansion pod', status: 'Coaching', activity: 'Medium', color: 'bg-sky-500' },
-                                        { name: 'Support pod', status: 'Idle', activity: 'Low', color: 'bg-amber-500' }
+                                        { name: 'Core Infrastructure', status: 'Optimal', activity: 98, color: 'text-primary' },
+                                        { name: 'Node Synchronization', status: 'Active', activity: 84, color: 'text-emerald-500' },
+                                        { name: 'Data Infiltration', status: 'Processing', activity: 65, color: 'text-violet-500' }
                                     ].map((team) => (
-                                        <div key={team.name} className="flex items-center gap-3 px-4 py-3">
-                                            <div className={`h-7 w-7 rounded-lg ${team.color} text-[11px] font-semibold text-white flex items-center justify-center`}>
-                                                {team.name.charAt(0)}
+                                        <div key={team.name} className="flex items-center gap-6 p-4 rounded-3xl hover:bg-black/[0.01] transition-all group/item">
+                                            <div className="h-14 w-14 rounded-2xl bg-black/[0.03] border border-black/[0.05] flex items-center justify-center shadow-inner group-hover/item:scale-110 transition-transform">
+                                                <Zap className={`w-6 h-6 ${team.color}`} strokeWidth={3} />
                                             </div>
-                                            <div className="min-w-0 flex-1">
-                                                <div className="flex items-center justify-between">
-                                                    <span className="truncate text-[13px] font-medium text-slate-800">
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center justify-between mb-3">
+                                                    <span className="text-[13px] font-black text-text-primary uppercase tracking-tight font-mono italic">
                                                         {team.name}
                                                     </span>
-                                                    <span className="text-[11px] text-slate-500">{team.status}</span>
+                                                    <span className="text-[9px] font-black text-text-muted uppercase tracking-widest font-mono opacity-60">{team.status}</span>
                                                 </div>
-                                                <div className="mt-1 h-1.5 w-full rounded-full bg-slate-100">
-                                                    <div className="h-1.5 rounded-full bg-slate-900/80" />
+                                                <div className="relative h-2 w-full rounded-full bg-black/[0.05] overflow-hidden">
+                                                    <div 
+                                                        className={`absolute inset-y-0 left-0 bg-primary opacity-80 rounded-full transition-all duration-1000`} 
+                                                        style={{ width: `${team.activity}%` }}
+                                                    />
                                                 </div>
                                             </div>
                                         </div>
@@ -208,42 +215,46 @@ export function Landing() {
                                 </div>
                             </div>
                         </div>
+                        {/* Floating elements */}
+                        <div className="absolute -top-12 -right-12 w-32 h-32 bg-white/80 backdrop-blur-xl border border-black/[0.05] rounded-[32px] shadow-2xl p-6 flex flex-col items-center justify-center animate-bounce duration-[4000ms]">
+                            <BarChart3 className="w-8 h-8 text-primary mb-2" strokeWidth={3} />
+                            <span className="text-[9px] font-black uppercase tracking-widest text-primary font-mono">+42%</span>
+                        </div>
                     </div>
                 </section>
 
                 {/* Product pillars */}
-                <section id="features" className="border-t border-slate-200 bg-white">
-                    <div className="mx-auto max-w-6xl px-4 py-16 md:px-6 md:py-20">
-                        <div className="mb-10 max-w-2xl">
-                            <h2 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
-                                One admin portal for reps, managers, and finance.
+                <section id="features" className="relative py-32 overflow-hidden">
+                    <div className="mx-auto max-w-7xl px-8 md:px-12">
+                        <div className="mb-20 max-w-3xl">
+                            <h2 className="text-4xl font-black tracking-tight text-text-primary uppercase italic leading-none sm:text-5xl">
+                                Enterprise-Grade <span className="text-primary underline underline-offset-8 decoration-primary/10">Mechanics</span>
                             </h2>
-                            <p className="mt-3 text-sm leading-relaxed text-slate-600">
-                                Trackora connects time, activity, and outcomes across your organization so every team can work
-                                from the same source of truth.
+                            <p className="mt-6 text-[13px] font-black text-text-muted uppercase tracking-[0.2em] font-mono leading-relaxed opacity-60">
+                                Trackora architected an immutable source of truth. Synchronize your workforce with absolute precision.
                             </p>
                         </div>
 
-                        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+                        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
                             <FeatureCard
                                 icon={Clock}
-                                title="Activity & time"
-                                body="Automatic tracking across apps, URLs, and devices—no manual timesheets, no guesswork."
+                                title="Temporal Synthesis"
+                                body="Autonomous tracking across all active nodes. Zero latency, zero manual friction."
                             />
                             <FeatureCard
                                 icon={Users2}
-                                title="Reps & teams"
-                                body="Model pods, territories, and roles so coaching and reporting match how you actually work."
+                                title="Node Hierarchies"
+                                body="Structural pods and tactical roles mirrored perfectly within the synchronization matrix."
                             />
                             <FeatureCard
                                 icon={BarChart3}
-                                title="Analytics & reports"
-                                body="Instant overviews of focus time, output, and utilization with export-ready reports."
+                                title="Intelligence Feed"
+                                body="High-entropy data visualized for instant strategic recalibration and forecasting."
                             />
                             <FeatureCard
                                 icon={Shield}
-                                title="Controls & governance"
-                                body="Granular privacy controls, activity policies, and billing guardrails baked into the admin portal."
+                                title="Protocol Integrity"
+                                body="Sovereign privacy controls and governance baked into the core kernel."
                             />
                         </div>
                     </div>
@@ -252,23 +263,23 @@ export function Landing() {
                 {/* How it works strip */}
                 <section
                     id="how-it-works"
-                    className="border-t border-slate-200 bg-slate-50"
+                    className="py-32 bg-black/[0.02] border-y border-black/[0.03]"
                 >
-                    <div className="mx-auto max-w-6xl px-4 py-14 md:px-6">
-                        <div className="flex flex-col justify-between gap-8 md:flex-row md:items-start">
-                            <div className="max-w-sm">
-                                <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
-                                    How Trackora fits in
+                    <div className="mx-auto max-w-7xl px-8 md:px-12">
+                        <div className="flex flex-col justify-between gap-16 md:flex-row md:items-start">
+                            <div className="max-w-md">
+                                <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-primary font-mono mb-6">
+                                    Integration Protocol
                                 </h3>
-                                <p className="mt-3 text-xl font-semibold tracking-tight text-slate-900">
-                                    From sign‑up to real coaching in four steps.
+                                <p className="text-3xl font-black tracking-tight text-text-primary uppercase italic leading-none">
+                                    From Deployment to <span className="text-primary">Intelligence</span>.
                                 </p>
                             </div>
-                            <ol className="grid flex-1 gap-4 text-sm text-slate-700 sm:grid-cols-2 md:grid-cols-4">
-                                <Step label="Connect your team" description="Invite managers and reps, or import from your HR/identity provider." index={1} />
-                                <Step label="Map your work" description="Create teams, clients, and projects that mirror how you sell and support." index={2} />
-                                <Step label="Track the day" description="Capture time and activity with our desktop tracker and admin policies." index={3} />
-                                <Step label="Coach with clarity" description="Use dashboards and timelines to run reviews, 1:1s, and planning sessions." index={4} />
+                            <ol className="grid flex-1 gap-8 text-sm sm:grid-cols-2 lg:grid-cols-4">
+                                <Step label="Synchronize Units" description="Onboard high-performance personnel via secure identity providers." index={1} />
+                                <Step label="Map Architecture" description="Initialize pods, territories, and tactical mission objectives." index={2} />
+                                <Step label="Activate Streams" description="Capture immutable activity data via high-fidelity desktop nodes." index={3} />
+                                <Step label="Review Matrix" description="Execute data-driven coaching using real-time synchronization feeds." index={4} />
                             </ol>
                         </div>
                     </div>
@@ -277,65 +288,62 @@ export function Landing() {
                 {/* Pricing */}
                 <section
                     id="pricing"
-                    className="border-t border-slate-200 bg-white"
+                    className="py-32"
                 >
-                    <div className="mx-auto max-w-6xl px-4 py-16 md:px-6 md:py-20">
-                        <div className="mb-10 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-                            <div>
-                                <h2 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
-                                    Simple pricing, predictable value.
+                    <div className="mx-auto max-w-7xl px-8 md:px-12">
+                        <div className="mb-20 flex flex-col gap-10 md:flex-row md:items-end md:justify-between">
+                            <div className="max-w-2xl">
+                                <h2 className="text-4xl font-black tracking-tight text-text-primary uppercase italic leading-none sm:text-5xl">
+                                    Operational <span className="text-primary">Tiers</span>.
                                 </h2>
-                                <p className="mt-2 max-w-xl text-sm leading-relaxed text-slate-600">
-                                    Start on any plan with a 14‑day free trial. Upgrade or downgrade as your team grows—no
-                                    long‑term contracts.
+                                <p className="mt-6 text-[13px] font-black text-text-muted uppercase tracking-[0.2em] font-mono leading-relaxed opacity-60">
+                                    Select the synchronization depth required for your organization. Professional-grade scaling with no legacy overhead.
                                 </p>
                             </div>
-                            <p className="text-xs text-slate-500">
-                                Billed monthly per active member. Cancel anytime from the admin portal.
+                            <p className="text-[10px] font-black text-text-muted uppercase tracking-widest font-mono opacity-40">
+                                Billed dynamically per active node.
                             </p>
                         </div>
 
-                        <div className="grid gap-6 md:grid-cols-3">
+                        <div className="grid gap-8 md:grid-cols-3">
                             {plans.map((plan) => (
                                 <div
                                     key={plan.name}
-                                    className={`flex h-full flex-col rounded-2xl border bg-slate-50/60 p-6 text-sm shadow-sm ${
-                                        plan.popular ? 'border-slate-900 bg-slate-900 text-slate-50 shadow-lg' : 'border-slate-200'
+                                    className={`flex h-full flex-col rounded-[48px] p-10 transition-all duration-500 hover:scale-[1.02] ${
+                                        plan.popular 
+                                            ? 'bg-primary text-white shadow-[0_40px_100px_rgba(80,110,248,0.25)] ring-1 ring-white/20' 
+                                            : 'bg-white/60 backdrop-blur-3xl border border-black/[0.03] text-text-primary shadow-2xl'
                                     }`}
                                 >
                                     {plan.popular && (
-                                        <span className="mb-3 inline-flex items-center rounded-full bg-slate-800 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-200">
-                                            Most popular
+                                        <span className="mb-6 inline-flex items-center self-start rounded-full bg-white/10 px-4 py-1 text-[9px] font-black uppercase tracking-[0.3em] text-white font-mono italic">
+                                            Elite Configuration
                                         </span>
                                     )}
-                                    <div className="mb-6">
-                                        <h3 className="text-base font-semibold tracking-tight">
+                                    <div className="mb-10">
+                                        <h3 className="text-2xl font-black uppercase italic tracking-tight">
                                             {plan.name}
                                         </h3>
-                                        <div className="mt-2 flex items-baseline gap-1">
-                                            <span className="text-3xl font-semibold">
+                                        <div className="mt-4 flex items-baseline gap-2">
+                                            <span className="text-6xl font-black tracking-tighter">
                                                 {plan.price}
                                             </span>
-                                            <span className={plan.popular ? 'text-slate-300' : 'text-slate-500'}>
+                                            <span className={`text-[10px] font-black uppercase tracking-widest font-mono opacity-60 ${plan.popular ? 'text-white' : 'text-text-muted'}`}>
                                                 {plan.period}
                                             </span>
                                         </div>
-                                        <p className={`mt-2 text-xs ${plan.popular ? 'text-slate-200/80' : 'text-slate-600'}`}>
+                                        <p className={`mt-4 text-[11px] font-black uppercase tracking-widest font-mono opacity-60 leading-relaxed ${plan.popular ? 'text-white' : 'text-text-muted'}`}>
                                             {plan.description}
                                         </p>
                                     </div>
 
-                                    <ul className="mb-6 flex-1 space-y-2.5">
+                                    <ul className="mb-12 flex-1 space-y-4">
                                         {plan.features.map((feature) => (
-                                            <li key={feature} className="flex items-start gap-2 text-xs">
-                                                <span
-                                                    className={`mt-0.5 inline-flex h-4 w-4 items-center justify-center rounded-full ${
-                                                        plan.popular ? 'bg-slate-800 text-slate-100' : 'bg-slate-100 text-slate-700'
-                                                    }`}
-                                                >
-                                                    <Check className="h-2.5 w-2.5" />
-                                                </span>
-                                                <span className={plan.popular ? 'text-slate-100/90' : 'text-slate-700'}>
+                                            <li key={feature} className="flex items-center gap-4 text-[11px] font-black uppercase tracking-widest font-mono">
+                                                <div className={`flex h-5 w-5 items-center justify-center rounded-lg border ${plan.popular ? 'bg-white/10 border-white/20' : 'bg-primary/5 border-primary/10'}`}>
+                                                    <Check className={`h-3 w-3 ${plan.popular ? 'text-white' : 'text-primary'}`} strokeWidth={4} />
+                                                </div>
+                                                <span className={plan.popular ? 'text-white/90' : 'text-text-primary/80'}>
                                                     {feature}
                                                 </span>
                                             </li>
@@ -345,54 +353,40 @@ export function Landing() {
                                     <button
                                         type="button"
                                         onClick={() => navigate('/signup', { state: { plan: plan.name } })}
-                                        className={`mt-auto w-full rounded-xl px-4 py-2.5 text-sm font-semibold ${
+                                        className={`mt-auto w-full py-5 rounded-[24px] text-[11px] font-black uppercase tracking-[0.4em] font-mono transition-all ${
                                             plan.popular
-                                                ? 'bg-white text-slate-900 hover:bg-slate-100'
-                                                : 'bg-slate-900 text-white hover:bg-slate-800'
+                                                ? 'bg-white text-primary hover:bg-slate-100 shadow-xl'
+                                                : 'bg-primary text-white hover:shadow-primary/30 shadow-lg'
                                         }`}
                                     >
-                                        {plan.buttonLabel}
+                                        {plan.name === 'Enterprise' ? 'Contact Intel' : 'Initialize'}
                                     </button>
                                 </div>
                             ))}
-                        </div>
-
-                        <div className="mt-10 flex flex-col gap-3 text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between">
-                            <p>
-                                Have 50+ reps or specific compliance requirements?{' '}
-                                <button
-                                    type="button"
-                                    className="font-semibold text-slate-900 underline-offset-2 hover:underline"
-                                >
-                                    Talk to sales
-                                </button>
-                            </p>
-                            <p>Admin portal includes centralized billing, permissions, and workspace controls on all plans.</p>
                         </div>
                     </div>
                 </section>
 
                 {/* Footer */}
-                <footer className="border-t border-slate-200 bg-slate-50">
-                    <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8 text-xs text-slate-500 md:flex-row md:items-center md:justify-between md:px-6">
-                        <div className="flex items-center gap-2">
-                            <div className="flex h-6 w-6 items-center justify-center rounded-md border border-slate-300 bg-slate-900 text-[10px] font-semibold text-white">
-                                DR
+                <footer className="relative py-20 border-t border-black/[0.03] bg-white/40 backdrop-blur-3xl">
+                    <div className="mx-auto max-w-7xl px-8 md:px-12">
+                        <div className="flex flex-col gap-12 md:flex-row md:items-center md:justify-between">
+                            <div className="flex items-center gap-4">
+                                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-white shadow-lg shadow-primary/20">
+                                     <div className="w-5 h-5 border-4 border-white rounded-[2px] rotate-45" />
+                                </div>
+                                <span className="text-xl font-black tracking-tighter uppercase italic">Trackora</span>
                             </div>
-                            <span className="font-medium text-slate-700">Trackora</span>
+                            <div className="grid grid-cols-2 gap-12 sm:flex sm:gap-12">
+                                <a href="#" className="text-[10px] font-black uppercase tracking-[0.2em] font-mono text-text-muted hover:text-primary transition-colors italic">Privacy</a>
+                                <a href="#" className="text-[10px] font-black uppercase tracking-[0.2em] font-mono text-text-muted hover:text-primary transition-colors italic">Terms</a>
+                                <a href="#" className="text-[10px] font-black uppercase tracking-[0.2em] font-mono text-text-muted hover:text-primary transition-colors italic">Protocol Docs</a>
+                                <a href="#" className="text-[10px] font-black uppercase tracking-[0.2em] font-mono text-text-muted hover:text-primary transition-colors italic">Support</a>
+                            </div>
+                            <p className="text-[10px] font-black uppercase tracking-[0.2em] font-mono text-text-muted opacity-40">
+                                © {new Date().getFullYear()} Trackora Ops. Implemented by DigiReps.
+                            </p>
                         </div>
-                        <div className="flex flex-wrap gap-4">
-                            <a href="#" className="hover:text-slate-800">
-                                Privacy
-                            </a>
-                            <a href="#" className="hover:text-slate-800">
-                                Terms
-                            </a>
-                            <a href="#" className="hover:text-slate-800">
-                                Support
-                            </a>
-                        </div>
-                        <p>© {new Date().getFullYear()} Trackora (by DigiReps). All rights reserved.</p>
                     </div>
                 </footer>
             </main>
@@ -408,13 +402,13 @@ interface MetricProps {
 
 function Metric({ label, value, tone = 'default' }: MetricProps) {
     const valueClass =
-        tone === 'warning' ? 'text-amber-600' : 'text-slate-900';
+        tone === 'warning' ? 'text-rose-500' : 'text-text-primary';
     return (
-        <div>
-            <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400">
+        <div className="px-8 py-5">
+            <p className="text-[9px] font-black uppercase tracking-[0.3em] text-text-muted font-mono opacity-60">
                 {label}
             </p>
-            <p className={`mt-1 text-sm font-semibold ${valueClass}`}>
+            <p className={`mt-2 text-xl font-black tracking-tight italic uppercase ${valueClass}`}>
                 {value}
             </p>
         </div>
@@ -429,14 +423,16 @@ interface FeatureCardProps {
 
 function FeatureCard({ icon: Icon, title, body }: FeatureCardProps) {
     return (
-        <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 p-5 text-sm text-slate-700">
-            <div className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-slate-900/90 text-slate-50">
-                <Icon className="h-4 w-4" />
+        <div className="group flex flex-col gap-6 rounded-[32px] bg-white/60 backdrop-blur-3xl border border-black/[0.03] p-8 text-sm text-text-primary shadow-2xl hover:scale-105 transition-all duration-500">
+            <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-white shadow-lg shadow-primary/20 group-hover:rotate-12 transition-all">
+                <Icon className="h-7 w-7" strokeWidth={2.5} />
             </div>
-            <h3 className="text-sm font-semibold tracking-tight text-slate-900">
-                {title}
-            </h3>
-            <p className="text-xs leading-relaxed text-slate-600">{body}</p>
+            <div className="space-y-3">
+                <h3 className="text-[13px] font-black uppercase italic tracking-tight text-text-primary">
+                    {title}
+                </h3>
+                <p className="text-[11px] font-black text-text-muted uppercase tracking-widest font-mono leading-relaxed opacity-60">{body}</p>
+            </div>
         </div>
     );
 }
@@ -449,16 +445,18 @@ interface StepProps {
 
 function Step({ index, label, description }: StepProps) {
     return (
-        <li className="flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white p-4">
-            <div className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-slate-300 bg-slate-50 text-[11px] font-semibold text-slate-700">
-                {index}
+        <li className="group flex flex-col gap-4 rounded-[32px] bg-white border border-black/[0.03] p-8 shadow-xl hover:shadow-2xl transition-all">
+            <div className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-black/[0.03] text-[11px] font-black font-mono text-primary group-hover:bg-primary group-hover:text-white transition-all">
+                0{index}
             </div>
-            <p className="text-xs font-semibold text-slate-900">
-                {label}
-            </p>
-            <p className="text-xs leading-relaxed text-slate-600">
-                {description}
-            </p>
+            <div className="space-y-2">
+                <p className="text-[11px] font-black uppercase tracking-widest text-text-primary italic">
+                    {label}
+                </p>
+                <p className="text-[11px] font-black text-text-muted uppercase tracking-[0.1em] font-mono leading-relaxed opacity-60">
+                    {description}
+                </p>
+            </div>
         </li>
     );
 }

@@ -1,13 +1,18 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { BarChart3, TrendingUp, Monitor, Camera, Download, Calendar, Clock, Activity as ActivityIcon, Users } from 'lucide-react';
+import { 
+    Monitor, Camera, Download, 
+    Clock, Activity as ActivityIcon, Users,
+    ChevronDown, Zap, RefreshCw
+} from 'lucide-react';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     PieChart, Pie, Cell, AreaChart, Area
 } from 'recharts';
-import { PageLayout, Card, KpiCard, Button, EmptyState, LoadingState } from '../components/ui';
+import { PageLayout, Card, KpiCard } from '../components/ui';
+import clsx from 'clsx';
 
-const COLORS = ['#6366f1', '#a855f7', '#10b981', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899'];
+const COLORS = ['#506ef8', '#818cf8', '#10b981', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899'];
 const RANGES = ['Today', 'Last 7 Days', 'Last 30 Days'] as const;
 type Range = typeof RANGES[number];
 
@@ -67,10 +72,8 @@ export function Reports() {
         let emails: string[] = [];
 
         if (selectedMemberEmail !== 'All') {
-            // A specific member is picked
             emails = [selectedMemberEmail];
         } else if (selectedTeamId !== 'All') {
-            // A team is picked, get all team members' emails
             const { data: tm } = await supabase.from('team_members').select('member_id').eq('team_id', selectedTeamId);
             const memberIds = tm?.map(t => t.member_id) || [];
             if (memberIds.length > 0) {
@@ -79,7 +82,6 @@ export function Reports() {
             }
         }
 
-        // If a filter is active but yielded 0 valid emails, short-circuit
         if ((selectedMemberEmail !== 'All' || selectedTeamId !== 'All') && emails.length === 0) {
             setDailyActivity([]);
             setAppBreakdown([]);
@@ -91,7 +93,6 @@ export function Reports() {
             return;
         }
 
-        // Base queries
         let samplesQuery = supabase.from('activity_samples').select('*').gte('recorded_at', start).lte('recorded_at', end);
         let sessionsQuery = supabase.from('sessions').select('id, user_id').gte('started_at', start).lte('started_at', end);
         let ssQuery = supabase.from('screenshots').select('id', { count: 'exact', head: true }).gte('recorded_at', start).lte('recorded_at', end);
@@ -111,7 +112,6 @@ export function Reports() {
 
             const allSamples = samples || [];
 
-            // Daily activity data
             const dailyMap: Record<string, { total: number; active: number }> = {};
             allSamples.forEach(s => {
                 const day = s.recorded_at.split('T')[0];
@@ -125,7 +125,6 @@ export function Reports() {
                 minutes: v.total,
             })));
 
-            // App breakdown
             const appMap: Record<string, number> = {};
             allSamples.forEach(s => {
                 const app = s.app_name || 'Unknown';
@@ -135,7 +134,6 @@ export function Reports() {
                 Object.entries(appMap).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([name, value]) => ({ name, value }))
             );
 
-            // Totals
             setTotalSessions((sessions || []).length);
             setScreenshotCount(ssCount || 0);
             setTotalMins(allSamples.length);
@@ -146,12 +144,6 @@ export function Reports() {
             );
         } catch (err) {
             console.error("fetchReports unhandled error:", err);
-            setDailyActivity([]);
-            setAppBreakdown([]);
-            setTotalSessions(0);
-            setScreenshotCount(0);
-            setTotalMins(0);
-            setAvgActivity(0);
         } finally {
             setLoading(false);
         }
@@ -165,275 +157,240 @@ export function Reports() {
 
     return (
         <PageLayout
-            title="Time & Activity"
-            description="Detailed tracking insights and productivity metrics."
+            title="Intelligence Matrix"
+            description="Predictive productivity insights and workforce engagement analytics."
             maxWidth="full"
             actions={
-                <div className="flex flex-wrap items-center gap-3">
-                    <div className="flex items-center gap-2 bg-surface border border-border rounded-shell-lg px-4 py-2 shadow-shell-sm">
-                        <Users className="w-4 h-4 text-text-muted" />
-                        <select
-                            value={selectedTeamId}
-                            onChange={(e) => { setSelectedTeamId(e.target.value); setSelectedMemberEmail('All'); }}
-                            className="text-sm font-medium text-text-primary bg-transparent outline-none cursor-pointer"
-                        >
-                            <option value="All">All Teams</option>
-                            {teams.map(t => (
-                                <option key={t.id} value={t.id}>{t.name}</option>
-                            ))}
-                        </select>
-                    </div>
-                    <div className="flex items-center gap-2 bg-surface border border-border rounded-shell-lg px-4 py-2 shadow-shell-sm">
-                        <Users className="w-4 h-4 text-text-muted" />
-                        <select
-                            value={selectedMemberEmail}
-                            onChange={(e) => { setSelectedMemberEmail(e.target.value); setSelectedTeamId('All'); }}
-                            className="text-sm font-medium text-text-primary bg-transparent outline-none cursor-pointer max-w-[150px] truncate"
-                        >
-                            <option value="All">All Members</option>
-                            <option disabled>──────────</option>
-                            {members.map(m => (
-                                <option key={m.id} value={m.email}>{m.full_name}</option>
-                            ))}
-                        </select>
-                    </div>
-                    <div className="flex items-center bg-surface border border-border rounded-shell-lg p-1 shadow-shell-sm">
+                <div className="flex flex-wrap items-center gap-6">
+                    <div className="flex items-center gap-2 bg-black/[0.02] border border-black/[0.05] p-1.5 rounded-[24px] shadow-inner">
                         {RANGES.map(r => (
                             <button
                                 key={r}
                                 onClick={() => setRange(r)}
-                                className={`px-5 py-2 rounded-shell-md text-sm font-medium transition-all duration-200 ${range === r
-                                    ? 'bg-primary text-white shadow-shell-sm'
-                                    : 'text-text-secondary hover:text-text-primary hover:bg-surface-subtle'
-                                    }`}
+                                className={clsx(
+                                    "px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all font-mono",
+                                    range === r ? "bg-white text-primary shadow-sm ring-1 ring-black/[0.05]" : "text-text-muted hover:text-text-primary"
+                                )}
                             >
                                 {r}
                             </button>
                         ))}
                     </div>
-                    <Button variant="secondary" leftIcon={<Download className="w-4 h-4" />}>
-                        Export
-                    </Button>
+                    
+                    <div className="flex items-center gap-4">
+                        <FilterSelect 
+                            icon={<Users className="w-4 h-4" strokeWidth={3} />}
+                            value={selectedTeamId}
+                            onChange={(val) => { setSelectedTeamId(val); setSelectedMemberEmail('All'); }}
+                            options={[{ id: 'All', name: 'Global Units' }, ...teams]}
+                        />
+                        <FilterSelect 
+                            icon={<ActivityIcon className="w-4 h-4" strokeWidth={3} />}
+                            value={selectedMemberEmail}
+                            onChange={(val) => { setSelectedMemberEmail(val); setSelectedTeamId('All'); }}
+                            options={[{ id: 'All', email: 'All', full_name: 'Universal Nodes' }, ...members].map(m => ({ id: (m as any).email || m.id, name: (m as any).full_name || (m as any).name }))}
+                        />
+                        <button className="p-4 bg-white border border-black/[0.1] rounded-[20px] text-text-muted hover:text-primary hover:border-primary transition-all active:scale-95 shadow-sm group">
+                            <Download className="w-5 h-5 group-hover:scale-110 transition-transform" strokeWidth={2.5} />
+                        </button>
+                    </div>
                 </div>
             }
         >
             {/* KPI Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
                 <KpiCard
-                    icon={<Clock className="w-6 h-6 text-primary" />}
-                    label="Total Tracked"
+                    icon={<Clock className="w-7 h-7" strokeWidth={2.5} />}
+                    label="Tracked Capacity"
                     value={fmtHours(totalMins)}
-                    sub="Cumulative time"
+                    sub="Cumulative operational time"
                     trend="+12%"
                     trendVariant="positive"
                 />
                 <KpiCard
-                    icon={<ActivityIcon className="w-6 h-6 text-primary" />}
-                    label="Avg Activity"
+                    icon={<ActivityIcon className="w-7 h-7" strokeWidth={2.5} />}
+                    label="Performance Index"
                     value={`${avgActivity}%`}
-                    sub="Productive work"
+                    sub="Effective output ratio"
                     trend="+4%"
                     trendVariant="positive"
                 />
                 <KpiCard
-                    icon={<Monitor className="w-6 h-6 text-primary" />}
+                    icon={<Monitor className="w-7 h-7" strokeWidth={2.5} />}
                     label="Active Sessions"
                     value={totalSessions.toString()}
-                    sub="Unique starts"
+                    sub="Unique pulse initiations"
                     trend="+2"
                     trendVariant="positive"
                 />
                 <KpiCard
-                    icon={<Camera className="w-6 h-6 text-primary" />}
+                    icon={<Camera className="w-7 h-7" strokeWidth={2.5} />}
                     label="Proof of Work"
                     value={screenshotCount.toString()}
-                    sub="Screenshots"
+                    sub="Visual validation count"
                     trend="+45"
                     trendVariant="positive"
                 />
             </div>
 
             {loading ? (
-                <LoadingState message="Aggregating analytics…" className="h-96" />
+                <div className="h-[600px] flex items-center justify-center">
+                    <div className="flex flex-col items-center gap-6">
+                        <RefreshCw className="w-12 h-12 text-primary animate-spin" strokeWidth={3} />
+                        <span className="text-[11px] font-black text-text-muted uppercase tracking-[0.5em] animate-pulse font-mono">Aggregating Intelligence Matrix...</span>
+                    </div>
+                </div>
             ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    <div className="lg:col-span-2 space-y-8">
-                        <Card>
-                            <div className="flex items-center justify-between mb-8">
-                                <div>
-                                    <h3 className="text-lg font-semibold text-text-primary">Activity Trend</h3>
-                                    <p className="text-sm text-text-secondary font-medium tracking-tight">Daily productivity percentage</p>
-                                </div>
-                                <div className="flex items-center gap-2 text-xs font-medium text-text-muted bg-surface-subtle px-3 py-1.5 rounded-shell-md">
-                                    <Calendar className="w-3.5 h-3.5" />
-                                    BY DAY
-                                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+                    <div className="lg:col-span-2 space-y-10">
+                        <Card title="Productivity Trajectory">
+                            <div className="h-[400px] w-full mt-8">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <AreaChart data={dailyActivity} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
+                                        <defs>
+                                            <linearGradient id="colorActivity" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#506ef8" stopOpacity={0.15} />
+                                                <stop offset="95%" stopColor="#506ef8" stopOpacity={0} />
+                                            </linearGradient>
+                                        </defs>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.03)" />
+                                        <XAxis 
+                                            dataKey="date" 
+                                            axisLine={false} 
+                                            tickLine={false} 
+                                            tick={{ fill: 'rgba(41,61,99,0.4)', fontSize: 10, fontWeight: 900, fontFamily: 'monospace' }}
+                                            dy={15}
+                                        />
+                                        <YAxis 
+                                            domain={[0, 100]} 
+                                            axisLine={false} 
+                                            tickLine={false} 
+                                            tick={{ fill: 'rgba(41,61,99,0.4)', fontSize: 10, fontWeight: 900, fontFamily: 'monospace' }}
+                                            unit="%"
+                                        />
+                                        <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'rgba(80,110,248,0.2)', strokeWidth: 2 }} />
+                                        <Area 
+                                            type="monotone" 
+                                            dataKey="activity" 
+                                            stroke="#506ef8" 
+                                            strokeWidth={5}
+                                            fillOpacity={1} 
+                                            fill="url(#colorActivity)" 
+                                            animationDuration={2500}
+                                        />
+                                    </AreaChart>
+                                </ResponsiveContainer>
                             </div>
-
-                            {dailyActivity.length === 0 ? (
-                                <EmptyState icon={<BarChart3 className="w-6 h-6" />} title="No data available" className="h-[250px]" />
-                            ) : (
-                                <div className="h-[300px]">
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <AreaChart data={dailyActivity}>
-                                            <defs>
-                                                <linearGradient id="colorActivity" x1="0" y1="0" x2="0" y2="1">
-                                                    <stop offset="5%" stopColor="var(--color-primary)" stopOpacity={0.15} />
-                                                    <stop offset="95%" stopColor="var(--color-primary)" stopOpacity={0} />
-                                                </linearGradient>
-                                            </defs>
-                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border-subtle)" />
-                                            <XAxis
-                                                dataKey="date"
-                                                axisLine={false}
-                                                tickLine={false}
-                                                tick={{ fontSize: 11, fill: 'var(--color-text-muted)', fontWeight: 600 }}
-                                                dy={10}
-                                            />
-                                            <YAxis
-                                                domain={[0, 100]}
-                                                axisLine={false}
-                                                tickLine={false}
-                                                tick={{ fontSize: 11, fill: 'var(--color-text-muted)', fontWeight: 600 }}
-                                                unit="%"
-                                            />
-                                            <Tooltip content={<ChartTooltip />} />
-                                            <Area
-                                                type="monotone"
-                                                dataKey="activity"
-                                                stroke="var(--color-primary)"
-                                                strokeWidth={3}
-                                                fillOpacity={1}
-                                                fill="url(#colorActivity)"
-                                                animationDuration={1500}
-                                            />
-                                        </AreaChart>
-                                    </ResponsiveContainer>
-                                </div>
-                            )}
                         </Card>
 
-                        <Card>
-                            <div className="flex items-center justify-between mb-8">
-                                <div>
-                                    <h3 className="text-lg font-semibold text-text-primary">Work Volume</h3>
-                                    <p className="text-sm text-text-secondary font-medium tracking-tight">Total minutes tracked daily</p>
-                                </div>
-                                <div className="flex items-center gap-2 text-xs font-medium text-text-muted bg-surface-subtle px-3 py-1.5 rounded-shell-md uppercase tracking-wider">
-                                    Minutes per day
-                                </div>
+                        <Card title="Operational Intensity">
+                            <div className="h-[350px] w-full mt-8">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={dailyActivity} barSize={36}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.03)" />
+                                        <XAxis 
+                                            dataKey="date" 
+                                            axisLine={false} 
+                                            tickLine={false} 
+                                            tick={{ fill: 'rgba(41,61,99,0.4)', fontSize: 10, fontWeight: 900, fontFamily: 'monospace' }}
+                                            dy={15}
+                                        />
+                                        <YAxis 
+                                            axisLine={false} 
+                                            tickLine={false} 
+                                            tick={{ fill: 'rgba(41,61,99,0.4)', fontSize: 10, fontWeight: 900, fontFamily: 'monospace' }}
+                                        />
+                                        <Tooltip content={<CustomTooltip unit="min" />} cursor={{ fill: 'rgba(80,110,248,0.03)' }} />
+                                        <Bar 
+                                            dataKey="minutes" 
+                                            fill="url(#barGradient)" 
+                                            radius={[12, 12, 0, 0]}
+                                            animationDuration={2500}
+                                        />
+                                        <defs>
+                                            <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="0%" stopColor="#506ef8" />
+                                                <stop offset="100%" stopColor="#818cf8" />
+                                            </linearGradient>
+                                        </defs>
+                                    </BarChart>
+                                </ResponsiveContainer>
                             </div>
-
-                            {dailyActivity.length === 0 ? (
-                                <EmptyState icon={<BarChart3 className="w-6 h-6" />} title="No data available" className="h-[250px]" />
-                            ) : (
-                                <div className="h-[250px]">
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <BarChart data={dailyActivity} barSize={40}>
-                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border-subtle)" />
-                                            <XAxis
-                                                dataKey="date"
-                                                axisLine={false}
-                                                tickLine={false}
-                                                tick={{ fontSize: 11, fill: 'var(--color-text-muted)', fontWeight: 600 }}
-                                                dy={10}
-                                            />
-                                            <YAxis
-                                                axisLine={false}
-                                                tickLine={false}
-                                                tick={{ fontSize: 11, fill: 'var(--color-text-muted)', fontWeight: 600 }}
-                                            />
-                                            <Tooltip cursor={{ fill: 'var(--color-background)' }} content={<ChartTooltip unit="min" />} />
-                                            <Bar
-                                                dataKey="minutes"
-                                                fill="var(--color-primary)"
-                                                radius={[8, 8, 8, 8]}
-                                                animationDuration={1500}
-                                            />
-                                        </BarChart>
-                                    </ResponsiveContainer>
-                                </div>
-                            )}
                         </Card>
                     </div>
 
-                    <div className="space-y-8">
-                        <Card className="h-full flex flex-col">
-                            <div className="mb-8">
-                                <h3 className="text-lg font-semibold text-text-primary">App Ecosystem</h3>
-                                <p className="text-sm text-text-secondary font-medium tracking-tight">Usage distribution by application</p>
-                            </div>
-
-                            {appBreakdown.length === 0 ? (
-                                <EmptyState icon={<BarChart3 className="w-6 h-6" />} title="No data available" className="h-[300px]" />
-                            ) : (
-                                <div className="flex-1 flex flex-col items-center justify-center">
-                                    <div className="h-[300px] w-full relative">
-                                        <ResponsiveContainer width="100%" height="100%">
-                                            <PieChart>
-                                                <Pie
-                                                    data={appBreakdown}
-                                                    cx="50%"
-                                                    cy="50%"
-                                                    innerRadius={80}
-                                                    outerRadius={110}
-                                                    paddingAngle={8}
-                                                    dataKey="value"
-                                                    animationDuration={1500}
-                                                >
-                                                    {appBreakdown.map((_, i) => (
-                                                        <Cell key={i} fill={COLORS[i % COLORS.length]} stroke="none" />
-                                                    ))}
-                                                </Pie>
-                                                <Tooltip content={<ChartTooltip />} />
-                                            </PieChart>
-                                        </ResponsiveContainer>
-                                        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                                            <span className="text-3xl font-bold text-text-primary">{appBreakdown.length}</span>
-                                            <span className="text-[10px] font-medium text-text-muted uppercase tracking-widest">Top Apps</span>
-                                        </div>
-                                    </div>
-
-                                    <div className="w-full mt-6 space-y-3">
-                                        {appBreakdown.map((item, i) => (
-                                            <div key={i} className="flex items-center justify-between group cursor-default">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
-                                                    <span className="text-xs font-medium text-text-primary truncate max-w-[140px] tracking-tight">{item.name}</span>
-                                                </div>
-                                                <span className="text-[10px] font-medium text-text-muted bg-surface-subtle px-2 py-0.5 rounded transition-colors group-hover:bg-border uppercase">
-                                                    {item.value} samples
-                                                </span>
-                                            </div>
-                                        ))}
+                    <div className="space-y-10">
+                        <Card title="App Ecosystem Map" className="flex flex-col h-full">
+                            <div className="flex-1 min-h-[450px] flex flex-col items-center justify-center py-12">
+                                <div className="h-[300px] w-full relative">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <PieChart>
+                                            <Pie
+                                                data={appBreakdown}
+                                                cx="50%"
+                                                cy="50%"
+                                                innerRadius={90}
+                                                outerRadius={125}
+                                                paddingAngle={6}
+                                                dataKey="value"
+                                                animationDuration={2500}
+                                            >
+                                                {appBreakdown.map((_, i) => (
+                                                    <Cell key={i} fill={COLORS[i % COLORS.length]} strokeWidth={0} />
+                                                ))}
+                                            </Pie>
+                                            <Tooltip content={<CustomTooltip />} />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                                        <span className="text-5xl font-black text-text-primary tracking-tighter leading-none">{appBreakdown.length}</span>
+                                        <span className="text-[10px] font-black text-text-muted uppercase tracking-[0.3em] font-mono mt-1">Prime Nodes</span>
                                     </div>
                                 </div>
-                            )}
+
+                                <div className="w-full mt-14 space-y-4">
+                                    {appBreakdown.map((item, i) => (
+                                        <div key={i} className="flex items-center justify-between group cursor-default p-2 rounded-xl hover:bg-black/[0.01] transition-all">
+                                            <div className="flex items-center gap-5">
+                                                <div className="w-3.5 h-3.5 rounded-full shadow-sm" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                                                <span className="text-[12px] font-black text-text-primary tracking-tight truncate max-w-[180px] uppercase font-mono italic">{item.name}</span>
+                                            </div>
+                                            <span className="text-[9px] font-black text-text-muted bg-black/[0.03] px-3 py-1.5 rounded-lg uppercase tracking-widest font-mono border border-black/[0.03]">
+                                                {item.value} Pulse
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
                         </Card>
 
-                        <div className="bg-primary rounded-shell-lg p-8 text-white shadow-shell-md">
-                            <div className="flex justify-between items-start mb-6">
-                                <div className="bg-white/20 p-2 rounded-xl backdrop-blur-md">
-                                    <TrendingUp className="w-6 h-6 text-white" />
+                        <div className="bg-white border border-black/[0.05] overflow-hidden rounded-[48px] relative group p-12 shadow-2xl">
+                            <div className="relative z-10">
+                                <div className="flex justify-between items-start mb-10">
+                                    <div className="bg-primary/10 p-4 rounded-[24px] border border-primary/20 shadow-sm rotate-3 group-hover:rotate-0 transition-transform duration-700">
+                                        <Zap className="w-8 h-8 text-primary" strokeWidth={2.5} />
+                                    </div>
+                                    <span className="text-[10px] font-black bg-black/[0.03] px-4 py-2 rounded-full tracking-[0.2em] uppercase border border-black/[0.05] font-mono italic">
+                                        Active Matrix
+                                    </span>
                                 </div>
-                                <span className="text-[10px] font-black bg-white/20 px-2 py-1 rounded backdrop-blur-md tracking-widest uppercase">
-                                    Real-time
-                                </span>
+                                <h4 className="text-text-muted font-black uppercase tracking-[0.4em] text-[11px] mb-3 font-mono opacity-60">Efficiency Rating</h4>
+                                <div className="flex items-baseline gap-4 mb-8">
+                                    <span className="text-7xl font-black tracking-tighter text-text-primary leading-none italic">{avgActivity}</span>
+                                    <span className="text-3xl font-black text-text-muted/30 tracking-tight font-mono">/ 100</span>
+                                </div>
+                                <p className="text-sm font-black text-text-primary leading-relaxed mb-10 opacity-80 uppercase tracking-tight">
+                                    {selectedTeamId === 'All' ? 'Global operations' : 'Targeted unit'} efficiency is currently <span className="text-primary underline underline-offset-4 decoration-primary/30">optimal</span>. 
+                                </p>
+                                <div className="w-full h-4 bg-black/[0.05] rounded-full overflow-hidden border border-black/[0.03] shadow-inner">
+                                    <div
+                                        className="h-full bg-primary rounded-full transition-all duration-[2500ms] shadow-[0_0_25px_rgba(80,110,248,0.4)]"
+                                        style={{ width: `${avgActivity}%` }}
+                                    />
+                                </div>
                             </div>
-                            <h4 className="text-white/80 font-bold uppercase tracking-widest text-[10px] mb-1">Productivity Score</h4>
-                            <div className="flex items-baseline gap-2 mb-4">
-                                <span className="text-5xl font-black tracking-tighter">{avgActivity}</span>
-                                <span className="text-xl font-bold text-white/60">/ 100</span>
-                            </div>
-                            <p className="text-sm font-medium text-white/70 leading-relaxed mb-6">
-                                {selectedTeamId === 'All' ? 'Your team is' : 'This team is'} currently operating at an optimal activity level. Great job!
-                            </p>
-                            <div className="w-full h-2 bg-white/20 rounded-full overflow-hidden">
-                                <div
-                                    className="h-full bg-white rounded-full transition-all duration-1000"
-                                    style={{ width: `${avgActivity}%` }}
-                                />
-                            </div>
+                            
+                            <div className="absolute top-0 right-0 w-64 h-64 bg-primary/[0.03] rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none group-hover:bg-primary/[0.06] transition-colors duration-1000" />
                         </div>
                     </div>
                 </div>
@@ -442,16 +399,45 @@ export function Reports() {
     );
 }
 
-function ChartTooltip({ active, payload, label, unit }: any) {
+function FilterSelect({ icon, value, onChange, options }: { icon: React.ReactNode; value: string; onChange: (val: string) => void; options: { id: string; name: string }[] }) {
+    const activeLabel = options.find(o => o.id === value)?.name || value;
+    
+    return (
+        <div className="relative group/select">
+            <div className="flex items-center gap-4 bg-white border border-black/[0.1] rounded-[20px] px-6 py-4 shadow-sm transition-all group-hover/select:border-primary/40 group-hover/select:shadow-md cursor-pointer">
+                <div className="text-primary group-hover/select:scale-110 group-hover/select:rotate-12 transition-all duration-500">{icon}</div>
+                <span className="text-[11px] font-black text-text-primary uppercase tracking-[0.2em] font-mono min-w-[140px] truncate">{activeLabel}</span>
+                <ChevronDown className="w-4 h-4 text-text-muted group-hover/select:text-primary transition-all group-hover/select:rotate-180" strokeWidth={3} />
+            </div>
+            
+            <select
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+            >
+                {options.map(o => (
+                    <option key={o.id} value={o.id} className="text-text-primary">{o.name}</option>
+                ))}
+            </select>
+        </div>
+    );
+}
+
+function CustomTooltip({ active, payload, label, unit }: any) {
     if (active && payload && payload.length) {
         return (
-            <div className="bg-surface border border-border p-4 rounded-shell-lg shadow-shell-md">
-                <p className="text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-2">{label}</p>
-                <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-primary" />
-                    <p className="text-lg font-semibold text-text-primary tracking-tight">
-                        {payload[0].value}{unit === 'min' ? ' min' : '%'}
-                    </p>
+            <div className="bg-white border border-black/[0.08] p-8 rounded-[32px] shadow-[0_32px_80px_rgba(0,0,0,0.12)] animate-in zoom-in-95 duration-300">
+                <p className="text-[11px] font-black text-text-muted uppercase tracking-[0.3em] font-mono mb-4 border-b border-black/[0.03] pb-3 italic opacity-60 text-right">{label}</p>
+                <div className="flex items-center gap-6">
+                    <div className="w-4 h-4 rounded-full bg-primary shadow-xl shadow-primary/40" />
+                    <div className="flex items-baseline gap-2">
+                        <span className="text-4xl font-black text-text-primary tracking-tighter italic">
+                            {payload[0].value}
+                        </span>
+                        <span className="text-[11px] font-black text-primary uppercase tracking-[0.3em] font-mono">
+                            {unit === 'min' ? 'Minutes' : 'Percent'}
+                        </span>
+                    </div>
                 </div>
             </div>
         );
