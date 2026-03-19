@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import {
     Search, Plus, Filter, MoreHorizontal,
-    X, Check, Users, Info, CreditCard,
+    X, Check, Users, CreditCard,
     ChevronDown, Trash2, Archive, Pencil,
     Building2, Square, AlertCircle
 } from 'lucide-react';
