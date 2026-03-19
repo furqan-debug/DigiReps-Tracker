@@ -3,12 +3,11 @@ import { supabase } from '../lib/supabase';
 import { 
     Monitor, Keyboard, Mouse, Camera, Clock, 
     Users, Activity as ActivityIcon, Zap, 
-    Maximize2, ShieldCheck, Search, Calendar,
+    Maximize2, ShieldCheck, Calendar,
     ChevronDown, X, Loader2
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { PageLayout, KpiCard, LoadingState, Card } from '../components/ui';
-import clsx from 'clsx';
+import { PageLayout, KpiCard, Card } from '../components/ui';
 
 interface ActivitySample {
     id: number;

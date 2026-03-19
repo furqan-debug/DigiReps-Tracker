@@ -12,11 +12,9 @@ const SIDEBAR_WIDTH_COLLAPSED = 72;
 export interface SidebarProps {
     /** When true, sidebar is shown as mobile overlay (always expanded, no collapse toggle). */
     overlay?: boolean;
-    /** Called when overlay should close (e.g. backdrop click). */
-    onOverlayClose?: () => void;
 }
 
-export function Sidebar({ overlay = false, onOverlayClose }: SidebarProps = {}) {
+export function Sidebar({ overlay = false }: SidebarProps = {}) {
     const location = useLocation();
     const { favorites } = useFavorites();
     const { profile, signOut } = useAuth();

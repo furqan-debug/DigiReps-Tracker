@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { 
-    Clock, ChevronLeft, ChevronRight, 
-    Calendar, Users, Activity, 
-    Zap, Timer, BarChart3, Filter,
-    CheckCircle2, AlertCircle
+    ChevronLeft, ChevronRight, 
+    Users, Activity, 
+    Timer, BarChart3,
+    CheckCircle2, AlertCircle,
+    ChevronDown
 } from 'lucide-react';
-import { PageLayout, Card, KpiCard, Button, LoadingState } from '../components/ui';
+import { PageLayout, Card, KpiCard } from '../components/ui';
 import clsx from 'clsx';
 
 interface Session {
@@ -91,7 +92,7 @@ export function Timesheets() {
                 if (!dailyMap[key]) return;
                 dailyMap[key].sessions.push(s as Session);
                 const startMs = new Date(s.started_at).getTime();
-                const { endMs } = effectiveEnd(s.started_at, s.ended_at);
+                const { endMs } = effectiveEnd(s.ended_at);
                 dailyMap[key].totalMinutes += Math.max(0, Math.round((endMs - startMs) / 60000));
             });
 
@@ -120,8 +121,7 @@ export function Timesheets() {
         }
     }
 
-    function effectiveEnd(startedAt: string, endedAt: string | null) {
-        const startMs = new Date(startedAt).getTime();
+    function effectiveEnd(endedAt: string | null) {
         const endMs = endedAt ? new Date(endedAt).getTime() : Date.now();
         return { endMs };
     }

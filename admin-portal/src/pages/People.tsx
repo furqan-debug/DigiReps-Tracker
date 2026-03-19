@@ -3,14 +3,13 @@ import {
     Users, Search, Download,
     ChevronDown, CheckCircle, X,
     Pencil, Trash2,
-    AlertCircle, RotateCcw,
+    RotateCcw,
     Settings,
-    Plus,
     UserPlus
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useAuth } from '../context/AuthContext';
-import { PageLayout, Card, Button, Input } from '../components/ui';
+import { PageLayout, Button } from '../components/ui';
 import { supabase } from '../lib/supabase';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -301,9 +300,9 @@ export function People() {
                     <Button 
                         onClick={() => { if (!isViewer) { resetAddForm(); setShowAddModal(true); } }}
                         disabled={isViewer}
-                        icon={<UserPlus className="w-4 h-4" strokeWidth={3} />}
-                        className="shadow-lg shadow-primary/20"
+                        className="shadow-lg shadow-primary/20 flex items-center gap-2"
                     >
+                        <UserPlus className="w-4 h-4" strokeWidth={3} />
                         PROVISION MEMBER
                     </Button>
 
@@ -531,12 +530,12 @@ function DropItem({ icon, label, onClick, danger, dull, disabled }: any) {
             onClick={onClick}
             disabled={disabled}
             className={clsx(
-                "w-full flex items-center gap-4 px-6 py-3.5 text-[11px] font-black uppercase tracking-[0.2em] transition-all text-left font-mono",
+                "w-full flex items-center gap-4 px-6 py-3.5 text-[11px] font-black uppercase tracking-[0.2em] transition-all text-left font-mono group", // added group
                 danger ? "text-rose-500 hover:bg-rose-500/10" : "text-text-muted hover:text-text-primary hover:bg-black/[0.02]",
                 dull && "opacity-30 grayscale cursor-not-allowed"
             )}
         >
-            <span className="opacity-70 group-hover:opacity-100 transition-opacity" strokeWidth={3}>{icon}</span>
+            <span className="opacity-70 group-hover:opacity-100 transition-opacity">{icon}</span>
             {label}
         </button>
     );
