@@ -12,9 +12,11 @@ const SIDEBAR_WIDTH_COLLAPSED = 72;
 export interface SidebarProps {
     /** When true, sidebar is shown as mobile overlay (always expanded, no collapse toggle). */
     overlay?: boolean;
+    /** Called when overlay should close (e.g. backdrop click or link click). */
+    onOverlayClose?: () => void;
 }
 
-export function Sidebar({ overlay = false }: SidebarProps = {}) {
+export function Sidebar({ overlay = false, onOverlayClose }: SidebarProps = {}) {
     const location = useLocation();
     const { favorites } = useFavorites();
     const { profile, signOut } = useAuth();
@@ -132,6 +134,7 @@ export function Sidebar({ overlay = false }: SidebarProps = {}) {
                                     <Link
                                         key={fav.path}
                                         to={fav.path}
+                                        onClick={() => onOverlayClose?.()}
                                         className={clsx(
                                             "flex items-center gap-3 px-3 py-2.5 text-[13px] rounded-xl transition-all group",
                                             location.pathname === fav.path
@@ -188,6 +191,7 @@ export function Sidebar({ overlay = false }: SidebarProps = {}) {
                                 ) : (
                                     <Link
                                         to={group.path!}
+                                        onClick={() => onOverlayClose?.()}
                                         className={clsx(
                                             'group flex items-center rounded-2xl text-[14px] font-bold transition-all relative overflow-hidden',
                                             effectiveCollapsed ? 'justify-center p-3.5' : 'px-4 py-3 gap-3.5',
@@ -214,6 +218,7 @@ export function Sidebar({ overlay = false }: SidebarProps = {}) {
                                                 <Link
                                                     key={child.name}
                                                     to={child.path}
+                                                    onClick={() => onOverlayClose?.()}
                                                     className={clsx(
                                                         'flex items-center justify-between px-3 py-2.5 text-[13px] rounded-xl transition-all group',
                                                         isActive 
