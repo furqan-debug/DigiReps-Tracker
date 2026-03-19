@@ -55,7 +55,7 @@ export function Header({ onOpenMobileMenu }: HeaderProps = {}) {
     const favorited = isFavorite(location.pathname);
 
     return (
-        <header className="h-14 bg-surface border-b border-border flex items-center justify-between px-4 md:px-6 shrink-0 sticky top-0 z-10 w-full shadow-shell-sm">
+        <header className="h-14 glass border-b border-border/50 flex items-center justify-between px-4 md:px-6 shrink-0 sticky top-0 z-10 w-full shadow-lg">
             <div className="flex items-center gap-2 min-w-0">
                 {onOpenMobileMenu && (
                     <button
@@ -67,7 +67,7 @@ export function Header({ onOpenMobileMenu }: HeaderProps = {}) {
                         <Menu className="w-5 h-5" aria-hidden />
                     </button>
                 )}
-                <h1 className="text-base font-semibold text-text-primary truncate">
+                <h1 className="text-base font-bold text-text-primary truncate font-head">
                     {pageName}
                 </h1>
                 <button
@@ -91,7 +91,7 @@ export function Header({ onOpenMobileMenu }: HeaderProps = {}) {
                     <button
                         type="button"
                         onClick={() => setShowProfileMenu((v) => !v)}
-                        className="w-9 h-9 rounded-full bg-primary hover:bg-primary-hover transition-colors flex items-center justify-center text-white text-sm font-semibold shadow-shell-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+                        className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 hover:shadow-lg hover:shadow-indigo-500/20 transition-all flex items-center justify-center text-white text-xs font-bold shadow-md focus:outline-none"
                         aria-label="Profile options"
                         aria-expanded={showProfileMenu}
                         aria-haspopup="true"
@@ -102,13 +102,13 @@ export function Header({ onOpenMobileMenu }: HeaderProps = {}) {
                     {showProfileMenu && (
                         <div
                             role="menu"
-                            className="absolute right-0 top-full mt-2 w-52 bg-surface border border-border rounded-shell-lg shadow-shell-md py-1 z-50"
+                            className="absolute right-0 top-full mt-2 w-52 glass border border-border rounded-lg shadow-xl py-1 z-50 overflow-hidden"
                             aria-orientation="vertical"
                         >
-                            <div className="px-4 py-3 border-b border-border-subtle bg-surface-subtle/50">
+                            <div className="px-4 py-3 border-b border-border bg-white/5">
                                 <p className="text-xs font-bold text-text-primary truncate">{profile?.full_name || 'No Name'}</p>
-                                <p className="text-[10px] text-text-muted truncate mt-0.5">{profile?.email || user?.email}</p>
-                                <div className="mt-2 inline-flex items-center px-1.5 py-0.5 rounded bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider">
+                                <p className="text-[10px] text-text-secondary truncate mt-0.5">{profile?.email || user?.email}</p>
+                                <div className="mt-2 inline-flex items-center px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-400 text-[10px] font-bold uppercase tracking-wider border border-indigo-500/10">
                                     {profile?.role || 'User'}
                                 </div>
                             </div>
@@ -120,7 +120,7 @@ export function Header({ onOpenMobileMenu }: HeaderProps = {}) {
                                     closeMenu();
                                     void handleLogout();
                                 }}
-                                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset"
+                                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-rose-400 hover:bg-rose-500/10 transition-colors focus:outline-none"
                             >
                                 <LogOut className="w-4 h-4 shrink-0" aria-hidden />
                                 Log out

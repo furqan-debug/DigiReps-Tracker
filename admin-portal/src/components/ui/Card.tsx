@@ -18,13 +18,13 @@ export function Card({
     return (
         <div
             className={clsx(
-                'bg-surface border border-border rounded-shell-lg shadow-shell-sm',
+                'glass rounded-lg shadow-lg',
                 !noPadding && 'p-6',
                 className
             )}
         >
             {title && (
-                <h2 className="text-sm font-semibold text-text-primary uppercase tracking-wide mb-4">
+                <h2 className="text-xs font-bold text-text-secondary uppercase tracking-[0.15em] mb-5 font-head opacity-80">
                     {title}
                 </h2>
             )}

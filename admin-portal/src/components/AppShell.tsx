@@ -24,7 +24,7 @@ export function AppShell({ children }: AppShellProps) {
     }, []);
 
     return (
-        <div className="flex h-screen bg-background overflow-hidden font-sans">
+        <div className="flex h-screen bg-background text-text-secondary overflow-hidden font-sans">
             {/* Desktop sidebar: visible from md up */}
             <div className="hidden md:block shrink-0">
                 <Sidebar />
@@ -35,7 +35,7 @@ export function AppShell({ children }: AppShellProps) {
                 <>
                     <div
                         role="presentation"
-                        className="fixed inset-0 z-30 bg-black/40 md:hidden"
+                        className="fixed inset-0 z-30 bg-black/60 backdrop-blur-sm md:hidden"
                         aria-hidden
                         onClick={() => setMobileMenuOpen(false)}
                     />

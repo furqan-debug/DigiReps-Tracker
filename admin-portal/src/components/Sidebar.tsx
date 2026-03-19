@@ -94,18 +94,18 @@ export function Sidebar({ overlay = false, onOverlayClose }: SidebarProps = {}) 
     return (
         <aside
             className={clsx(
-                "h-full bg-surface-subtle border-r border-border flex flex-col overflow-y-auto shell-scrollbar",
+                "h-full glass border-r border-border flex flex-col overflow-y-auto shell-scrollbar",
                 overlay ? "w-[260px]" : "sticky top-0 transition-[width] duration-200 ease-out"
             )}
             style={overlay ? undefined : { width: effectiveCollapsed ? SIDEBAR_WIDTH_COLLAPSED : SIDEBAR_WIDTH_EXPANDED }}
             aria-label="Main navigation"
         >
             {/* Logo Area */}
-            <div className={clsx("flex items-center sticky top-0 z-10 bg-surface-subtle border-b border-border-subtle", effectiveCollapsed ? "justify-center px-0 py-4" : "px-4 py-4 gap-2.5")}>
-                <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shrink-0 shadow-shell-sm">
+            <div className={clsx("flex items-center sticky top-0 z-10 glass border-b border-border/50", effectiveCollapsed ? "justify-center px-0 py-4" : "px-4 py-4 gap-2.5")}>
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shrink-0 shadow-lg shadow-indigo-500/20">
                     <div className="w-4 h-4 border-2 border-white rounded-sm rotate-45" aria-hidden />
                 </div>
-                {!effectiveCollapsed && <span className="text-lg font-semibold text-text-primary tracking-tight truncate">Trackora</span>}
+                {!effectiveCollapsed && <span className="text-lg font-bold text-text-primary tracking-tight truncate font-head">Trackora</span>}
             </div>
 
             <div className={clsx("flex-1 flex flex-col", effectiveCollapsed ? "px-2 pb-4" : "px-3 pb-6")}>
@@ -135,10 +135,10 @@ export function Sidebar({ overlay = false, onOverlayClose }: SidebarProps = {}) 
                                             to={fav.path}
                                             onClick={overlay ? () => onOverlayClose?.() : undefined}
                                             className={clsx(
-                                                "block px-3 py-2 text-[13px] rounded-shell-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface-subtle",
+                                                "block px-3 py-2 text-[13px] rounded-md transition-colors focus:outline-none focus:ring-1 focus:ring-primary/40",
                                                 location.pathname === fav.path
-                                                    ? "bg-surface text-text-primary font-medium shadow-shell-sm"
-                                                    : "text-text-secondary hover:text-text-primary hover:bg-surface"
+                                                    ? "bg-primary/10 text-primary font-medium"
+                                                    : "text-text-secondary hover:text-text-primary hover:bg-surface-hover"
                                             )}
                                         >
                                             {fav.name}
@@ -190,13 +190,13 @@ export function Sidebar({ overlay = false, onOverlayClose }: SidebarProps = {}) 
                                         to={group.path!}
                                         onClick={overlay ? () => onOverlayClose?.() : undefined}
                                         className={clsx(
-                                            'flex items-center rounded-shell-md text-[13.5px] font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface-subtle',
+                                            'flex items-center rounded-md text-[13.5px] font-medium transition-all focus:outline-none focus:ring-1 focus:ring-primary/40',
                                             effectiveCollapsed ? 'justify-center p-2' : 'px-2 py-2 gap-3',
-                                            isDirectlyActive ? 'bg-surface text-primary shadow-shell-sm' : 'text-text-secondary hover:text-text-primary hover:bg-surface'
+                                            isDirectlyActive ? 'bg-primary/10 text-primary' : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'
                                         )}
                                         aria-current={isDirectlyActive ? 'page' : undefined}
                                     >
-                                        <group.icon className={clsx("w-[18px] h-[18px] shrink-0", isDirectlyActive ? "text-primary" : "text-text-muted")} strokeWidth={2} aria-hidden />
+                                        <group.icon className={clsx("w-4 h-4 shrink-0", isDirectlyActive ? "text-primary" : "text-text-muted")} strokeWidth={2.5} aria-hidden />
                                         {!effectiveCollapsed && group.name}
                                     </Link>
                                 )}
@@ -213,8 +213,8 @@ export function Sidebar({ overlay = false, onOverlayClose }: SidebarProps = {}) 
                                                     to={child.path}
                                                     onClick={overlay ? () => onOverlayClose?.() : undefined}
                                                     className={clsx(
-                                                        'flex items-center justify-between ml-[30px] px-3 py-2 text-[13px] rounded-shell-md transition-colors relative focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface-subtle',
-                                                        isActive ? 'bg-surface text-text-primary font-medium shadow-shell-sm' : 'text-text-secondary hover:bg-surface hover:text-text-primary'
+                                                        'flex items-center justify-between ml-[30px] px-3 py-2 text-[13px] rounded-md transition-all relative focus:outline-none ',
+                                                        isActive ? 'bg-surface-hover text-text-primary font-semibold' : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
                                                     )}
                                                     aria-current={isActive ? 'page' : undefined}
                                                 >
@@ -235,15 +235,15 @@ export function Sidebar({ overlay = false, onOverlayClose }: SidebarProps = {}) 
             </div>
 
             {/* Profile & Logout Area */}
-            <div className="mt-auto border-t border-border-subtle bg-surface-subtle p-3">
-                 <div className={clsx("flex items-center gap-3", effectiveCollapsed ? "justify-center" : "px-1 mb-2")}>
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs shrink-0">
+            <div className="mt-auto border-t border-border bg-surface/30 p-3">
+                 <div className={clsx("flex items-center gap-3", effectiveCollapsed ? "justify-center" : "px-1 mb-3")}>
+                    <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 font-bold text-xs shrink-0 border border-indigo-500/10">
                         {profile?.full_name?.charAt(0) || '?'}
                     </div>
                     {!effectiveCollapsed && (
                         <div className="min-w-0 flex-1">
                             <p className="text-[13px] font-bold text-text-primary truncate">{profile?.full_name}</p>
-                            <p className="text-[11px] text-text-muted truncate capitalize">{profile?.role}</p>
+                            <p className="text-[10px] text-text-muted truncate capitalize font-medium">{profile?.role}</p>
                         </div>
                     )}
                 </div>
@@ -252,7 +252,7 @@ export function Sidebar({ overlay = false, onOverlayClose }: SidebarProps = {}) 
                     type="button"
                     onClick={() => signOut()}
                     className={clsx(
-                        "w-full flex items-center rounded-shell-md text-[13px] text-rose-500 hover:bg-rose-50 hover:text-rose-600 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400",
+                        "w-full flex items-center rounded-md text-[13px] text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 transition-colors focus:outline-none",
                         effectiveCollapsed ? "justify-center p-2" : "px-2 py-2 gap-3"
                     )}
                     aria-label="Sign out"
@@ -264,11 +264,11 @@ export function Sidebar({ overlay = false, onOverlayClose }: SidebarProps = {}) 
 
             {/* Collapse toggle (desktop only) */}
             {!overlay && (
-                <div className="sticky bottom-0 border-t border-border-subtle bg-surface-subtle p-2">
+                <div className="sticky bottom-0 border-t border-border bg-surface/30 p-2">
                     <button
                         type="button"
                         onClick={() => setCollapsed(c => !c)}
-                        className="w-full flex items-center justify-center p-2 rounded-shell-md text-text-muted hover:text-text-primary hover:bg-surface transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface-subtle"
+                        className="w-full flex items-center justify-center p-2 rounded-md text-text-muted hover:text-text-primary hover:bg-surface-hover transition-colors focus:outline-none"
                         aria-label={effectiveCollapsed ? "Expand sidebar" : "Collapse sidebar"}
                     >
                         <ChevronLeft className={clsx("w-4 h-4 transition-transform", effectiveCollapsed && "rotate-180")} aria-hidden />

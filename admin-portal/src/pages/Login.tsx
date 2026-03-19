@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, AlertCircle, ArrowRight } from 'lucide-react';
+import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
+import { Card } from '../components/ui/Card';
 
 export function Login() {
     const navigate = useNavigate();
@@ -56,31 +59,28 @@ export function Login() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50">
-            <div className="mx-auto flex min-h-screen max-w-5xl flex-col items-stretch justify-center gap-10 px-4 py-8 md:flex-row md:items-center md:px-6 lg:py-16">
-                {/* Brand / story */}
-                <section className="md:w-1/2">
+        <div className="min-h-screen bg-background relative overflow-hidden flex items-center justify-center p-4">
+            {/* Background Elements */}
+            <div className="absolute inset-0 bg-gradient-mesh z-0" />
+            <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-500/10 blur-[120px] rounded-full z-0" />
+            <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-violet-600/10 blur-[120px] rounded-full z-0" />
+            
+            <div className="relative z-10 w-full max-w-[440px]">
+                <div className="mb-8 text-center">
                     <button
                         type="button"
                         onClick={() => navigate('/')}
-                        className="inline-flex items-center gap-2.5 rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-slate-500"
+                        className="inline-flex items-center gap-2 px-3 py-1 rounded-full glass hover:bg-white/5 transition-colors mb-6"
                     >
-                        <div className="flex h-6 w-6 items-center justify-center rounded-md bg-slate-900 text-[10px] font-semibold text-white">
-                            DR
+                        <div className="w-5 h-5 rounded-md bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center">
+                             <div className="w-2.5 h-2.5 border-2 border-white rounded-[1px] rotate-45" />
                         </div>
-                        <span>Trackora admin portal</span>
+                        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-text-secondary">Trackora Admin</span>
                     </button>
-
-                    <h1 className="mt-6 text-3xl font-semibold tracking-tight text-slate-900 sm:text-[2.15rem]">
-                        Sign in to manage your team.
+                    
+                    <h1 className="text-3xl font-bold tracking-tight text-text-primary mb-3 font-head">
+                        Welcome back
                     </h1>
-                    <p className="mt-3 max-w-md text-sm leading-relaxed text-slate-600">
-                        Use your Trackora admin account to review activity, coach reps, and manage billing—all from a single, minimal workspace.
-                    </p>
-
-                    <div className="mt-8 grid gap-4 text-xs text-slate-600 sm:grid-cols-2">
-                        <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
                                 At a glance
                             </p>
                             <p className="mt-2 text-sm font-semibold text-slate-900">Dashboard, activity, and payroll in one place.</p>
