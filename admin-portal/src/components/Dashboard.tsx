@@ -2,12 +2,11 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { 
     Clock, Users, FolderOpen, CircleDollarSign, 
-    Activity, Camera, Zap, ChevronRight, 
+    Camera, Zap, 
     ArrowUpRight, BarChart3, Globe
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid } from 'recharts';
 import { PageLayout, Card, KpiCard, EmptyState, LoadingState } from './ui';
-import clsx from 'clsx';
 
 interface DashStats {
     todayMinutes: number;
@@ -261,7 +260,7 @@ export function Dashboard() {
                                             />
                                         </div>
                                     </div>
-                                ethnic))}
+                                ))}
                             </div>
                         )}
                         <button className="w-full mt-10 py-4 glass border border-primary/10 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] text-text-muted hover:text-primary hover:bg-primary/5 transition-all flex items-center justify-center gap-3 group shadow-sm font-mono">
@@ -326,7 +325,7 @@ function RecentSessionsRows() {
     }, []);
 
     if (loading) return <tr><td colSpan={5} className="py-24 text-center"><LoadingState /></td></tr>;
-    if (sessions.length === 0) return <tr><td colSpan={5} className="py-24 text-center opacity-40"><EmptyState icon={<Zap className="w-10 h-10" />} /></td></tr>;
+    if (sessions.length === 0) return <tr><td colSpan={5} className="py-24 text-center opacity-40"><EmptyState icon={<Zap className="w-10 h-10" />} title="No Sessions" description="Operational matrix is currently idle" /></td></tr>;
 
     return (
         <>
