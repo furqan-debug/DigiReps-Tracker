@@ -106,7 +106,7 @@ function extractToken(req: express.Request): string | null {
     return auth.slice(7);
 }
 
-/** Middleware: verify JWT and attach user to req */
+/** Middleware: verify JWT and attach user + organization_id to req */
 async function requireAuth(req: express.Request, res: express.Response, next: express.NextFunction) {
     const token = extractToken(req);
     if (!token) return res.status(401).json({ error: 'Missing authorization token' });
@@ -115,7 +115,36 @@ async function requireAuth(req: express.Request, res: express.Response, next: ex
         const db = getDb();
         const { data: { user }, error } = await db.auth.getUser(token);
         if (error || !user) return res.status(401).json({ error: 'Invalid or expired token' });
-        (req as any).authUser = user;
+
+        // Fetch the user's member record to get their organization_id
+        const { data: member, error: memberErr } = await db
+            .from('members')
+            .select('organization_id, role')
+            .eq('auth_user_id', user.id)
+            .single();
+
+        if (memberErr || !member) {
+            // Fallback: try by email if auth_user_id isn't linked yet
+            const { data: memberByEmail } = await db
+                .from('members')
+                .select('organization_id, role')
+                .eq('email', user.email)
+                .single();
+            
+            if (memberByEmail) {
+                (req as any).authUser = user;
+                (req as any).organizationId = memberByEmail.organization_id;
+                (req as any).memberRole = memberByEmail.role;
+            } else {
+                console.warn(`⚠️ Could not find member record for ${user.email}`);
+                (req as any).authUser = user;
+            }
+        } else {
+            (req as any).authUser = user;
+            (req as any).organizationId = member.organization_id;
+            (req as any).memberRole = member.role;
+        }
+
         next();
     } catch (e: any) {
         res.status(401).json({ error: e.message });
@@ -409,30 +438,13 @@ app.get('/api/members', requireAuth, async (req, res) => {
 app.post('/api/members', requireAuth, async (req, res) => {
     try {
         const authUser = (req as any).authUser;
+        const orgId = (req as any).organizationId;
         const { email, role = 'User', pay_rate, bill_rate, weekly_limit = 40, daily_limit = 8 } = req.body;
+        
         if (!email) return res.status(400).json({ error: 'email is required' });
+        if (!orgId) return res.status(403).json({ error: 'You must belong to an organization to invite members.' });
 
         const db = getDb();
-
-        // 1. Fetch the admin/manager's own profile to get their organization_id
-        const { data: adminProfile, error: adminErr } = await db
-            .from('members')
-            .select('organization_id, role')
-            .eq('email', authUser.email)
-            .single();
-
-        if (adminErr || !adminProfile) {
-            return res.status(403).json({ error: 'Your admin profile was not found.' });
-        }
-
-        if (adminProfile.role !== 'Admin' && adminProfile.role !== 'Manager') {
-            return res.status(403).json({ error: 'Only Admins and Managers can invite members.' });
-        }
-
-        const orgId = adminProfile.organization_id;
-        if (!orgId) {
-            return res.status(403).json({ error: 'You must belong to an organization to invite members.' });
-        }
 
         // 2. Check if a member row already exists for this email
         const { data: existingMember } = await db.from('members').select('id, status').eq('email', email).maybeSingle();

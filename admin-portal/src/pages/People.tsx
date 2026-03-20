@@ -12,6 +12,8 @@ import { useAuth } from '../context/AuthContext';
 import { PageLayout, Button } from '../components/ui';
 import { supabase } from '../lib/supabase';
 
+const API = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Role = 'Admin' | 'Manager' | 'User' | 'Viewer';
 type Status = 'Active' | 'Inactive' | 'Pending';
@@ -88,7 +90,7 @@ export function People() {
         setAdding(true);
         setAddError(null);
         try {
-            const res = await fetch('/api/invite', {
+            const res = await fetch(`${API}/api/members`, {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
@@ -121,7 +123,7 @@ export function People() {
         setAdding(true);
         setAddError(null);
         try {
-            const res = await fetch('/api/invite', {
+            const res = await fetch(`${API}/api/members`, {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',

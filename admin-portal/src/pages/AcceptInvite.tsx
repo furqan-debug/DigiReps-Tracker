@@ -6,6 +6,8 @@ import { Input } from '../components/ui/Input';
 import { Card } from '../components/ui/Card';
 import { useNavigate } from 'react-router-dom';
 
+const API = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+
 type Step = 'loading' | 'form' | 'success' | 'error';
 
 export function AcceptInvite() {
@@ -69,7 +71,7 @@ export function AcceptInvite() {
             const { error: pwError } = await supabase.auth.updateUser({ password });
             if (pwError) throw new Error(pwError.message);
 
-            const res = await fetch('/api/complete-setup', {
+            const res = await fetch(`${API}/api/members/complete-setup`, {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
