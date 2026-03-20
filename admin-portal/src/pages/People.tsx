@@ -88,7 +88,12 @@ export function People() {
         setAdding(true);
         setAddError(null);
         try {
+            const { data: { session } } = await supabase.auth.getSession();
             const { data, error } = await supabase.functions.invoke('send-invite-email', {
+                headers: {
+                    'Authorization': `Bearer ${session?.access_token}`,
+                    'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY
+                },
                 body: {
                     email: addEmail.trim().toLowerCase(),
                     role: addRole,
@@ -118,7 +123,12 @@ export function People() {
         setAdding(true);
         setAddError(null);
         try {
+            const { data: { session } } = await supabase.auth.getSession();
             const { data, error } = await supabase.functions.invoke('send-invite-email', {
+                headers: {
+                    'Authorization': `Bearer ${session?.access_token}`,
+                    'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY
+                },
                 body: { email, admin_portal_url: window.location.origin }
             });
 

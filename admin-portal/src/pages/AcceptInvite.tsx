@@ -63,13 +63,18 @@ export function AcceptInvite() {
 
         setSubmitting(true);
         try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) throw new Error('Session expired. Please use the invite link again.');
-
+            // Update password first
             const { error: pwError } = await supabase.auth.updateUser({ password });
             if (pwError) throw new Error(pwError.message);
 
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) throw new Error('Session expired. Please use the invite link again.');
+
             const { data, error: invokeErr } = await supabase.functions.invoke('complete-onboarding', {
+                headers: {
+                    'Authorization': `Bearer ${session?.access_token}`,
+                    'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY
+                },
                 body: { full_name: fullName.trim(), phone: phone.trim() || null }
             });
 
