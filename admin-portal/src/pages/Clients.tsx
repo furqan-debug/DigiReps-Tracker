@@ -245,7 +245,7 @@ export function Clients() {
                                     <td colSpan={4} className="py-40 text-center">
                                         <div className="flex flex-col items-center gap-6">
                                             <Loader2 className="w-12 h-12 text-primary animate-spin" strokeWidth={3} />
-                                            <span className="text-[11px] font-bold text-text-muted uppercase tracking-[0.5em] animate-pulse font-mono">Syncing Matrix Core...</span>
+                                            <span className="text-[11px] font-bold text-text-muted uppercase tracking-[0.5em] animate-pulse font-mono">Loading clients...</span>
                                         </div>
                                     </td>
                                 </tr>
@@ -346,7 +346,7 @@ export function Clients() {
                                     </div>
                                     <div>
                                         <h2 className="text-2xl font-bold text-text-primary tracking-tighter leading-none mb-2">{editClient ? 'Reconfigure Alliance' : 'Establish Alliance'}</h2>
-                                        <p className="text-[11px] font-bold text-text-muted uppercase tracking-[0.3em] font-mono">Affiliate entity metadata and protocols</p>
+                                        <p className="text-[11px] font-bold text-text-muted uppercase tracking-[0.3em] font-mono">Client details and settings</p>
                                     </div>
                                 </div>
                                 <button onClick={handleCloseModal} className="p-3 bg-black/[0.03] hover:bg-black/[0.08] rounded-2xl transition-all text-text-muted hover:text-text-primary shadow-sm hover:scale-110 active:scale-90"><X className="w-5 h-5" strokeWidth={3} /></button>

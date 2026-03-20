@@ -125,7 +125,7 @@ export function UpdatePassword() {
                 <div className="mb-12 text-center">
                     <div className="inline-flex items-center gap-4 px-6 py-2.5 rounded-[24px] bg-white border border-black/[0.05] shadow-glow mb-10 group">
                         <ShieldCheck className="w-5 h-5 text-primary group-hover:scale-110 transition-transform" strokeWidth={2} />
-                        <span className="text-[11px] font-bold uppercase tracking-[0.3em] text-text-primary font-mono">Security Protocol</span>
+                        <span className="text-[11px] font-bold uppercase tracking-[0.3em] text-text-primary font-mono">Security Settings</span>
                     </div>
                     
                     <h1 className="text-5xl font-extrabold tracking-tighter text-text-primary mb-6">

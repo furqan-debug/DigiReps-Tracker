@@ -145,8 +145,8 @@ export function Projects() {
             <div className="px-10 py-10 border-b border-black/[0.03] bg-white/[0.01]">
                 <div className="flex items-center justify-between">
                     <div>
-                        <h1 className="text-3xl font-bold text-text-primary tracking-tighter leading-none">Project Matrix</h1>
-                        <p className="text-[11px] font-bold text-text-muted uppercase tracking-[0.3em] mt-2 font-mono">Global strategic initiatives and resource allocation</p>
+                        <h1 className="text-3xl font-bold text-text-primary tracking-tighter leading-none">Projects</h1>
+                        <p className="text-[11px] font-bold text-text-muted uppercase tracking-[0.3em] mt-2 font-mono">Manage active projects and resource allocation</p>
                     </div>
                 </div>
 
@@ -188,7 +188,7 @@ export function Projects() {
 
                         <div className="flex items-center gap-4">
                             <button
-                                className="px-6 py-3.5 glass border border-black/[0.05] rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] text-text-primary hover:bg-black/[0.02] flex items-center gap-3.5 transition-all shadow-sm active:scale-95 disabled:opacity-30 font-mono"
+                                className="px-6 py-3.5 bg-white border border-black/[0.05] rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] text-text-primary hover:bg-black/[0.02] flex items-center gap-3.5 transition-all shadow-sm active:scale-95 disabled:opacity-30 font-mono"
                                 onClick={() => { }}
                             >
                                 <Filter className="w-4 h-4 text-primary" strokeWidth={3} /> FILTERS
@@ -201,12 +201,12 @@ export function Projects() {
                                     disabled={selectedIds.size === 0 || isViewer}
                                     onClick={handleBulkArchive}
                                     className={clsx(
-                                        "px-6 py-3.5 glass border border-black/[0.05] rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] transition-all shadow-sm active:scale-95 group font-mono",
+                                        "px-6 py-3.5 bg-white border border-black/[0.05] rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] transition-all shadow-sm active:scale-95 group font-mono",
                                         (selectedIds.size === 0 || isViewer) ? "opacity-30 cursor-not-allowed text-text-muted" : "text-text-primary hover:bg-black/[0.02]"
                                     )}
                                 >
                                     <Archive className="w-4 h-4 text-primary group-hover:scale-110 transition-transform inline-block mr-2" strokeWidth={2.5} />
-                                    {activeTab === 'Active' ? 'BULK DE-ACTIVATE' : 'BULK ACTIVATE'}
+                                    {activeTab === 'Active' ? 'ARCHIVE SELECTED' : 'RESTORE SELECTED'}
                                 </button>
                                 {selectedIds.size > 0 && (
                                     <span className="text-[10px] font-bold text-primary bg-primary/5 px-4 py-2 rounded-full border border-primary/10 uppercase tracking-[0.2em] animate-in fade-in slide-in-from-left-2 transition-all font-mono">
@@ -250,12 +250,12 @@ export function Projects() {
                                             {selectedIds.size === filteredProjects.length && filteredProjects.length > 0 && <Check className="w-4 h-4 stroke-[4]" />}
                                         </button>
                                     </th>
-                                    <th className="px-8 py-7 text-[10px] font-bold text-text-muted uppercase tracking-[0.3em] font-mono">Initiative Protocol</th>
-                                    <th className="px-8 py-7 text-[10px] font-bold text-text-muted uppercase tracking-[0.3em] font-mono">Resource Clusters</th>
-                                    <th className="px-8 py-7 text-[10px] font-bold text-text-muted uppercase tracking-[0.3em] font-mono text-center">Unit Count</th>
-                                    <th className="px-8 py-7 text-[10px] font-bold text-text-muted uppercase tracking-[0.3em] font-mono">Operational Queue</th>
-                                    <th className="px-8 py-7 text-[10px] font-bold text-text-muted uppercase tracking-[0.3em] font-mono">Fiscal Consumption</th>
-                                    <th className="px-8 py-7 text-[10px] font-bold text-text-muted uppercase tracking-[0.3em] font-mono">Thresholds</th>
+                                    <th className="px-8 py-7 text-[10px] font-bold text-text-muted uppercase tracking-[0.3em] font-mono">Project Name</th>
+                                    <th className="px-8 py-7 text-[10px] font-bold text-text-muted uppercase tracking-[0.3em] font-mono">Teams</th>
+                                    <th className="px-8 py-7 text-[10px] font-bold text-text-muted uppercase tracking-[0.3em] font-mono text-center">Members</th>
+                                    <th className="px-8 py-7 text-[10px] font-bold text-text-muted uppercase tracking-[0.3em] font-mono">Tasks</th>
+                                    <th className="px-8 py-7 text-[10px] font-bold text-text-muted uppercase tracking-[0.3em] font-mono">Budget</th>
+                                    <th className="px-8 py-7 text-[10px] font-bold text-text-muted uppercase tracking-[0.3em] font-mono">Member Limits</th>
                                     <th className="pr-10 py-7 w-20"></th>
                                 </tr>
                             </thead>
@@ -265,7 +265,7 @@ export function Projects() {
                                         <td colSpan={8} className="py-40 text-center">
                                             <div className="flex flex-col items-center gap-5">
                                                 <div className="w-10 h-10 border-2 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
-                                                <span className="text-[10px] font-bold text-text-muted uppercase tracking-[0.3em] animate-pulse">Syncing Matrix...</span>
+                                                <span className="text-[10px] font-bold text-text-muted uppercase tracking-[0.3em] animate-pulse">Loading...</span>
                                             </div>
                                         </td>
                                     </tr>
@@ -277,14 +277,14 @@ export function Projects() {
                                                     <AlertCircle className="w-16 h-16 text-primary" strokeWidth={1} />
                                                 </div>
                                                 <div>
-                                                    <p className="font-bold text-text-primary text-2xl tracking-tighter">No protocols detected</p>
-                                                    <p className="text-[11px] font-bold text-text-muted uppercase tracking-[0.4em] mt-3 font-mono">Registry is currently void of active projects</p>
+                                                    <p className="font-bold text-text-primary text-2xl tracking-tighter">No projects found</p>
+                                                    <p className="text-[11px] font-bold text-text-muted uppercase tracking-[0.4em] mt-3 font-mono">You haven't created any projects yet.</p>
                                                 </div>
                                                 <button 
                                                     onClick={() => { setSearchQuery(''); setShowModal(true); }}
                                                     className="text-primary font-bold text-xs uppercase tracking-[0.3em] hover:text-primary/70 transition-colors font-mono"
                                                 >
-                                                    INITIALIZE FIRST PROTOCOL
+                                                    CREATE PROJECT
                                                 </button>
                                             </div>
                                         </td>
@@ -313,7 +313,7 @@ export function Projects() {
 
                 <div className="mt-10 flex items-center justify-between px-6">
                     <p className="text-[10px] font-bold text-text-muted uppercase tracking-[0.3em] font-mono">
-                        REGISTRY MATRIX • {filteredProjects.length} NODE{filteredProjects.length !== 1 ? 'S' : ''} DETECTED
+                        {filteredProjects.length} PROJECT{filteredProjects.length !== 1 ? 'S' : ''} FOUND
                     </p>
                     <div className="flex items-center gap-4">
                         <button className="px-6 py-2.5 glass border border-black/[0.05] rounded-xl text-[10px] font-bold uppercase tracking-[0.2em] opacity-30 cursor-not-allowed font-mono">SECTOR ARC 1</button>
@@ -424,7 +424,7 @@ function ProjectRow({
                                     <Building2 className="w-3.5 h-3.5 text-primary" strokeWidth={2.5} /> {project.client_name}
                                 </span>
                             ) : (
-                                <span className="text-[10px] font-bold text-text-muted/40 uppercase italic tracking-[0.2em] font-mono">NO ORIGIN NODE</span>
+                                <span className="text-[10px] font-bold text-text-muted/40 uppercase italic tracking-[0.2em] font-mono">NO CLIENT</span>
                             )}
                             {project.billable && (
                                 <span className="text-[10px] font-bold text-emerald-600 uppercase bg-emerald-500/10 px-3 py-1 rounded-lg border border-emerald-500/20 tracking-[0.2em] font-mono">BILLABLE</span>
@@ -438,7 +438,7 @@ function ProjectRow({
                     {project.teamCount > 0 ? (
                         <div className="flex items-center gap-3 bg-primary/5 px-4 py-1.5 rounded-xl border border-primary/10 shadow-sm">
                             <Building2 className="w-4 h-4 text-primary" strokeWidth={2.5} />
-                            <span className="text-[10px] font-bold text-primary uppercase tracking-[0.2em]">{project.teamCount} UNIT{project.teamCount !== 1 ? 'S' : ''}</span>
+                            <span className="text-[10px] font-bold text-primary uppercase tracking-[0.2em]">{project.teamCount} TEAMS</span>
                         </div>
                     ) : (
                         <span className="text-[10px] font-bold text-text-muted/30 uppercase italic tracking-[0.3em]">STANDALONE</span>
@@ -479,7 +479,7 @@ function ProjectRow({
                     </div>
                     <div>
                         <p className="text-base font-bold text-text-primary leading-none mb-1">{project.todoCount}</p>
-                        <p className="text-[9px] font-bold text-text-muted uppercase tracking-[0.2em]">PENDING</p>
+                        <p className="text-[9px] font-bold text-text-muted uppercase tracking-[0.2em]">TASKS</p>
                     </div>
                 </div>
             </td>
@@ -487,7 +487,7 @@ function ProjectRow({
                 <div className="flex flex-col gap-3.5 min-w-[160px]">
                     <div className="flex justify-between items-end">
                         <span className="text-[9px] font-bold text-text-muted uppercase tracking-[0.2em] font-mono">
-                            {(project.budget_type || 'No budget') === 'No budget' ? 'ORGANIC' : (project.budget_type || '').replace('Total ', '').toUpperCase()}
+                            {(project.budget_type || 'No budget') === 'No budget' ? 'NO BUDGET' : (project.budget_type || '').replace('Total ', '').toUpperCase()}
                         </span>
                         {project.budget_limit && (
                             <span className={clsx(
@@ -509,7 +509,7 @@ function ProjectRow({
                             />
                         </div>
                     ) : (
-                        <span className="text-[10px] font-bold text-text-muted/30 uppercase italic tracking-[0.2em] font-mono">UNCONSTRAINED</span>
+                        <span className="text-[10px] font-bold text-text-muted/30 uppercase italic tracking-[0.2em] font-mono">NO BUDGET LIMIT</span>
                     )}
                 </div>
             </td>
@@ -521,21 +521,21 @@ function ProjectRow({
                         </div>
                     </div>
                 ) : (
-                    <span className="text-[10px] font-bold text-text-muted/30 uppercase italic tracking-[0.3em] font-mono">UNLIMITED</span>
+                    <span className="text-[10px] font-bold text-text-muted/30 uppercase italic tracking-[0.3em] font-mono">NO LIMIT</span>
                 )}
             </td>
             <td className="pr-10 py-8 text-right relative" ref={dropRef}>
                 <button
                     onClick={() => setShowMenu(!showMenu)}
-                    className="p-3.5 glass border border-black/[0.05] rounded-[18px] text-text-muted hover:text-text-primary transition-all shadow-sm active:scale-90 group-hover/row:border-primary/20"
+                    className="p-3.5 bg-white/50 border border-black/[0.05] rounded-[18px] text-text-muted hover:text-text-primary transition-all shadow-sm active:scale-90 group-hover/row:border-primary/20"
                 >
                     <MoreHorizontal className="w-6 h-6" strokeWidth={2.5} />
                 </button>
 
                 {showMenu && (
-                    <div className="absolute right-10 top-20 w-64 glass border border-black/[0.08] shadow-2xl z-20 py-3 rounded-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                    <div className="absolute right-10 top-20 w-64 bg-white/95 backdrop-blur-3xl border border-black/[0.08] shadow-2xl z-20 py-3 rounded-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                         <button onClick={() => { setShowMenu(false); onEdit('GENERAL'); }} className="w-full px-6 py-4 text-left text-[11px] font-bold uppercase tracking-[0.2em] text-text-muted hover:text-text-primary hover:bg-black/[0.02] flex items-center gap-4 transition-colors font-mono">
-                            <Pencil className="w-4.5 h-4.5 text-primary" strokeWidth={2.5} /> {isViewer ? 'INSPECT PROTOCOL' : 'ADJUST SETTINGS'}
+                            <Pencil className="w-4.5 h-4.5 text-primary" strokeWidth={2.5} /> {isViewer ? 'VIEW DETAILS' : 'EDIT PROJECT'}
                         </button>
                         <button 
                             onClick={() => { if (!isViewer) { setShowMenu(false); onEdit('MEMBERS'); } }} 
@@ -544,7 +544,7 @@ function ProjectRow({
                                 isViewer ? "opacity-30 cursor-not-allowed" : "text-text-muted hover:text-text-primary hover:bg-black/[0.02]"
                             )}
                         >
-                            <Users className="w-4.5 h-4.5 text-primary" strokeWidth={2.5} /> MEMBER GRID
+                            <Users className="w-4.5 h-4.5 text-primary" strokeWidth={2.5} /> MEMBERS
                         </button>
                         <button 
                             onClick={() => { if (!isViewer) { setShowMenu(false); onEdit('BUDGET & LIMITS'); } }} 
@@ -553,7 +553,7 @@ function ProjectRow({
                                 isViewer ? "opacity-30 cursor-not-allowed" : "text-text-muted hover:text-text-primary hover:bg-black/[0.02]"
                             )}
                         >
-                            <CreditCard className="w-4.5 h-4.5 text-primary" strokeWidth={2.5} /> FISCAL THRESHOLDS
+                            <CreditCard className="w-4.5 h-4.5 text-primary" strokeWidth={2.5} /> BUDGET & LIMITS
                         </button>
                         <div className="h-px bg-black/[0.03] my-3 mx-4" />
                         <button 
@@ -563,7 +563,7 @@ function ProjectRow({
                                 isViewer ? "opacity-30 cursor-not-allowed" : "text-text-muted hover:text-text-primary hover:bg-black/[0.02]"
                             )}
                         >
-                            <Archive className="w-4.5 h-4.5 text-primary" strokeWidth={2.5} /> {project.status === 'Active' ? 'ARCHIVE PROTOCOL' : 'RESTORE PROTOCOL'}
+                            <Archive className="w-4.5 h-4.5 text-primary" strokeWidth={2.5} /> {project.status === 'Active' ? 'ARCHIVE PROJECT' : 'RESTORE PROJECT'}
                         </button>
                         <button 
                             onClick={() => { if (!isViewer) { setShowMenu(false); handleDelete(); } }} 
@@ -572,7 +572,7 @@ function ProjectRow({
                                 isViewer ? "opacity-30 cursor-not-allowed" : "text-rose-500 hover:bg-rose-500/10"
                             )}
                         >
-                            <Trash2 className="w-4.5 h-4.5 text-rose-600" strokeWidth={2.5} /> PURGE METADATA
+                            <Trash2 className="w-4.5 h-4.5 text-rose-600" strokeWidth={2.5} /> DELETE PROJECT
                         </button>
                     </div>
                 )}
@@ -622,12 +622,12 @@ function ToggleItem({ label, active, onToggle, hint }: { label: string; active: 
                     <h4 className={clsx("text-[10px] font-bold uppercase tracking-[0.2em] font-mono", color)}>{label}</h4>
                     <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest mt-1 font-mono">{description}</p>
                 </div>
-                <span className="text-[10px] font-bold text-text-muted opacity-50 font-mono">{filtered.length} NODES</span>
+                <span className="text-[10px] font-bold text-text-muted opacity-50 font-mono">{filtered.length} MEMBERS</span>
             </div>
             <div className="glass border border-black/[0.05] rounded-2xl overflow-hidden shadow-sm">
                 {filtered.length === 0 ? (
                     <div className="py-12 text-center">
-                        <p className="text-[10px] font-bold text-text-muted uppercase tracking-[0.3em] font-mono italic">Registry void in this sector</p>
+                        <p className="text-[10px] font-bold text-text-muted uppercase tracking-[0.3em] font-mono italic">No members found</p>
                     </div>
                 ) : (
                     <div className="divide-y divide-black/[0.03] max-h-[220px] overflow-y-auto custom-scrollbar">
@@ -788,8 +788,8 @@ function ProjectModal({ project, initialTab = 'GENERAL', onClose, onSuccess }: {
                                 <span className="font-bold text-2xl font-mono">{(name || 'P').charAt(0).toUpperCase()}</span>
                             </div>
                             <div>
-                                <h2 className="text-2xl font-bold text-text-primary tracking-tighter leading-none mb-2">{project ? 'Edit Protocol' : 'New Protocol'}</h2>
-                                <p className="text-[11px] font-bold text-text-muted uppercase tracking-[0.3em] font-mono">Project configuration and resource mapping</p>
+                                <h2 className="text-2xl font-bold text-text-primary tracking-tighter leading-none mb-2">{project ? 'Edit Project' : 'New Project'}</h2>
+                                <p className="text-[11px] font-bold text-text-muted uppercase tracking-[0.3em] font-mono">Configure project details and team access</p>
                             </div>
                         </div>
                         <button onClick={onClose} className="p-3 bg-black/[0.03] hover:bg-black/[0.08] rounded-2xl transition-all text-text-muted hover:text-text-primary shadow-sm hover:scale-110 active:scale-90"><X className="w-5 h-5" strokeWidth={3} /></button>
@@ -817,16 +817,16 @@ function ProjectModal({ project, initialTab = 'GENERAL', onClose, onSuccess }: {
                     {activeTab === 'GENERAL' && (
                         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                             <div>
-                                <label className="block text-[10px] font-bold text-text-muted uppercase tracking-[0.3em] font-mono mb-3">Initiative Identity *</label>
+                                <label className="block text-[10px] font-bold text-text-muted uppercase tracking-[0.3em] font-mono mb-3">Project Name *</label>
                                 <input 
                                     value={name} 
                                     onChange={e => setName(e.target.value)} 
-                                    placeholder="DESIGNATE PROJECT NAME..."
+                                    placeholder="Enter project name..."
                                     className="w-full bg-white border border-black/[0.08] rounded-2xl px-6 py-4 text-[13px] font-bold text-text-primary focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary/20 transition-all font-mono placeholder:text-text-muted/30 uppercase" 
                                 />
                             </div>
                             <div>
-                                <label className="block text-[10px] font-bold text-text-muted uppercase tracking-[0.3em] font-mono mb-4">Color Signature</label>
+                                <label className="block text-[10px] font-bold text-text-muted uppercase tracking-[0.3em] font-mono mb-4">Color Theme</label>
                                 <div className="flex gap-3.5 flex-wrap">
                                     {COLORS.map(c => (
                                         <button key={c} type="button" onClick={() => setColor(c)}
@@ -847,12 +847,12 @@ function ProjectModal({ project, initialTab = 'GENERAL', onClose, onSuccess }: {
                             </div>
                             
                             <div className="space-y-2">
-                                <label className="block text-[10px] font-bold text-text-muted uppercase tracking-[0.3em] font-mono mb-1">Operational Parameters</label>
-                                <div className="glass border border-black/[0.03] rounded-3xl px-3 py-2 divide-y divide-black/[0.03] overflow-hidden shadow-sm">
-                                    <ToggleItem label="Billable Output" active={billable} onToggle={() => setBillable(!billable)} hint="FINANCIAL RECOGNITION ENABLED" />
-                                    <ToggleItem label="Active Forensics" active={!disableActivity} onToggle={() => setDisableActivity(!disableActivity)} hint="KEYBOARD + MOUSE TELEMETRY" />
-                                    <ToggleItem label="Temporal Log" active={allowTracking} onToggle={() => setAllowTracking(!allowTracking)} hint="CHRONO-LOGGING PERMISSIONS" />
-                                    <ToggleItem label="Stasis Filter" active={!disableIdle} onToggle={() => setDisableIdle(!disableIdle)} hint="IDLE STATE SUPPRESSION" />
+                                <label className="block text-[10px] font-bold text-text-muted uppercase tracking-[0.3em] font-mono mb-1">Project Settings</label>
+                                <div className="bg-white border border-black/[0.03] rounded-3xl px-3 py-2 divide-y divide-black/[0.03] overflow-hidden shadow-sm">
+                                    <ToggleItem label="Billable Default" active={billable} onToggle={() => setBillable(!billable)} hint="SET PROJECT AS BILLABLE" />
+                                    <ToggleItem label="Track Activity" active={!disableActivity} onToggle={() => setDisableActivity(!disableActivity)} hint="RECORD KEYBOARD & MOUSE ACTIVITY" />
+                                    <ToggleItem label="Allow Manual Time" active={allowTracking} onToggle={() => setAllowTracking(!allowTracking)} hint="ALLOW USERS TO ADD TIME MANUALLY" />
+                                    <ToggleItem label="Disable Idle Time" active={!disableIdle} onToggle={() => setDisableIdle(!disableIdle)} hint="DO NOT TRACK IDLE STATUS" />
                                 </div>
                             </div>
 
@@ -880,14 +880,14 @@ function ProjectModal({ project, initialTab = 'GENERAL', onClose, onSuccess }: {
                                 <input 
                                     value={memberSearch} 
                                     onChange={e => setMemberSearch(e.target.value)} 
-                                    placeholder="QUERY PERSONNEL NODES..."
+                                    placeholder="Search members..."
                                     className="w-full pl-13 pr-6 py-4 bg-black/[0.02] border border-black/[0.05] rounded-[20px] text-[12px] font-bold text-text-primary focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all font-mono placeholder:text-text-muted/40 uppercase" 
                                 />
                             </div>
                             <div className="space-y-10">
                                 <MemberPicker label="EXECUTIVE COMMAND" description="Strategic oversight and admin rights" color="text-purple-600"
                                     members={managers} selectedIds={managerIds} onToggle={id => toggleId(managerIds, setManagerIds, id)} memberSearch={memberSearch} />
-                                <MemberPicker label="OPERATIONAL UNITS" description="Core project execution nodes" color="text-primary"
+                                <MemberPicker label="MEMBERS" description="Core project members" color="text-primary"
                                     members={users} selectedIds={userIds} onToggle={id => toggleId(userIds, setUserIds, id)} memberSearch={memberSearch} />
                                 <MemberPicker label="INTELLIGENCE OBSERVERS" description="Read-only analytic access" color="text-emerald-600"
                                     members={viewers} selectedIds={viewerIds} onToggle={id => toggleId(viewerIds, setViewerIds, id)} memberSearch={memberSearch} />
@@ -997,7 +997,7 @@ function ProjectModal({ project, initialTab = 'GENERAL', onClose, onSuccess }: {
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                         <div className="space-y-3">
-                                            <label className="block text-[10px] font-bold text-text-muted uppercase tracking-[0.3em] font-mono">Refresh Protocol</label>
+                                            <label className="block text-[10px] font-bold text-text-muted uppercase tracking-[0.3em] font-mono">Reset Budget</label>
                                             <div className="relative">
                                                 <select 
                                                     value={resets} 
@@ -1029,7 +1029,7 @@ function ProjectModal({ project, initialTab = 'GENERAL', onClose, onSuccess }: {
                                 <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                                     <div className="flex gap-4 p-6 bg-primary/5 border border-primary/10 rounded-3xl">
                                         <AlertCircle className="w-6 h-6 text-primary shrink-0" strokeWidth={2.5} />
-                                        <p className="text-[12px] font-bold text-primary uppercase tracking-wider font-mono leading-relaxed">System-wide constraint: Set a weekly temporal threshold for all units assigned to this node.</p>
+                                        <p className="text-[12px] font-bold text-primary uppercase tracking-wider font-mono leading-relaxed">System-wide constraint: Set a weekly limit on hours tracked for each member in this project.</p>
                                     </div>
                                     <div className="space-y-4">
                                         <label className="block text-[10px] font-bold text-text-muted uppercase tracking-[0.3em] font-mono">Weekly Hour Ceiling</label>
@@ -1068,7 +1068,7 @@ function ProjectModal({ project, initialTab = 'GENERAL', onClose, onSuccess }: {
                                         onClick={() => setSelectedTeamIds(selectedTeamIds.size===filteredTeams.length ? new Set() : new Set(filteredTeams.map(t => t.id)))}
                                         className="text-[10px] font-bold text-primary hover:text-primary/70 uppercase tracking-[0.2em] font-mono whitespace-nowrap px-4 py-2 bg-primary/5 rounded-xl border border-primary/10 transition-all active:scale-95"
                                     >
-                                        {selectedTeamIds.size===filteredTeams.length ? 'PURGE SELECTION' : 'SELECT ALL NODES'}
+                                        {selectedTeamIds.size===filteredTeams.length ? 'PURGE SELECTION' : 'SELECT ALL'}
                                     </button>
                                 )}
                             </div>
@@ -1099,7 +1099,7 @@ function ProjectModal({ project, initialTab = 'GENERAL', onClose, onSuccess }: {
                                                     </div>
                                                     <div className="text-left">
                                                         <span className="text-base font-bold text-text-primary tracking-tight leading-none block mb-1">{t.name}</span>
-                                                        <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest font-mono">OPERATIONAL CLUSTER</span>
+                                                        <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest font-mono">TEAM</span>
                                                     </div>
                                                 </div>
                                                 <div className={clsx(
@@ -1134,7 +1134,7 @@ function ProjectModal({ project, initialTab = 'GENERAL', onClose, onSuccess }: {
                             )}
                         >
                             {loading && <div className="w-4 h-4 border-[3px] border-white/30 border-t-white rounded-full animate-spin" />}
-                            {isViewer ? 'PROTOCOL LOCKED' : loading ? 'SYNCING...' : 'COMMIT CHANGES'}
+                            {isViewer ? 'READ ONLY' : loading ? 'SAVING...' : 'SAVE PROJECT'}
                         </button>
                     </div>
                 </div>

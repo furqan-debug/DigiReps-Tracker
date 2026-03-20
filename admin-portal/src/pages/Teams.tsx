@@ -245,7 +245,7 @@ export function Teams() {
                                     isViewer ? "text-text-muted cursor-default" : "bg-primary text-white hover:shadow-primary/30 hover:scale-105 active:scale-95 shadow-xl"
                                 )}
                             >
-                                Initialize Protocol
+                                Create Team
                             </button>
                         </div>
                     </div>
@@ -525,7 +525,7 @@ function TeamItem({ team, mode, onEdit, onManage, onDelete, isViewer }: {
                 </div>
                 <div className="flex-1 min-w-0">
                     <h3 className="font-bold text-text-primary tracking-tight text-xl leading-tight group-hover/row:text-primary transition-colors duration-500 mb-1">{team.name}</h3>
-                    <p className="text-[10px] text-text-muted font-bold uppercase tracking-[0.2em] font-mono truncate max-w-md">{team.description || 'GLOBAL PROTOCOL UNDEFINED'}</p>
+                    <p className="text-[10px] text-text-muted font-bold uppercase tracking-[0.2em] font-mono truncate max-w-md">{team.description || 'NO DESCRIPTION'}</p>
                 </div>
                 <div className="px-12 shrink-0">
                     <p className="text-[9px] font-bold text-text-muted/40 uppercase tracking-[0.3em] mb-3 font-mono">Authority</p>
@@ -605,7 +605,7 @@ function TeamItem({ team, mode, onEdit, onManage, onDelete, isViewer }: {
                 </div>
                 <h3 className="text-3xl font-bold text-text-primary tracking-tighter mb-4 group-hover/card:text-primary transition-colors duration-500">{team.name}</h3>
                 <p className="text-[13px] text-text-muted font-bold uppercase tracking-widest leading-relaxed line-clamp-2 min-h-[48px] font-mono opacity-60">
-                    {team.description || "Operational protocol for this unit remains undefined."}
+                    {team.description || "No description available for this team."}
                 </p>
             </div>
 
@@ -649,7 +649,7 @@ function TeamItem({ team, mode, onEdit, onManage, onDelete, isViewer }: {
                             isViewer ? "text-text-muted cursor-default" : "text-primary hover:bg-primary/5 active:scale-95"
                         )}
                     >
-                        {isViewer ? 'INSPECT' : 'MANAGE'}
+                        {isViewer ? 'VIEW' : 'MANAGE'}
                         <ChevronRight className="w-5 h-5 group-hover/btn:translate-x-2 transition-transform" strokeWidth={3} />
                     </button>
                 </div>

@@ -78,8 +78,8 @@ export function SettingsPage() {
 
     return (
         <PageLayout
-            title="Core Protocols"
-            description="Configure tracking behavior, operational limits, and security protocols."
+            title="Core Settings"
+            description="Configure tracking behavior, operational limits, and security settings."
             maxWidth="full"
             actions={
                 <div className="flex items-center gap-4">
@@ -104,7 +104,7 @@ export function SettingsPage() {
                         )}
                     >
                         {saved ? <CheckCircle className="w-5 h-5 stroke-[3]" /> : <Save className="w-5 h-5 stroke-[3]" />}
-                        {isViewer ? 'REGISTRY LOCKED' : (saved ? 'PROTOCOL SYNCED' : 'INITIALIZE SYNC')}
+                        {isViewer ? 'READ ONLY' : (saved ? 'SAVED' : 'SAVE CHANGES')}
                     </button>
                 </div>
             }
@@ -118,7 +118,7 @@ export function SettingsPage() {
                     >
                         <ToggleField
                             label="Privacy Shield (Blur)"
-                            description="Apply a sub-pixel blur effect to screenshots before matrix upload"
+                            description="Apply a sub-pixel blur effect to screenshots before upload"
                             value={settings.screenshotBlur}
                             onChange={v => update('screenshotBlur', v)}
                         />
@@ -158,7 +158,7 @@ export function SettingsPage() {
                                 <div className="pl-6 border-l-2 border-indigo-500/30 pt-4 animate-in slide-in-from-left-4 duration-500">
                                     <RangeField
                                         label="Termination Delay"
-                                        description="Interval before automatic protocol shutdown"
+                                        description="Interval before automatic stop"
                                         value={settings.idleAutoStopMinutes}
                                         unit="Min"
                                         min={5} max={120} step={5}
@@ -199,7 +199,7 @@ export function SettingsPage() {
 
                     <SettingsSection 
                         icon={<Shield className="w-5 h-5" />} 
-                        title="Deep Tracking Protocols" 
+                        title="Deep Tracking Settings" 
                         subtitle="Configure collection parameters for application and web data"
                     >
                         <div className="space-y-10">
@@ -228,8 +228,8 @@ export function SettingsPage() {
                                     <Zap className="w-6 h-6" />
                                 </div>
                                 <div>
-                                    <h3 className="text-xl font-bold text-text-primary tracking-tighter uppercase leading-none">Active Matrix</h3>
-                                    <p className="text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] font-mono mt-2">Core Kernel Directives</p>
+                                    <h3 className="text-xl font-bold text-text-primary tracking-tighter uppercase leading-none">Active Settings</h3>
+                                    <p className="text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] font-mono mt-2">Core Directives</p>
                                 </div>
                             </div>
                             <div className="space-y-6 font-mono">
@@ -274,7 +274,7 @@ export function SettingsPage() {
                         </div>
                         <h4 className="text-2xl font-bold text-text-primary tracking-tighter mb-4 uppercase leading-none">Legacy Override</h4>
                         <p className="text-[11px] font-bold text-text-muted uppercase tracking-[0.2em] leading-relaxed mb-10 font-mono opacity-60">
-                            Permanent dissolution of configuration will reset system to factory default state protocols.
+                            Permanent dissolution of configuration will reset system to factory default settings.
                         </p>
                         <button 
                             disabled={isViewer}
