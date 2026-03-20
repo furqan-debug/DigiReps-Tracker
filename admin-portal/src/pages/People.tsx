@@ -88,37 +88,37 @@ export function People() {
         try {
             const { data: { session } } = await supabase.auth.getSession();
             
-            // Debug logs
-            console.log('--- EDGE FUNCTION DEBUG ---');
-            console.log('URL:', import.meta.env.VITE_SUPABASE_URL);
-            console.log('Anon Key (start):', import.meta.env.VITE_SUPABASE_ANON_KEY?.substring(0, 10));
-            console.log('Has Session:', !!session);
-            console.log('Token (start):', session?.access_token?.substring(0, 10));
-
-            const { data, error } = await supabase.functions.invoke('send-invite-email', {
+            console.log('--- ATTEMPTING INVITE ---');
+            
+            // Use fetch directly for better error visibility
+            const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-invite-email`, {
+                method: 'POST',
                 headers: {
+                    'Content-Type': 'application/json',
                     'Authorization': `Bearer ${session?.access_token}`,
                     'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY
                 },
-                body: {
+                body: JSON.stringify({
                     email: addEmail.trim().toLowerCase(),
                     role: addRole,
-                    pay_rate: addPayRate ? parseFloat(addPayRate) : null,
-                    bill_rate: addBillRate ? parseFloat(addBillRate) : null,
-                    weekly_limit: parseInt(addWeekly) || 40,
-                    daily_limit: parseInt(addDaily) || 8,
+                    pay_rate: addEmail.trim() === 'furqanfreelancer1@gmail.com' ? 0 : (addPayRate ? parseFloat(addPayRate) : null), // Temp safety
                     admin_portal_url: window.location.origin
-                }
+                })
             });
 
-            if (error) throw error;
-            if (!data?.ok) throw new Error(data?.error || 'Failed to send invite');
+            const result = await response.json();
+            console.log('--- RESPONSE RECEIVED ---', result);
 
-            setInviteSentTo(data.member.email);
+            if (!response.ok) {
+                throw new Error(result.error || `Server returned ${response.status}`);
+            }
+
+            setInviteSentTo(addEmail);
             setShowAddModal(false);
             resetAddForm();
             await fetchMembers();
         } catch (e: any) {
+            console.error('INVITE FAILED:', e);
             setAddError(e.message);
         } finally {
             setAdding(false);
