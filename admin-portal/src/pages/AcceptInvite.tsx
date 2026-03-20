@@ -70,23 +70,36 @@ export function AcceptInvite() {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) throw new Error('Session expired. Please use the invite link again.');
 
-            const { data, error: invokeErr } = await supabase.functions.invoke('complete-onboarding', {
+            // 3. Update profile via Edge Function
+            console.log('--- ACTIVATING ACCOUNT ---');
+            
+            const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/complete-onboarding`, {
+                method: 'POST',
                 headers: {
+                    'Content-Type': 'application/json',
                     'Authorization': `Bearer ${session?.access_token}`,
                     'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY
                 },
-                body: { full_name: fullName.trim(), phone: phone.trim() || null }
+                body: JSON.stringify({
+                    full_name: fullName.trim(),
+                    phone: phone.trim() || null,
+                })
             });
 
-            if (invokeErr) throw invokeErr;
-            if (!data?.ok) throw new Error(data?.error || 'Failed to complete setup.');
+            const result = await response.json();
+            console.log('--- ONBOARDING RESPONSE ---', result);
 
-            if (data.member?.role) {
-                setRole(data.member.role);
+            if (!response.ok) {
+                throw new Error(result.error || `Server error: ${response.status}`);
+            }
+
+            if (result.member?.role) {
+                setRole(result.member.role);
             }
             setStep('success');
         } catch (err: any) {
-            setFormError(err.message);
+            console.error('ACTIVATION FAILED:', err);
+            setFormError(err.message || 'Failed to complete onboarding. Please try again.');
         } finally {
             setSubmitting(false);
         }
