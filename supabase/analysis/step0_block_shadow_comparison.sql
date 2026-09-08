@@ -21,9 +21,11 @@
 --                non-idle minutes always count; a run of idle minutes counts
 --                only if the run is SHORTER than the member's idle_limit.
 --   block_h    — the PROPOSED model.
---                Clock-aligned 10-minute blocks. A block is Active if any
---                minute in it had input; an Active block credits every minute
---                it actually contains (so partial blocks credit partially).
+--                10-minute blocks counted FROM THE START OF EACH SESSION, so
+--                every session begins on block 0 and none inherits a block
+--                that began before it did. A block is Active if any minute in
+--                it had input; an Active block credits every minute it
+--                actually contains (so partial blocks credit partially).
 --
 -- NOTE ON THE BASELINES: reports_h / owed_h / daily_h are reimplementations of
 -- the live logic, applied over a single consistently de-duplicated sample set
@@ -54,7 +56,9 @@ deduped as (
     a.idle,
     a.mouse_clicks,
     a.key_presses,
-    coalesce(m.idle_limit, 10) as idle_limit
+    coalesce(m.idle_limit, 10) as idle_limit,
+    s.id         as session_id,
+    s.started_at as session_started_at
   from activity_samples a
   join sessions s  on a.session_id = s.id
   left join members m on m.id = s.user_id
@@ -76,8 +80,8 @@ enriched as (
        or coalesce(d.mouse_clicks, 0) > 0
        or coalesce(d.key_presses, 0) > 0)                       as has_activity,
     to_char(d.recorded_at at time zone p.org_tz, 'YYYY-MM-DD')  as day_str,
-    -- clock-aligned 10-minute block, derived from the timestamp alone
-    floor(extract(epoch from d.recorded_at) / 600)::bigint      as block_id
+    -- 10-minute block index within this sample's own session
+    floor(extract(epoch from (d.recorded_at - d.session_started_at)) / 600)::bigint as block_id
   from deduped d cross join params p
 ),
 
@@ -106,15 +110,17 @@ run_len as (
 
 -- Proposed model: a block is Active if ANY minute inside it had input.
 block_state as (
-  select user_id, block_id, bool_or(has_activity) as block_active
-  from enriched group by user_id, block_id
+  select user_id, session_id, block_id, bool_or(has_activity) as block_active
+  from enriched group by user_id, session_id, block_id
 ),
 
 joined as (
   select r.*, rl.len, bs.block_active
   from runs r
   join run_len    rl on rl.user_id = r.user_id and rl.run_id   = r.run_id
-  join block_state bs on bs.user_id = r.user_id and bs.block_id = r.block_id
+  join block_state bs on bs.user_id    = r.user_id
+                     and bs.session_id = r.session_id
+                     and bs.block_id   = r.block_id
 )
 
 -- ── Per-member summary ─────────────────────────────────────────────────────

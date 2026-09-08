@@ -797,13 +797,18 @@ export default function App() {
   const isHandlingIdleRef = useRef(false); // guard against double-fire on listener re-subscription
 
   // ─── Block-aligned idle tracking ────────────────────────────────────────────
-  // Idle is evaluated per fixed 10-minute clock block (09:00–09:10, 09:10–09:20…),
-  // not as a rolling countdown from the last active minute. A block that closes
-  // with at least one active minute is kept whole; a block that closes completely
-  // blank is what triggers idle. So activity at 09:07 protects the entire
-  // 09:00–09:10 block, and the clock only starts again at 09:10.
+  // Idle is evaluated per 10-minute block, not as a rolling countdown from the
+  // last active minute. A block that closes with at least one active minute is
+  // kept whole; a block that closes completely blank is what triggers idle.
+  //
+  // Every session gets its own blocks, counted from the moment it started — a
+  // session beginning at 09:04 has blocks 09:04–09:14, 09:14–09:24, and so on.
+  // So a session always gets a full ten minutes to prove activity, and can never
+  // be judged (or closed) on a boundary from a block that began before it did.
+  // One active minute at 09:11 keeps the whole 09:04–09:14 block.
   const BLOCK_MS = 10 * 60 * 1000;
-  const currentBlockIdRef = useRef<number | null>(null);   // block we're filling
+  const sessionAnchorMsRef = useRef<number | null>(null);  // epoch ms this session's blocks count from
+  const currentBlockIdRef = useRef<number | null>(null);   // block index within the session
   const blockHadActivityRef = useRef(false);               // ...and whether it has seen input
   const blankBlockCountRef = useRef(0);                    // consecutive fully-blank blocks
   const lastActiveBlockEndRef = useRef<number | null>(null); // epoch ms; discard/resume point
@@ -1473,9 +1478,14 @@ export default function App() {
         // active_seconds); both are checked purely as belt-and-braces.
         const isIdleSample = sample.idle === true || (sample.activity_percent ?? 100) === 0;
 
-        // Which fixed 10-minute clock block does this minute belong to?
+        // Which 10-minute block of THIS SESSION does this minute belong to?
+        // Blocks are counted from the moment the session began, so block 0 is
+        // always the first ten minutes the user actually worked. If the anchor
+        // is somehow missing, fall back to anchoring on this first sample.
         const sampleMs = Date.parse(sample.recorded_at) || Date.now();
-        const blockId = Math.floor(sampleMs / BLOCK_MS);
+        if (sessionAnchorMsRef.current === null) sessionAnchorMsRef.current = sampleMs;
+        const anchorMs = sessionAnchorMsRef.current;
+        const blockId = Math.floor((sampleMs - anchorMs) / BLOCK_MS);
 
         if (currentBlockIdRef.current === null) {
           currentBlockIdRef.current = blockId;
@@ -1489,7 +1499,7 @@ export default function App() {
           if (blockHadActivityRef.current) {
             // Kept in full. This is the point we roll back to if idle follows.
             blankBlockCountRef.current = 0;
-            lastActiveBlockEndRef.current = (currentBlockIdRef.current + 1) * BLOCK_MS;
+            lastActiveBlockEndRef.current = anchorMs + (currentBlockIdRef.current + 1) * BLOCK_MS;
           } else {
             blankBlockCountRef.current += 1;
             closedBlankBlock = true;
@@ -1520,7 +1530,7 @@ export default function App() {
         // Falling back to the block start keeps the cutoff block-aligned even
         // when a session has not yet had a single active block.
         const cutoffMs = lastActiveBlockEndRef.current
-          ?? (currentBlockIdRef.current - blankBlockCountRef.current) * BLOCK_MS;
+          ?? anchorMs + (currentBlockIdRef.current - blankBlockCountRef.current) * BLOCK_MS;
         const cutoffIso = new Date(cutoffMs).toISOString();
         const idleSecs = Math.max(0, Math.round((Date.now() - cutoffMs) / 1000));
         const idleMins = Math.round(idleSecs / 60);
@@ -2023,6 +2033,7 @@ export default function App() {
 
     setLiveIdleSeconds(0); // reset live idle counter for new session
     idleMinutesRef.current = 0; // reset inactivity counter for new session
+    sessionAnchorMsRef.current = Date.now(); // blocks are counted from here
     currentBlockIdRef.current = null;      // start block tracking fresh
     blockHadActivityRef.current = false;
     blankBlockCountRef.current = 0;
@@ -2189,6 +2200,7 @@ export default function App() {
     pendingIdleDiscardRef.current = null;
     absoluteIdleRef.current = 0;
     isAutoTerminatingRef.current = false;
+    sessionAnchorMsRef.current = null;
     currentBlockIdRef.current = null;
     blockHadActivityRef.current = false;
     blankBlockCountRef.current = 0;
@@ -2256,6 +2268,12 @@ export default function App() {
     // Start block tracking fresh. Without this the block that was open when we
     // paused stays "current" and empty, so the first sample after resuming would
     // close it as blank and immediately re-trigger the away popup.
+    //
+    // The session anchor is deliberately NOT reset here. A manual pause/resume
+    // does not start a new session, and the server derives blocks from
+    // sessions.started_at, so re-anchoring on resume would put the client on a
+    // different block grid than the server. Idle-triggered resume goes through
+    // startTracking instead, which opens a real new session and re-anchors.
     currentBlockIdRef.current = null;
     blockHadActivityRef.current = false;
     blankBlockCountRef.current = 0;

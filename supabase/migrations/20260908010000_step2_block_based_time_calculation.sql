@@ -8,9 +8,13 @@
 -- post-Step-1 data. See supabase/analysis/step0_block_shadow_comparison.sql.
 --
 -- The model
---   Block        = fixed, clock-aligned 10 minutes: floor(epoch / 600).
---                  Derived from the timestamp alone, so client and server
---                  compute identical block ids with no coordination.
+--   Block        = 10 minutes measured from the START OF THE SESSION:
+--                  floor((recorded_at - session.started_at) / 600). Every
+--                  session starts on block 0, so no session ever inherits a
+--                  block that began before it did. Derived from the sample
+--                  timestamp and sessions.started_at, both of which the server
+--                  already holds, so client and server agree with no extra
+--                  coordination and nothing has to be trusted from the client.
 --   Active block = at least one minute inside it had input.
 --   Credit       = every minute actually present in an Active block. Partial
 --                  blocks credit partially; a block with no samples credits
@@ -46,15 +50,29 @@ $$;
 COMMENT ON FUNCTION public.sample_has_activity IS
   'True when a sample saw any input. Uses active_seconds when present (Step 1 onward); falls back to idle/clicks/keypresses for older rows where the raw value was never recorded.';
 
--- The clock-aligned 10-minute block a timestamp falls into.
-CREATE OR REPLACE FUNCTION public.block_id_of(p_ts timestamptz)
+-- Which 10-minute block OF ITS OWN SESSION a sample falls into.
+--
+-- Blocks are anchored to sessions.started_at, not to the wall clock. Every
+-- session therefore begins on block 0 and gets a full, un-clipped ten minutes
+-- to prove activity. Clock-aligned blocks would hand a session that started at
+-- 09:07 only three minutes before its first boundary, and could close it at a
+-- boundary belonging to a block that began before the session existed.
+--
+-- Block ids are only ever comparable WITHIN one session: always group and join
+-- on (session_id, block_index), never on block_index alone.
+CREATE OR REPLACE FUNCTION public.session_block_index(
+  p_recorded_at timestamptz,
+  p_started_at  timestamptz
+)
 RETURNS bigint
-LANGUAGE sql STABLE AS $$
-  SELECT floor(extract(epoch FROM p_ts) / 600)::bigint;
+LANGUAGE sql IMMUTABLE AS $$
+  SELECT floor(extract(epoch FROM (p_recorded_at - p_started_at)) / 600)::bigint;
 $$;
 
-COMMENT ON FUNCTION public.block_id_of IS
-  'Clock-aligned 10-minute block id. block_id_of(t) * 600 is the block start as a unix epoch.';
+COMMENT ON FUNCTION public.session_block_index IS
+  'Zero-based 10-minute block index within a session. Block n spans started_at + n*10min to started_at + (n+1)*10min. Only comparable within a single session.';
+
+DROP FUNCTION IF EXISTS public.block_id_of(timestamptz);
 
 
 -- ── 1. Reports ──────────────────────────────────────────────────────────────
@@ -87,7 +105,8 @@ BEGIN
       a.activity_percent,
       a.app_name,
       public.sample_has_activity(a.active_seconds, a.idle, a.mouse_clicks, a.key_presses) AS has_activity,
-      public.block_id_of(a.recorded_at) AS block_id
+      s.id AS session_id,
+      public.session_block_index(a.recorded_at, s.started_at) AS block_id
     FROM activity_samples a
     JOIN sessions s ON a.session_id = s.id
     WHERE (a.organization_id = p_org_id OR s.organization_id = p_org_id)
@@ -98,9 +117,9 @@ BEGIN
   ),
   -- A block counts if ANY minute in it saw input.
   block_state AS (
-    SELECT user_id, block_id, bool_or(has_activity) AS block_active
+    SELECT user_id, session_id, block_id, bool_or(has_activity) AS block_active
     FROM deduped
-    GROUP BY user_id, block_id
+    GROUP BY user_id, session_id, block_id
   )
   SELECT d.user_id,
          d.recorded_at,
@@ -108,7 +127,9 @@ BEGIN
          d.app_name,
          TO_CHAR(d.recorded_at AT TIME ZONE p_org_tz, 'YYYY-MM-DD') AS day_str
   FROM deduped d
-  JOIN block_state b ON b.user_id = d.user_id AND b.block_id = d.block_id
+  JOIN block_state b ON b.user_id  = d.user_id
+                    AND b.session_id = d.session_id
+                    AND b.block_id   = d.block_id
   WHERE b.block_active;
   -- Each surviving row is one credited minute. Note days are assigned per
   -- MINUTE, not per block, so a block straddling a local midnight (possible in
@@ -176,7 +197,8 @@ BEGIN
       s.user_id AS uid,
       a.recorded_at,
       public.sample_has_activity(a.active_seconds, a.idle, a.mouse_clicks, a.key_presses) AS has_activity,
-      public.block_id_of(a.recorded_at) AS block_id
+      s.id AS session_id,
+      public.session_block_index(a.recorded_at, s.started_at) AS block_id
     FROM activity_samples a
     JOIN sessions s ON a.session_id = s.id
     WHERE (a.organization_id = p_org_id OR s.organization_id = p_org_id)
@@ -184,14 +206,16 @@ BEGIN
     ORDER BY s.user_id, date_trunc('minute', a.recorded_at), a.activity_percent DESC
   ),
   block_state AS (
-    SELECT uid, block_id, bool_or(has_activity) AS block_active
-    FROM deduped GROUP BY uid, block_id
+    SELECT uid, session_id, block_id, bool_or(has_activity) AS block_active
+    FROM deduped GROUP BY uid, session_id, block_id
   )
   SELECT d.uid,
          COUNT(*) FILTER (WHERE b.block_active)::bigint,
          MAX(d.recorded_at)
   FROM deduped d
-  JOIN block_state b ON b.uid = d.uid AND b.block_id = d.block_id
+  JOIN block_state b ON b.uid = d.uid
+                    AND b.session_id = d.session_id
+                    AND b.block_id   = d.block_id
   GROUP BY d.uid;
 END;
 $function$;
@@ -268,14 +292,14 @@ BEGIN
 
         IF v_reason IS NOT NULL AND v_new_end IS NULL THEN
             -- Close at the end of the last block that actually had activity.
-            SELECT MAX(public.block_id_of(recorded_at))
+            SELECT MAX(public.session_block_index(recorded_at, v_session.started_at))
             INTO v_last_block
             FROM public.activity_samples
             WHERE session_id = v_session.session_id
               AND public.sample_has_activity(active_seconds, idle, mouse_clicks, key_presses);
 
             IF v_last_block IS NOT NULL THEN
-                v_block_end := to_timestamp((v_last_block + 1) * 600);
+                v_block_end := v_session.started_at + ((v_last_block + 1) * interval '10 minutes');
                 v_new_end   := LEAST(v_now, v_block_end);
             ELSE
                 -- Session existed but never saw input at all.
