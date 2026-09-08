@@ -47,6 +47,10 @@ pub struct ActivitySample {
     pub domain: String,
     pub idle: bool,
     pub activity_percent: i32,
+    /// Distinct seconds in this window that saw ANY input — keyboard, mouse
+    /// click, mouse movement or scroll. Persisted raw so the definition of
+    /// "activity" stays re-answerable later instead of being baked in here.
+    pub active_seconds: u32,
     pub is_offline: bool,
 }
 
@@ -433,16 +437,18 @@ pub fn start_sample_loop(
             } else {
                 String::new()
             };
-            let idle = active_secs == 0 || (mouse == 0 && keyboard == 0);
+            // A minute is idle only when NOTHING happened in it. Mouse movement
+            // and scrolling count as activity, same as clicks and keystrokes —
+            // reading and reviewing are work. `active_seconds` already counts
+            // movement (see spawn_input_listener), so this is simply a matter of
+            // no longer discarding it.
+            let idle = active_secs == 0;
 
-            // Hubstaff activity calculation:
-            // Active seconds / Total seconds in window (0% if no clicks/keys)
+            // Activity = active seconds / seconds in the window. Averaged across
+            // the ten samples in a 10-minute block this equals active_seconds/600.
             let interval_secs = (interval_ms / 1000) as f32;
-            let activity_percent = if mouse == 0 && keyboard == 0 {
-                0
-            } else {
-                ((active_secs as f32 / interval_secs) * 100.0).min(100.0) as i32
-            };
+            let activity_percent =
+                ((active_secs as f32 / interval_secs) * 100.0).min(100.0) as i32;
 
             let sample = ActivitySample {
                 session_id: session_id.clone(),
@@ -454,6 +460,7 @@ pub fn start_sample_loop(
                 domain,
                 idle,
                 activity_percent,
+                active_seconds: active_secs,
                 is_offline: false,
             };
 
@@ -486,6 +493,7 @@ pub fn start_sample_loop(
                     "domain":          sample.domain,
                     "idle":            sample.idle,
                     "activity_percent": sample.activity_percent,
+                    "active_seconds":  sample.active_seconds,
                     "is_offline":      sample.is_offline,
                 }]).to_string();
                 let token = auth_token.lock().unwrap().clone();

@@ -26,6 +26,9 @@ pub struct CachedSample {
     pub domain: String,
     pub idle: bool,
     pub activity_percent: i32,
+    /// None for rows queued by a pre-Step-1 build — synced as null (unknown)
+    /// rather than 0, which would falsely assert the minute had no activity.
+    pub active_seconds: Option<u32>,
     pub is_offline: bool,
     pub synced: bool,
 }
@@ -72,6 +75,12 @@ pub fn init_db() -> rusqlite::Result<Connection> {
         if !table_info.contains(&"is_offline".to_string()) {
             let _ = conn.execute("ALTER TABLE activity_samples ADD COLUMN is_offline INTEGER NOT NULL DEFAULT 0", []);
         }
+        // Step 1: added nullable on purpose — rows already queued by an older
+        // build genuinely don't know their active seconds, and must sync as
+        // null rather than claiming 0.
+        if !table_info.contains(&"active_seconds".to_string()) {
+            let _ = conn.execute("ALTER TABLE activity_samples ADD COLUMN active_seconds INTEGER", []);
+        }
     }
 
     conn.execute_batch(
@@ -86,6 +95,7 @@ pub fn init_db() -> rusqlite::Result<Connection> {
             domain           TEXT    NOT NULL DEFAULT '',
             idle             INTEGER NOT NULL DEFAULT 0,
             activity_percent INTEGER NOT NULL DEFAULT 0,
+            active_seconds   INTEGER,
             is_offline       INTEGER NOT NULL DEFAULT 0,
             synced           INTEGER NOT NULL DEFAULT 0
         );
@@ -162,13 +172,13 @@ pub fn prune_screenshot_log(conn: &Connection) {
 pub fn cache_sample(conn: &Connection, sample: &ActivitySample) -> rusqlite::Result<()> {
     conn.execute(
         "INSERT INTO activity_samples
-             (session_id, recorded_at, mouse_clicks, key_presses, app_name, window_title, domain, idle, activity_percent, is_offline, synced)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, 0)",
+             (session_id, recorded_at, mouse_clicks, key_presses, app_name, window_title, domain, idle, activity_percent, active_seconds, is_offline, synced)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, 0)",
         params![
             sample.session_id, sample.recorded_at, sample.mouse_clicks,
             sample.key_presses, sample.app_name, sample.window_title,
             sample.domain, sample.idle as i32, sample.activity_percent,
-            sample.is_offline as i32,
+            sample.active_seconds, sample.is_offline as i32,
         ],
     )?;
     Ok(())
@@ -177,7 +187,8 @@ pub fn cache_sample(conn: &Connection, sample: &ActivitySample) -> rusqlite::Res
 pub fn get_unsynced_samples(conn: &Connection) -> rusqlite::Result<Vec<CachedSample>> {
     let mut stmt = conn.prepare(
         "SELECT id, session_id, recorded_at, mouse_clicks, key_presses,
-                app_name, window_title, domain, idle, activity_percent, is_offline, synced
+                app_name, window_title, domain, idle, activity_percent, is_offline, synced,
+                active_seconds
          FROM activity_samples WHERE synced = 0 ORDER BY id ASC LIMIT 50"
     )?;
     let rows = stmt.query_map([], |row| {
@@ -194,6 +205,7 @@ pub fn get_unsynced_samples(conn: &Connection) -> rusqlite::Result<Vec<CachedSam
             activity_percent: row.get(9)?,
             is_offline: row.get::<_, i32>(10)? != 0,
             synced: row.get::<_, i32>(11)? != 0,
+            active_seconds: row.get::<_, Option<u32>>(12)?,
         })
     })?;
     rows.collect()
@@ -317,6 +329,7 @@ pub fn sync_once(
             "domain":           s.domain,
             "idle":             s.idle,
             "activity_percent": s.activity_percent,
+            "active_seconds":   s.active_seconds,
             "is_offline":       s.is_offline || is_delayed,
         })
     }).collect();
@@ -428,6 +441,7 @@ pub fn sync_from_arc(
             "domain":           s.domain,
             "idle":             s.idle,
             "activity_percent": s.activity_percent,
+            "active_seconds":   s.active_seconds,
             "is_offline":       s.is_offline || is_delayed,
         })
     }).collect();

@@ -1431,7 +1431,12 @@ export default function App() {
         if (isPaused) return;
 
         // Count as idle if Rust idle flag is true, activity_percent is 0, or clicks+keys are 0
-        const isIdleSample = sample.idle === true || (sample.activity_percent ?? 100) === 0 || ((sample.mouse_clicks ?? 0) === 0 && (sample.key_presses ?? 0) === 0);
+        // Idle means the minute saw NO input at all. Mouse movement and scrolling
+        // count as activity, so we must not fall back to clicks/keypresses here —
+        // doing so would re-introduce the exact force-zero the tracker just dropped.
+        // `idle` and `activity_percent === 0` are equivalent (both derive from
+        // active_seconds); both are checked purely as belt-and-braces.
+        const isIdleSample = sample.idle === true || (sample.activity_percent ?? 100) === 0;
         if (isIdleSample) {
           idleMinutesRef.current += 1;
           const limit = user?.idle_limit || 10;
@@ -1602,7 +1607,10 @@ export default function App() {
         // Guard: don't trigger twice
         if (isAutoTerminatingRef.current) return;
 
-        const hasActivity = (sample.mouse_clicks ?? 0) > 0 || (sample.key_presses ?? 0) > 0;
+        // Same rule as the idle popup: any input counts, including mouse
+        // movement and scrolling. Checking clicks/keypresses here would
+        // auto-terminate someone who is actively reading.
+        const hasActivity = sample.idle === false;
 
         if (hasActivity) {
           // User was active — reset the absolute idle counter
