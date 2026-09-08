@@ -19,7 +19,6 @@ tauri-build = { version = "2", features = [] }
 app-store = []
 
 [dependencies]
-glib = "0.20"
 tauri = { version = "2", features = ["tray-icon", "image-ico", "image-png"] }
 tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
@@ -31,23 +30,12 @@ base64 = "0.22"
 image = "0.24"
 rusqlite = { version = "0.31", features = ["bundled"] }
 tauri-plugin-notification = "2"
-# tauri-plugin-updater and tauri-plugin-process are excluded from the
-# App Store build (app-store feature) because MAS apps must not
-# self-update (Apple Guideline 2.4.5 vii).
-#
-# NOTE — Input Monitoring caveat (on record):
-# On macOS, the non-MAS build uses rdev for global key/mouse hooks which
-# requires Accessibility permission. The MAS build instead relies on
-# CGEventSourceCounterForEventType (HID system counters) which does NOT
-# require Accessibility permission. Window-title / active-app tracking
-# via active-win-pos-rs is disabled entirely in the MAS build because it
-# requires Accessibility APIs that Apple does not permit for this purpose.
 tauri-plugin-updater = "2"
 tauri-plugin-dialog = "2"
 tauri-plugin-single-instance = "2"
 tokio = { version = "1", features = ["time"] }
 ureq = { version = "2", features = ["native-tls", "json"] }
-[target.'cfg(not(feature = "app-store"))'.dependencies]
 active-win-pos-rs = "0.11.0"
+
 [target.'cfg(target_os = "macos")'.dependencies]
 core-foundation = "0.9"

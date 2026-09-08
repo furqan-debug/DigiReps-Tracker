@@ -892,8 +892,9 @@ export default function App() {
 
       if (memberErr) console.error('[stats] member/org lookup failed:', memberErr);
 
+      const orgObj = Array.isArray(memberData?.organizations) ? memberData?.organizations[0] : memberData?.organizations;
       const orgTimezone =
-        memberData?.organizations?.settings?.orgTimezone
+        (orgObj as any)?.settings?.orgTimezone
         || orgTimezoneRef.current
         || user?.organization_settings?.orgTimezone;
 
