@@ -807,6 +807,10 @@ export default function App() {
   const blockHadActivityRef = useRef(false);               // ...and whether it has seen input
   const blankBlockCountRef = useRef(0);                    // consecutive fully-blank blocks
   const lastActiveBlockEndRef = useRef<number | null>(null); // epoch ms; discard/resume point
+  // Idle closes the session outright rather than pausing it, so resuming has to
+  // open a fresh one. A session then never contains a hole — the time it spans
+  // always equals the time it is credited.
+  const idleClosedSessionRef = useRef(false);
   const pendingIdleDiscardRef = useRef<Promise<void> | null>(null); // tracks in-flight idle discard
   // Tracks continuous zero-activity minutes for the org-level absolute auto-terminate cutoff.
   // This counter is independent of keep_idle_mode — it increments on EVERY 0% sample regardless
@@ -1377,10 +1381,7 @@ export default function App() {
       setLiveIdleSeconds(0);
 
       if (shouldResume) {
-        trackerAPI.setAlwaysOnTop?.(false);
-        setIdlePaused(false);
-        (trackerAPI as any).stopIdleMonitoring();
-        handleResume();
+        resumeFromIdle();
       }
     })();
 
@@ -1541,20 +1542,20 @@ export default function App() {
         blankBlockCountRef.current = 0;
 
         if (mode === 'never') {
-          handlePause();
           setIdlePaused(true);
-          discardIdleTime(idleMins, false, sample.session_id, cutoffIso).finally(() => {
-            isHandlingIdleRef.current = false;
-          });
+          // Discard the idle block first, then close the session at the boundary.
+          discardIdleTime(idleMins, false, sample.session_id, cutoffIso)
+            .then(() => closeSessionForIdle(cutoffIso, sample.session_id))
+            .finally(() => { isHandlingIdleRef.current = false; });
           (trackerAPI as any).startIdleMonitoring(limit);
           return;
         }
 
         // Default: 'prompt'
         setIdlePaused(true);
-        handlePause();
+        closeSessionForIdle(cutoffIso, sample.session_id)
+          .finally(() => { isHandlingIdleRef.current = false; });
         (trackerAPI as any).startIdleMonitoring(limit);
-        isHandlingIdleRef.current = false;
       });
     };
 
@@ -2026,6 +2027,7 @@ export default function App() {
     blockHadActivityRef.current = false;
     blankBlockCountRef.current = 0;
     lastActiveBlockEndRef.current = null;
+    idleClosedSessionRef.current = false;
     isHandlingIdleRef.current = false; // reset idle handler guard for new session
     setIsPaused(false);
     setTrackingError(null);
@@ -2191,6 +2193,7 @@ export default function App() {
     blockHadActivityRef.current = false;
     blankBlockCountRef.current = 0;
     lastActiveBlockEndRef.current = null;
+    idleClosedSessionRef.current = false;
     setScreen('projects');
 
     // Notification Alert
@@ -2209,6 +2212,46 @@ export default function App() {
     await trackerAPI.pauseTracking();
   }
 
+  // Idle ends the session instead of pausing it. The session is closed at the end
+  // of the last block that was actually worked, so its span matches what it earns.
+  const closeSessionForIdle = async (cutoffIso: string, sid?: string) => {
+    const activeSessionId = sid || sessionIdRef.current || sessionId;
+    try {
+      await trackerAPI.stopTracking();
+    } catch (err) {
+      console.error('[App] stopTracking failed while closing for idle:', err);
+    }
+    if (activeSessionId) {
+      try {
+        const sb = await getSupabase();
+        await sb.from('sessions').update({ ended_at: cutoffIso }).eq('id', activeSessionId);
+        console.log('[App] Session closed for idle at block boundary:', cutoffIso, activeSessionId);
+      } catch (err) {
+        console.error('[App] Failed to set ended_at to block boundary:', err);
+      }
+    }
+    idleClosedSessionRef.current = true;
+    setIsPaused(true);
+    setSessionId(null);
+    sessionIdRef.current = null;
+  };
+
+  // Leaving the away popup. If idle closed the session, open a fresh one for the
+  // same project rather than resuming the dead one.
+  const resumeFromIdle = () => {
+    trackerAPI.setAlwaysOnTop?.(false);
+    setIdlePaused(false);
+    (trackerAPI as any).stopIdleMonitoring();
+    if (idleClosedSessionRef.current) {
+      idleClosedSessionRef.current = false;
+      if (activeProject) {
+        startTracking(activeProject);
+        return;
+      }
+    }
+    handleResume();
+  };
+
   async function handleResume() {
     // Start block tracking fresh. Without this the block that was open when we
     // paused stays "current" and empty, so the first sample after resuming would
@@ -2217,6 +2260,7 @@ export default function App() {
     blockHadActivityRef.current = false;
     blankBlockCountRef.current = 0;
     lastActiveBlockEndRef.current = null;
+    idleClosedSessionRef.current = false;
     setIsPaused(false);
     await trackerAPI.resumeTracking();
   }
@@ -2456,12 +2500,7 @@ export default function App() {
               project={activeProject!}
               sessionId={sessionId}
               idlePaused={idlePaused}
-              onResumeFromIdle={() => {
-                trackerAPI.setAlwaysOnTop?.(false);
-                setIdlePaused(false);
-                (trackerAPI as any).stopIdleMonitoring();
-                handleResume();
-              }}
+              onResumeFromIdle={resumeFromIdle}
               liveIdleSeconds={liveIdleSeconds}
               onStop={handleStop}
               onSettings={() => setScreen('settings')}
