@@ -402,12 +402,25 @@ export function Timesheets() {
                         const segmentAbsoluteStartMs = startedAtMs + (overlapStartMs - startLocal.getTime());
                         const segmentAbsoluteEndMs = effectiveEndMs + (overlapEndMs - endLocal.getTime());
 
-                        let segmentDurationMins = (segmentAbsoluteEndMs - segmentAbsoluteStartMs) / 60000;
-                        if (segmentDurationMins < 0) segmentDurationMins = 0;
+                        // The WINDOW this segment spans — used only for the times shown
+                        // on the row, never for the hours credited.
+                        let segmentSpanMins = (segmentAbsoluteEndMs - segmentAbsoluteStartMs) / 60000;
+                        if (segmentSpanMins < 0) segmentSpanMins = 0;
 
-                        const totalDurationMins = Math.max(1, (effectiveEndMs - startedAtMs) / 60000);
-                        const durationRatio = segmentDurationMins / totalDurationMins;
+                        const totalSpanMins = Math.max(1, (effectiveEndMs - startedAtMs) / 60000);
+                        const durationRatio = segmentSpanMins / totalSpanMins;
                         const segmentOfflineMins = Math.round(offlineMins * durationRatio);
+
+                        // The TIME CREDITED is one minute per recorded sample, which is
+                        // what Reports, Amounts Owed and the desktop app all count. The
+                        // wall-clock span is not the same number: a session keeps running
+                        // while the machine sleeps or the tracker is paused, and those
+                        // minutes produce no sample, so span always reads high.
+                        // Manual entries have no samples by definition, so they are still
+                        // credited by their span — that span IS the entry.
+                        const segmentDurationMins = isManual
+                            ? segmentSpanMins
+                            : sampleCount * durationRatio;
 
                         dailyMap[key].sessions.push({
                             ...s,

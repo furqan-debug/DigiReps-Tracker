@@ -795,6 +795,27 @@ export default function App() {
   const [todos, setTodos] = useState<Todo[]>([]);
   const idleMinutesRef = useRef(0);
   const isHandlingIdleRef = useRef(false); // guard against double-fire on listener re-subscription
+
+  // ─── Block-aligned idle tracking ────────────────────────────────────────────
+  // Idle is evaluated per 10-minute block, not as a rolling countdown from the
+  // last active minute. A block that closes with at least one active minute is
+  // kept whole; a block that closes completely blank is what triggers idle.
+  //
+  // Every session gets its own blocks, counted from the moment it started — a
+  // session beginning at 09:04 has blocks 09:04–09:14, 09:14–09:24, and so on.
+  // So a session always gets a full ten minutes to prove activity, and can never
+  // be judged (or closed) on a boundary from a block that began before it did.
+  // One active minute at 09:11 keeps the whole 09:04–09:14 block.
+  const BLOCK_MS = 10 * 60 * 1000;
+  const sessionAnchorMsRef = useRef<number | null>(null);  // epoch ms this session's blocks count from
+  const currentBlockIdRef = useRef<number | null>(null);   // block index within the session
+  const blockHadActivityRef = useRef(false);               // ...and whether it has seen input
+  const blankBlockCountRef = useRef(0);                    // consecutive fully-blank blocks
+  const lastActiveBlockEndRef = useRef<number | null>(null); // epoch ms; discard/resume point
+  // Idle closes the session outright rather than pausing it, so resuming has to
+  // open a fresh one. A session then never contains a hole — the time it spans
+  // always equals the time it is credited.
+  const idleClosedSessionRef = useRef(false);
   const pendingIdleDiscardRef = useRef<Promise<void> | null>(null); // tracks in-flight idle discard
   // Tracks continuous zero-activity minutes for the org-level absolute auto-terminate cutoff.
   // This counter is independent of keep_idle_mode — it increments on EVERY 0% sample regardless
@@ -1319,10 +1340,15 @@ export default function App() {
     };
   }, []);
 
-  const discardIdleTime = (minutes: number, shouldResume: boolean = true, sid?: string): Promise<void> => {
+  const discardIdleTime = (
+    minutes: number,
+    shouldResume: boolean = true,
+    sid?: string,
+    cutoffIso?: string,
+  ): Promise<void> => {
     const promise = (async () => {
       const activeSessionId = sid || sessionIdRef.current || sessionId;
-      console.log('[App] discardIdleTime called:', { minutes, shouldResume, activeSessionId, userId: user?.id });
+      console.log('[App] discardIdleTime called:', { minutes, shouldResume, activeSessionId, cutoffIso, userId: user?.id });
       if (!user || !activeSessionId) {
         console.warn('[App] discardIdleTime ABORTED: Missing user or activeSessionId', { user: !!user, activeSessionId });
         return;
@@ -1330,8 +1356,11 @@ export default function App() {
       const sb = await getSupabase();
 
       // 1. Delete idle samples from Supabase (via RPC + direct delete) AND the local SQLite cache.
-      //    Add 15s buffer to account for clock skew/jitter.
-      const startTime = new Date(Date.now() - ((minutes * 60 + 15) * 1000)).toISOString();
+      //    Block-aligned callers pass an explicit cutoff — the end of the last block
+      //    that had activity — so a partially-worked block is never clipped. Callers
+      //    without one fall back to a rolling window, with a 15s buffer for clock skew.
+      const startTime = cutoffIso
+        ?? new Date(Date.now() - ((minutes * 60 + 15) * 1000)).toISOString();
       console.log('[App] Executing idle sample discard from cutoff:', startTime, 'for session:', activeSessionId);
 
       await Promise.all([
@@ -1348,17 +1377,16 @@ export default function App() {
       ]);
 
       // 2. Adjust local timer — subtract the discarded idle time from display
-      const discardedSecs = minutes * 60;
+      const discardedSecs = cutoffIso
+        ? Math.max(0, Math.round((Date.now() - Date.parse(cutoffIso)) / 1000))
+        : minutes * 60;
       sessionElapsedRef.current = Math.max(0, sessionElapsedRef.current - discardedSecs);
       setLiveElapsed((prev: number) => Math.max(0, prev - discardedSecs));
       // Reset live idle display to 0 — idle time is fully discarded, not carried forward
       setLiveIdleSeconds(0);
 
       if (shouldResume) {
-        trackerAPI.setAlwaysOnTop?.(false);
-        setIdlePaused(false);
-        (trackerAPI as any).stopIdleMonitoring();
-        handleResume();
+        resumeFromIdle();
       }
     })();
 
@@ -1367,12 +1395,14 @@ export default function App() {
     return promise;
   };
 
-  // Mark the last N minutes of samples as idle=true in DB (when idle threshold is reached)
-  const markSamplesAsIdle = async (minutes: number, sid?: string) => {
+  // Mark samples from the cutoff onward as idle=true in DB (when idle is confirmed).
+  // Block-aligned callers pass the end of the last active block as cutoffIso.
+  const markSamplesAsIdle = async (minutes: number, sid?: string, cutoffIso?: string) => {
     const activeSessionId = sid || sessionIdRef.current || sessionId;
     if (!activeSessionId) return;
     const sb = await getSupabase();
-    const startTime = new Date(Date.now() - ((minutes * 60 + 15) * 1000)).toISOString();
+    const startTime = cutoffIso
+      ?? new Date(Date.now() - ((minutes * 60 + 15) * 1000)).toISOString();
     await sb.from('activity_samples')
       .update({ idle: true, activity_percent: 0 })
       .eq('session_id', activeSessionId)
@@ -1416,7 +1446,16 @@ export default function App() {
   };
 
   // Attach to window for the child components to call easily
-  (window as any).discardIdleTime = discardIdleTime;
+  // Manual "Discard idle" from the away popup. Rolls back to the end of the last
+  // block that had activity, so a block the user partly worked is never clipped.
+  const discardIdleFromLastBlock = (shouldResume: boolean = true): Promise<void> => {
+    const cutoffMs = lastActiveBlockEndRef.current;
+    if (cutoffMs == null) return discardIdleTime(user?.idle_limit || 10, shouldResume);
+    const mins = Math.max(0, Math.round((Date.now() - cutoffMs) / 60000));
+    return discardIdleTime(mins, shouldResume, undefined, new Date(cutoffMs).toISOString());
+  };
+
+  (window as any).discardIdleTime = discardIdleFromLastBlock;
   (window as any).reassignIdleTime = reassignIdleTime;
 
   useEffect(() => {
@@ -1438,61 +1477,95 @@ export default function App() {
         // `idle` and `activity_percent === 0` are equivalent (both derive from
         // active_seconds); both are checked purely as belt-and-braces.
         const isIdleSample = sample.idle === true || (sample.activity_percent ?? 100) === 0;
-        if (isIdleSample) {
-          idleMinutesRef.current += 1;
-          const limit = user?.idle_limit || 10;
 
-          // Only show as "Idle" in the UI if we've crossed the threshold
-          if (idleMinutesRef.current >= limit) {
-            const mode = user?.keep_idle_mode || 'prompt';
+        // Which 10-minute block of THIS SESSION does this minute belong to?
+        // Blocks are counted from the moment the session began, so block 0 is
+        // always the first ten minutes the user actually worked. If the anchor
+        // is somehow missing, fall back to anchoring on this first sample.
+        const sampleMs = Date.parse(sample.recorded_at) || Date.now();
+        if (sessionAnchorMsRef.current === null) sessionAnchorMsRef.current = sampleMs;
+        const anchorMs = sessionAnchorMsRef.current;
+        const blockId = Math.floor((sampleMs - anchorMs) / BLOCK_MS);
 
-            // 'always' = keep idle time silently — no popup, no deduction, no DB marking, no notification, no idle counter
-            if (mode === 'always') {
-              idleMinutesRef.current = 0;
-              return;
-            }
-
-            if (idleMinutesRef.current === limit) {
-              // Just hit the threshold: add the accumulated backlog (e.g. limit mins)
-              setLiveIdleSeconds(prev => prev + (limit * 60));
-            } else {
-              // Already past threshold: add this new idle minute
-              setLiveIdleSeconds(prev => prev + 60);
-            }
-
-            // Set guard BEFORE async operations
-            isHandlingIdleRef.current = true;
-
-            // Retroactively mark those samples idle=true in DB so dashboard is accurate
-            markSamplesAsIdle(limit, sample.session_id);
-
-            // Pop window to front immediately so user is aware of inactivity
-            trackerAPI.focusWindow?.(true);
-            trackerAPI.showNotification(
-              `You have been inactive for ${limit} minutes. Tracking is paused.`
-            );
-
-            if (mode === 'never') {
-              handlePause();
-              setIdlePaused(true);
-              discardIdleTime(limit, false, sample.session_id).finally(() => {
-                isHandlingIdleRef.current = false;
-              });
-              idleMinutesRef.current = 0;
-              (trackerAPI as any).startIdleMonitoring(limit);
-              return;
-            }
-
-            // Default: 'prompt'
-            setIdlePaused(true);
-            handlePause();
-            idleMinutesRef.current = 0;
-            (trackerAPI as any).startIdleMonitoring(limit);
-            isHandlingIdleRef.current = false;
-          }
-        } else {
-          idleMinutesRef.current = 0;
+        if (currentBlockIdRef.current === null) {
+          currentBlockIdRef.current = blockId;
+          blockHadActivityRef.current = false;
         }
+
+        let closedBlankBlock = false;
+
+        if (blockId !== currentBlockIdRef.current) {
+          // The previous block has closed — judge it now, as a whole.
+          if (blockHadActivityRef.current) {
+            // Kept in full. This is the point we roll back to if idle follows.
+            blankBlockCountRef.current = 0;
+            lastActiveBlockEndRef.current = anchorMs + (currentBlockIdRef.current + 1) * BLOCK_MS;
+          } else {
+            blankBlockCountRef.current += 1;
+            closedBlankBlock = true;
+          }
+          // Blocks with no samples at all (laptop asleep, app closed) are skipped
+          // entirely rather than counted as blank — they were never worked, so
+          // there is nothing to discard and nobody should be prompted about them.
+          currentBlockIdRef.current = blockId;
+          blockHadActivityRef.current = false;
+        }
+
+        if (!isIdleSample) blockHadActivityRef.current = true;
+
+        // Idle fires only when a whole block has closed with nothing in it.
+        const limit = user?.idle_limit || 10;
+        const blocksRequired = Math.max(1, Math.round(limit / 10));
+        if (!closedBlankBlock || blankBlockCountRef.current < blocksRequired) return;
+
+        const mode = user?.keep_idle_mode || 'prompt';
+
+        // 'always' = keep idle time silently — no popup, no deduction, no DB marking
+        if (mode === 'always') {
+          blankBlockCountRef.current = 0;
+          return;
+        }
+
+        // Everything from the end of the last active block onwards is idle.
+        // Falling back to the block start keeps the cutoff block-aligned even
+        // when a session has not yet had a single active block.
+        const cutoffMs = lastActiveBlockEndRef.current
+          ?? anchorMs + (currentBlockIdRef.current - blankBlockCountRef.current) * BLOCK_MS;
+        const cutoffIso = new Date(cutoffMs).toISOString();
+        const idleSecs = Math.max(0, Math.round((Date.now() - cutoffMs) / 1000));
+        const idleMins = Math.round(idleSecs / 60);
+
+        setLiveIdleSeconds(idleSecs);
+
+        // Set guard BEFORE async operations
+        isHandlingIdleRef.current = true;
+
+        // Retroactively mark those samples idle=true in DB so dashboard is accurate
+        markSamplesAsIdle(idleMins, sample.session_id, cutoffIso);
+
+        // Pop window to front immediately so user is aware of inactivity
+        trackerAPI.focusWindow?.(true);
+        trackerAPI.showNotification(
+          `You have been inactive for ${idleMins} minutes. Tracking is paused.`
+        );
+
+        blankBlockCountRef.current = 0;
+
+        if (mode === 'never') {
+          setIdlePaused(true);
+          // Discard the idle block first, then close the session at the boundary.
+          discardIdleTime(idleMins, false, sample.session_id, cutoffIso)
+            .then(() => closeSessionForIdle(cutoffIso, sample.session_id))
+            .finally(() => { isHandlingIdleRef.current = false; });
+          (trackerAPI as any).startIdleMonitoring(limit);
+          return;
+        }
+
+        // Default: 'prompt'
+        setIdlePaused(true);
+        closeSessionForIdle(cutoffIso, sample.session_id)
+          .finally(() => { isHandlingIdleRef.current = false; });
+        (trackerAPI as any).startIdleMonitoring(limit);
       });
     };
 
@@ -1960,6 +2033,12 @@ export default function App() {
 
     setLiveIdleSeconds(0); // reset live idle counter for new session
     idleMinutesRef.current = 0; // reset inactivity counter for new session
+    sessionAnchorMsRef.current = Date.now(); // blocks are counted from here
+    currentBlockIdRef.current = null;      // start block tracking fresh
+    blockHadActivityRef.current = false;
+    blankBlockCountRef.current = 0;
+    lastActiveBlockEndRef.current = null;
+    idleClosedSessionRef.current = false;
     isHandlingIdleRef.current = false; // reset idle handler guard for new session
     setIsPaused(false);
     setTrackingError(null);
@@ -2121,6 +2200,12 @@ export default function App() {
     pendingIdleDiscardRef.current = null;
     absoluteIdleRef.current = 0;
     isAutoTerminatingRef.current = false;
+    sessionAnchorMsRef.current = null;
+    currentBlockIdRef.current = null;
+    blockHadActivityRef.current = false;
+    blankBlockCountRef.current = 0;
+    lastActiveBlockEndRef.current = null;
+    idleClosedSessionRef.current = false;
     setScreen('projects');
 
     // Notification Alert
@@ -2139,7 +2224,61 @@ export default function App() {
     await trackerAPI.pauseTracking();
   }
 
+  // Idle ends the session instead of pausing it. The session is closed at the end
+  // of the last block that was actually worked, so its span matches what it earns.
+  const closeSessionForIdle = async (cutoffIso: string, sid?: string) => {
+    const activeSessionId = sid || sessionIdRef.current || sessionId;
+    try {
+      await trackerAPI.stopTracking();
+    } catch (err) {
+      console.error('[App] stopTracking failed while closing for idle:', err);
+    }
+    if (activeSessionId) {
+      try {
+        const sb = await getSupabase();
+        await sb.from('sessions').update({ ended_at: cutoffIso }).eq('id', activeSessionId);
+        console.log('[App] Session closed for idle at block boundary:', cutoffIso, activeSessionId);
+      } catch (err) {
+        console.error('[App] Failed to set ended_at to block boundary:', err);
+      }
+    }
+    idleClosedSessionRef.current = true;
+    setIsPaused(true);
+    setSessionId(null);
+    sessionIdRef.current = null;
+  };
+
+  // Leaving the away popup. If idle closed the session, open a fresh one for the
+  // same project rather than resuming the dead one.
+  const resumeFromIdle = () => {
+    trackerAPI.setAlwaysOnTop?.(false);
+    setIdlePaused(false);
+    (trackerAPI as any).stopIdleMonitoring();
+    if (idleClosedSessionRef.current) {
+      idleClosedSessionRef.current = false;
+      if (activeProject) {
+        startTracking(activeProject);
+        return;
+      }
+    }
+    handleResume();
+  };
+
   async function handleResume() {
+    // Start block tracking fresh. Without this the block that was open when we
+    // paused stays "current" and empty, so the first sample after resuming would
+    // close it as blank and immediately re-trigger the away popup.
+    //
+    // The session anchor is deliberately NOT reset here. A manual pause/resume
+    // does not start a new session, and the server derives blocks from
+    // sessions.started_at, so re-anchoring on resume would put the client on a
+    // different block grid than the server. Idle-triggered resume goes through
+    // startTracking instead, which opens a real new session and re-anchors.
+    currentBlockIdRef.current = null;
+    blockHadActivityRef.current = false;
+    blankBlockCountRef.current = 0;
+    lastActiveBlockEndRef.current = null;
+    idleClosedSessionRef.current = false;
     setIsPaused(false);
     await trackerAPI.resumeTracking();
   }
@@ -2379,12 +2518,7 @@ export default function App() {
               project={activeProject!}
               sessionId={sessionId}
               idlePaused={idlePaused}
-              onResumeFromIdle={() => {
-                trackerAPI.setAlwaysOnTop?.(false);
-                setIdlePaused(false);
-                (trackerAPI as any).stopIdleMonitoring();
-                handleResume();
-              }}
+              onResumeFromIdle={resumeFromIdle}
               liveIdleSeconds={liveIdleSeconds}
               onStop={handleStop}
               onSettings={() => setScreen('settings')}
@@ -3126,7 +3260,7 @@ function TrackerScreen({ user, project, idlePaused = false, onResumeFromIdle, li
                     className="idle-action-discard"
                     onClick={() => {
                       trackerAPI.setAlwaysOnTop?.(false);
-                      (window as any).discardIdleTime?.((user.idle_limit || 10), true);
+                      (window as any).discardIdleTime?.(true);
                     }}
                   >
                     <Trash2 size={14} />
