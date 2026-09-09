@@ -1038,7 +1038,7 @@ export default function App() {
 
       const { data: blockData, error: blockErr } = await sb
         .from('block_records')
-        .select('block_start, business_date, active_seconds, activity_percent, credited, session_id')
+        .select('block_start, block_end, business_date, active_seconds, activity_percent, credited, session_id')
         .in('session_id', sessionIds.length > 0 ? sessionIds : ['00000000-0000-0000-0000-000000000000'])
         .gte('block_start', weekStartIso);
 
