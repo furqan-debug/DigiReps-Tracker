@@ -120,6 +120,14 @@ export const trackerAPI = {
     }
   },
 
+  onTrackingInterruptedSleep: (cb: () => void) => {
+    if (typeof window !== 'undefined' && (window as any).__TAURI__) {
+      return (window as any).__TAURI__.event.listen('tracking-interrupted-sleep', () => {
+        cb();
+      });
+    }
+  },
+
   /** Install the pending auto-update (downloads + restarts app) */
   installUpdate: async () => {
     const invoke = getInvoke();

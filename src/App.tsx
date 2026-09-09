@@ -1279,12 +1279,85 @@ export default function App() {
         setProjects(projectsList);
         setScreen('projects');
         fetchAndSubscribeTodos(userObj.id);
+        reconcileOrphanedSessions(userObj.id);
         fetchDashboardStats(userObj.id, projectsList);
       } else {
         clearSession();
       }
     });
   }, []); // Run once on mount
+
+  // ── Auto-Seal Ghost Sessions from Crashes/Power Cuts/Sleep ───────────────────
+  async function reconcileOrphanedSessions(userId: string) {
+    try {
+      const sb = await getSupabase();
+      await sb.rpc('rpc_auto_terminate_inactive_sessions').catch(() => {});
+
+      const { data: openSessions } = await sb
+        .from('sessions')
+        .select('id, started_at')
+        .eq('user_id', userId)
+        .is('ended_at', null);
+
+      if (!openSessions || openSessions.length === 0) return;
+
+      console.log(`[App] Found ${openSessions.length} unended ghost sessions for user. Auto-sealing...`);
+
+      for (const session of openSessions) {
+        const { data: latestBlock } = await sb
+          .from('block_records')
+          .select('block_end')
+          .eq('session_id', session.id)
+          .order('block_end', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        let endedAt = latestBlock?.block_end;
+
+        if (!endedAt) {
+          const { data: latestSample } = await sb
+            .from('activity_samples')
+            .select('recorded_at')
+            .eq('session_id', session.id)
+            .order('recorded_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          endedAt = latestSample?.recorded_at;
+        }
+
+        if (!endedAt) {
+          const startDate = new Date(session.started_at);
+          endedAt = new Date(startDate.getTime() + 60000).toISOString();
+        }
+
+        await sb
+          .from('sessions')
+          .update({ ended_at: endedAt })
+          .eq('id', session.id);
+
+        console.log(`[App] Sealed ghost session ${session.id} at ${endedAt}`);
+      }
+    } catch (err) {
+      console.warn('[App] Reconcile ghost sessions skipped:', err);
+    }
+  }
+
+  // ── Listen for System Sleep/Hibernation Interruption from Rust ───────────────
+  useEffect(() => {
+    let unlisten: (() => void) | null = null;
+    if (trackerAPI.onTrackingInterruptedSleep) {
+      trackerAPI.onTrackingInterruptedSleep(async () => {
+        console.log('[App] ⚠️ Tracking interrupted due to system sleep/hibernate. Auto-stopping session...');
+        trackerAPI.showNotification(
+          'Tracking Interrupted',
+          'Your tracking session was automatically saved and stopped because your computer entered sleep or hibernation.'
+        );
+        await handleStop();
+        setTrackingError('Tracking was automatically stopped because your computer entered sleep or hibernation mode.');
+      }).then((u: any) => { unlisten = u; });
+    }
+    return () => { if (unlisten) unlisten(); };
+  }, []);
 
   // ── Realtime: Listen for org plan changes ────────────────────────────────────
   // When the admin portal upgrades or downgrades the plan, update React state
@@ -2091,6 +2164,7 @@ export default function App() {
       setProjects(projectList);
       setScreen('projects');
       fetchAndSubscribeTodos(userObj.id);
+      reconcileOrphanedSessions(userObj.id);
       fetchDashboardStats(userObj.id, projectList);
       return null;
     } catch (err: any) {
@@ -2121,6 +2195,10 @@ export default function App() {
     if (!isOnline) {
       setTrackingError('You are currently offline. Please check your internet connection to start tracking.');
       return;
+    }
+
+    if (user?.id) {
+      reconcileOrphanedSessions(user.id);
     }
 
     if (user?.tracking_enabled === false) {
