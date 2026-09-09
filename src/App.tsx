@@ -1054,19 +1054,23 @@ export default function App() {
           const pid = sessionMap.get(b.session_id);
           if (!pid || !statsMap[pid]) return;
 
-          // Each block = 10 minutes (600 seconds)
-          statsMap[pid].weeklySeconds += 600;
+          // Compute exact block duration (in seconds, capped at 600s)
+          const startMs = new Date(b.block_start).getTime();
+          const endMs = b.block_end ? new Date(b.block_end).getTime() : startMs + 600000;
+          const blockDurationSecs = Math.max(0, Math.min(600, Math.round((endMs - startMs) / 1000)));
+
+          statsMap[pid].weeklySeconds += blockDurationSecs;
           statsMap[pid].totalActivity += (b.activity_percent ?? 0);
           statsMap[pid].sampleCount++;
 
           if (!b.credited) {
-            statsMap[pid].weeklyIdleSeconds += 600;
+            statsMap[pid].weeklyIdleSeconds += blockDurationSecs;
           }
 
           if (b.business_date === todayStr) {
-            statsMap[pid].todaySeconds += 600;
+            statsMap[pid].todaySeconds += blockDurationSecs;
             if (!b.credited) {
-              statsMap[pid].keptIdleSeconds += 600;
+              statsMap[pid].keptIdleSeconds += blockDurationSecs;
             }
           }
         });

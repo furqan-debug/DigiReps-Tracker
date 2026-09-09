@@ -2,12 +2,6 @@
 -- Unified Time Tracking Architecture — Phase 1
 -- Creates block_records: the single source of truth for all time
 -- calculations across Desktop App, Timesheets, and Reports.
---
--- A block_record represents one 10-minute window of tracking.
--- active_seconds = sum of active seconds across 10 x 60s samples
--- activity_percent = active_seconds / 600 * 100 (Hubstaff formula)
--- credited = whether this block counts toward the user's time total
--- business_date = the org-timezone day this block belongs to (immutable)
 -- ==============================================================
 
 CREATE TABLE IF NOT EXISTS public.block_records (
@@ -44,12 +38,10 @@ DROP POLICY IF EXISTS "service_role_all_block_records" ON public.block_records;
 CREATE POLICY "service_role_all_block_records" ON public.block_records FOR ALL TO service_role USING (true) WITH CHECK (true);
 
 DROP POLICY IF EXISTS "org_read_block_records" ON public.block_records;
-CREATE POLICY "org_read_block_records" ON public.block_records FOR SELECT TO authenticated, anon
-  USING (organization_id IN (SELECT organization_id FROM public.members WHERE auth_user_id = auth.uid())
-      OR organization_id IN (SELECT organization_id FROM public.members WHERE id = auth.uid()));
+CREATE POLICY "org_read_block_records" ON public.block_records FOR SELECT TO authenticated, anon USING (true);
 
 DROP POLICY IF EXISTS "member_insert_block_records" ON public.block_records;
-CREATE POLICY "member_insert_block_records" ON public.block_records FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY "member_insert_block_records" ON public.block_records FOR INSERT TO authenticated, anon WITH CHECK (true);
 
 DROP POLICY IF EXISTS "member_update_credited" ON public.block_records;
 CREATE POLICY "member_update_credited" ON public.block_records FOR UPDATE TO authenticated, anon USING (true) WITH CHECK (true);

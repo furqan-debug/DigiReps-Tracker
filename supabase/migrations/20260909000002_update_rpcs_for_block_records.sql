@@ -17,20 +17,20 @@ CREATE OR REPLACE FUNCTION public.get_reports_aggregated_data(
 RETURNS jsonb
 SECURITY DEFINER
 VOLATILE
-LANGUAGE plpgsql AS 
+LANGUAGE plpgsql AS $$
 DECLARE
   v_daily      jsonb;
   v_user_daily jsonb;
   v_apps       jsonb;
 BEGIN
-  -- ── Daily totals (org-wide) from block_records ────────────────────────────
+  -- Daily totals (org-wide) from block_records
   SELECT jsonb_agg(row_to_json(t)) INTO v_daily
   FROM (
     SELECT
-      business_date::text                                  AS date,
-      COUNT(*) FILTER (WHERE credited = true) * 10        AS total_minutes,
+      business_date::text AS date,
+      COALESCE(ROUND(SUM(EXTRACT(EPOCH FROM (block_end - block_start))) FILTER (WHERE credited = true) / 60), 0)::bigint AS total_minutes,
       COALESCE(AVG(activity_percent) FILTER (WHERE credited = true), 0)::numeric AS activity_sum,
-      COUNT(*) FILTER (WHERE credited = true)              AS sample_count
+      COUNT(*) FILTER (WHERE credited = true) AS sample_count
     FROM public.block_records
     WHERE organization_id = p_org_id
       AND block_start >= p_start_iso
@@ -40,15 +40,15 @@ BEGIN
     ORDER BY business_date ASC
   ) t;
 
-  -- ── Per-user daily totals from block_records ──────────────────────────────
+  -- Per-user daily totals from block_records
   SELECT jsonb_agg(row_to_json(t)) INTO v_user_daily
   FROM (
     SELECT
       user_id,
-      business_date::text                                  AS date,
-      COUNT(*) FILTER (WHERE credited = true) * 10        AS total_minutes,
+      business_date::text AS date,
+      COALESCE(ROUND(SUM(EXTRACT(EPOCH FROM (block_end - block_start))) FILTER (WHERE credited = true) / 60), 0)::bigint AS total_minutes,
       COALESCE(AVG(activity_percent) FILTER (WHERE credited = true), 0)::numeric AS activity_sum,
-      COUNT(*) FILTER (WHERE credited = true)              AS sample_count
+      COUNT(*) FILTER (WHERE credited = true) AS sample_count
     FROM public.block_records
     WHERE organization_id = p_org_id
       AND block_start >= p_start_iso
@@ -57,13 +57,13 @@ BEGIN
     GROUP BY user_id, business_date
   ) t;
 
-  -- ── App usage totals from block_records ──────────────────────────────────
+  -- App usage totals from block_records
   SELECT jsonb_agg(row_to_json(t)) INTO v_apps
   FROM (
     SELECT
       app_name,
-      COUNT(*) * 10             AS total_minutes,
-      AVG(activity_percent)     AS activity_sum
+      COALESCE(ROUND(SUM(EXTRACT(EPOCH FROM (block_end - block_start))) / 60), 0)::bigint AS total_minutes,
+      AVG(activity_percent) AS activity_sum
     FROM public.block_records
     WHERE organization_id = p_org_id
       AND block_start >= p_start_iso
@@ -75,8 +75,7 @@ BEGIN
     ORDER BY COUNT(*) DESC
   ) t;
 
-  -- ── Fallback: if no block_records exist yet, read from activity_samples ──
-  -- This handles historical data before the migration date
+  -- Fallback: if no block_records exist yet, read from activity_samples
   IF v_daily IS NULL THEN
     CREATE TEMP TABLE _sample_activity ON COMMIT DROP AS
     SELECT DISTINCT ON (s.user_id, date_trunc('minute', a.recorded_at))
@@ -112,7 +111,7 @@ BEGIN
     'app_stats',        COALESCE(v_apps,       '[]'::jsonb)
   );
 END;
-;
+$$;
 
 
 -- ── 2. get_sessions_activity_stats ───────────────────────────────────────────
@@ -122,43 +121,46 @@ DROP FUNCTION IF EXISTS public.get_sessions_activity_stats(text[]);
 CREATE OR REPLACE FUNCTION public.get_sessions_activity_stats(p_session_ids text[])
 RETURNS TABLE(
   session_id       uuid,
-  duration_mins    bigint,   -- COUNT(credited blocks) * 10
-  activity_percent numeric,  -- AVG(activity_percent) of credited blocks
+  duration_mins    bigint,
+  sample_count     bigint,
+  activity_sum     numeric,
+  activity_percent numeric,
   last_sample_at   timestamptz,
   offline_count    bigint,
   active_count     bigint
 )
 SECURITY DEFINER
 STABLE
-LANGUAGE plpgsql AS 
+LANGUAGE plpgsql AS $$
 BEGIN
-  -- Try block_records first
   RETURN QUERY
   SELECT
     br.session_id,
-    (COUNT(*) FILTER (WHERE br.credited = true) * 10)::bigint  AS duration_mins,
+    COALESCE(ROUND(SUM(EXTRACT(EPOCH FROM (br.block_end - br.block_start))) FILTER (WHERE br.credited = true) / 60), 0)::bigint AS duration_mins,
+    COALESCE(ROUND(SUM(EXTRACT(EPOCH FROM (br.block_end - br.block_start))) FILTER (WHERE br.credited = true) / 60), 0)::bigint AS sample_count,
+    COALESCE(SUM(br.activity_percent) FILTER (WHERE br.credited = true), 0)::numeric AS activity_sum,
     COALESCE(AVG(br.activity_percent) FILTER (WHERE br.credited = true), 0)::numeric AS activity_percent,
-    MAX(br.block_end)                                           AS last_sample_at,
-    COUNT(*) FILTER (WHERE br.is_offline = true)::bigint       AS offline_count,
-    COUNT(*) FILTER (WHERE br.credited = true)::bigint         AS active_count
+    MAX(br.block_end) AS last_sample_at,
+    COUNT(*) FILTER (WHERE br.is_offline = true)::bigint AS offline_count,
+    COUNT(*) FILTER (WHERE br.credited = true)::bigint AS active_count
   FROM public.block_records br
   WHERE br.session_id = ANY(p_session_ids::uuid[])
   GROUP BY br.session_id;
 
-  -- If no rows from block_records, fall back to activity_samples
-  -- (handles historical sessions before migration date)
   IF NOT FOUND THEN
     RETURN QUERY
     SELECT
       a.session_id,
-      COUNT(*)::bigint                                              AS duration_mins,
-      COALESCE(AVG(a.activity_percent), 0)::numeric               AS activity_percent,
-      MAX(a.recorded_at)                                           AS last_sample_at,
-      COUNT(*) FILTER (WHERE a.is_offline = true)::bigint         AS offline_count,
-      COUNT(*) FILTER (WHERE a.activity_percent > 0)::bigint      AS active_count
+      COUNT(*)::bigint AS duration_mins,
+      COUNT(*)::bigint AS sample_count,
+      SUM(a.activity_percent)::numeric AS activity_sum,
+      COALESCE(AVG(a.activity_percent), 0)::numeric AS activity_percent,
+      MAX(a.recorded_at) AS last_sample_at,
+      COUNT(*) FILTER (WHERE a.is_offline = true)::bigint AS offline_count,
+      COUNT(*) FILTER (WHERE a.activity_percent > 0)::bigint AS active_count
     FROM public.activity_samples a
     WHERE a.session_id = ANY(p_session_ids::uuid[])
     GROUP BY a.session_id;
   END IF;
 END;
-;
+$$;

@@ -354,13 +354,15 @@ export function Timesheets() {
                 };
 
                 const stats = sessionStats.find((st: any) => st.session_id === s.id);
-                const sampleCount = stats ? parseInt(stats.sample_count) : 0;
-                const activitySum = stats ? parseInt(stats.activity_sum) : 0;
-                const offlineMins = stats ? parseInt(stats.offline_count) : 0;
+                const durationMins = stats && stats.duration_mins !== undefined ? Number(stats.duration_mins) : (stats ? parseInt(stats.sample_count || '0') : 0);
+                const sampleCount = durationMins;
+                const offlineMins = stats ? parseInt(stats.offline_count || '0') : 0;
 
                 const startedAtMs = parseDbTimestamp(s.started_at) || new Date(s.started_at).getTime();
                 const lastSampleTime = stats && stats.last_sample_at ? (parseDbTimestamp(stats.last_sample_at) || startedAtMs) : startedAtMs;
-                const score = sampleCount > 0 ? Math.round(activitySum / sampleCount) : 0;
+                const score = stats && stats.activity_percent !== undefined
+                    ? Math.round(Number(stats.activity_percent))
+                    : (stats && stats.sample_count ? Math.round(parseInt(stats.activity_sum) / parseInt(stats.sample_count)) : 0);
                 const isManual = s.manual === true;
 
                 const nowMs = new Date().getTime();
