@@ -1511,9 +1511,12 @@ export default function App() {
   // Manual "Discard idle" from the away popup. Rolls back to the end of the last
   // block that had activity, so a block the user partly worked is never clipped.
   const discardIdleFromLastBlock = async (shouldResume: boolean = true): Promise<void> => {
-    const cutoffMs = lastActiveBlockEndRef.current;
-    const cutoffIso = cutoffMs ? new Date(cutoffMs).toISOString() : new Date().toISOString();
-    const mins = cutoffMs ? Math.max(0, Math.round((Date.now() - cutoffMs) / 60000)) : (user?.idle_limit || 10);
+    const anchorMs = sessionAnchorMsRef.current || (Date.now() - (user?.idle_limit || 10) * 60000);
+    const cutoffMs = lastActiveBlockEndRef.current ?? anchorMs;
+    const cutoffIso = new Date(cutoffMs).toISOString();
+    const idleMs = Math.max(0, Date.now() - cutoffMs);
+    const idleSecs = Math.round(idleMs / 1000);
+    const mins = Math.max(1, Math.round(idleSecs / 60));
 
     // 1. Discard idle samples and un-credit idle blocks
     await discardIdleTime(mins, false, undefined, cutoffIso);
@@ -1525,6 +1528,11 @@ export default function App() {
     trackerAPI.setAlwaysOnTop?.(false);
     setIdlePaused(false);
     (trackerAPI as any).stopIdleMonitoring();
+
+    if (user) {
+      await fetchDashboardStats(user.id, projects);
+    }
+
     if (shouldResume && activeProject) {
       startTracking(activeProject);
     }
