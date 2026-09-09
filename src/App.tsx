@@ -231,11 +231,26 @@ function LocalClock({ orgTimezone }: { orgTimezone?: string }) {
   const dateStr = now.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric', timeZone: tz });
   const cityStr = orgTimezone ? tzToCity(orgTimezone) : '';
 
+  // Detect device timezone vs org timezone mismatch
+  const deviceTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const tzMismatch = orgTimezone && deviceTz && deviceTz !== orgTimezone;
+
   return (
     <div className="local-context" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', borderLeft: '1px solid rgba(255,255,255,0.2)', paddingLeft: '0.875rem', margin: '0 0.875rem' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', color: '#fff', fontWeight: 700, fontSize: '0.875rem' }}>
         <span>{timeStr}</span>
         <span style={{ fontSize: '0.6875rem', opacity: 0.6, fontWeight: 400 }}>{dateStr}</span>
+        {tzMismatch && (
+          <span
+            title={`Your device timezone (${deviceTz}) differs from your org timezone (${orgTimezone}). Tracked time is attributed to ${orgTimezone} days.`}
+            style={{
+              background: '#f59e0b', color: '#000', fontSize: '0.55rem', fontWeight: 700,
+              borderRadius: '3px', padding: '1px 4px', cursor: 'help', letterSpacing: '0.02em'
+            }}
+          >
+            TZ ⚠
+          </span>
+        )}
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.625rem', color: 'rgba(255,255,255,0.7)', marginTop: '0.125rem', whiteSpace: 'nowrap' }}>
         <Clock size={10} style={{ opacity: 0.8 }} />
@@ -950,7 +965,7 @@ export default function App() {
 
       const todayStr = todayInOrg;
 
-      // 1. Fetch user's sessions for this week
+      // 1. Fetch user's sessions for this week (needed by both block_records and fallback paths)
       const { data: sessionData, error: sessionErr } = await sb
         .from('sessions')
         .select('id, project_id, started_at, ended_at')
@@ -966,147 +981,137 @@ export default function App() {
         sessionIds.push(s.id);
       }
 
-      // Fetch ALL samples for this week (Paginated to bypass 1000 row limit)
-      let allSamples: any[] = [];
-      const PAGE_SIZE = 1000;
-      let hasMore = true;
-      let page = 0;
+      // ── Fetch block_records for this week (single source of truth) ──────────
+      // block_records are written by the Rust tracker every 10 minutes.
+      // Each credited=true block = 10 minutes of productive time.
+      // business_date is already in org timezone (stamped at ingest time).
+      // No JS-side idle re-derivation, no minute deduplication needed.
 
-      if (sessionIds.length > 0) {
-        // chunk sessionIds if too large, but usually fine for a single week
-        while (hasMore && page < 50) { // Safety limit 50k
-          const { data: _samples, error: _sampleError } = await sb
-            .from('activity_samples')
-            .select(`
-              recorded_at,
-              idle,
-              activity_percent,
-              session_id
-            `)
-            .in('session_id', sessionIds)
-            .gte('recorded_at', weekStartIso)
-            .order('recorded_at', { ascending: true })
-            .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+      const { data: blockData, error: blockErr } = await sb
+        .from('block_records')
+        .select('block_start, business_date, active_seconds, activity_percent, credited, session_id')
+        .in('session_id', sessionIds.length > 0 ? sessionIds : ['00000000-0000-0000-0000-000000000000'])
+        .gte('block_start', weekStartIso);
 
-          if (_sampleError) throw _sampleError;
-
-          if (_samples && _samples.length > 0) {
-            allSamples.push(..._samples.map((s: any) => ({
-              ...s,
-              sessions: { project_id: sessionMap.get(s.session_id) }
-            })));
-          }
-
-          if (!_samples || _samples.length < PAGE_SIZE) {
-            hasMore = false;
-          }
-          page++;
-        }
-      }
-
-      const samples = allSamples;
+      const useBlocks = !blockErr && blockData && blockData.length > 0;
 
       const statsMap: Record<string, any> = {};
       currentProjects.forEach(p => {
         statsMap[p.id] = { todaySeconds: 0, weeklySeconds: 0, weeklyIdleSeconds: 0, totalActivity: 0, sampleCount: 0, keptIdleSeconds: 0 };
       });
 
-      const minuteMap = new Map<string, any>();
-      (samples || []).forEach(s => {
-        const minute = s.recorded_at ? s.recorded_at.substring(0, 16) : '';
-        if (!minute) return;
-        const key = `${s.session_id}_${minute}`;
-        const existing = minuteMap.get(key);
-        if (!existing) {
-          minuteMap.set(key, s);
-        } else {
-          // If either duplicate sample for the minute was marked idle=true, preserve idle=true
-          const isIdle = existing.idle === true || s.idle === true;
-          const activity = isIdle ? 0 : Math.max(existing.activity_percent ?? 0, s.activity_percent ?? 0);
-          minuteMap.set(key, {
-            ...existing,
-            ...s,
-            idle: isIdle,
-            activity_percent: activity,
-          });
-        }
-      });
-      const dedupedSamples = Array.from(minuteMap.values());
+      if (useBlocks) {
+        // ── Block-records path (new data model) ────────────────────────────────
+        (blockData || []).forEach((b: any) => {
+          const pid = sessionMap.get(b.session_id);
+          if (!pid || !statsMap[pid]) return;
 
-      // Use the user's idle_limit (default to 10)
-      const idleLimit = user?.idle_limit ?? 10;
-
-      // Formatter to bucket samples by orgTimezone day
-      const fmt = new Intl.DateTimeFormat('en-CA', {
-        timeZone: orgTimezone,
-        year: 'numeric', month: '2-digit', day: '2-digit'
-      });
-
-      // Group samples by project to calculate threshold-aware stats
-      const samplesByProject = new Map<string, any[]>();
-      dedupedSamples.forEach(s => {
-        const pid = s.sessions?.project_id;
-        if (!pid || !statsMap[pid]) return;
-        if (!samplesByProject.has(pid)) samplesByProject.set(pid, []);
-        samplesByProject.get(pid)!.push(s);
-      });
-
-      samplesByProject.forEach((projectSamples, pid) => {
-        const sorted = projectSamples.sort((a, b) => new Date(a.recorded_at).getTime() - new Date(b.recorded_at).getTime());
-
-        let currentBlock: any[] = [];
-        const countedAsIdle = new Set<string>(); // minutes (recorded_at strings)
-
-        for (let i = 0; i < sorted.length; i++) {
-          const s = sorted[i];
-          const prev = i > 0 ? sorted[i - 1] : null;
-
-          const gapMs = prev ? (new Date(s.recorded_at).getTime() - new Date(prev.recorded_at).getTime()) : 0;
-          const isContiguous = prev && gapMs <= 125000;
-
-          if (s.idle && isContiguous) {
-            currentBlock.push(s);
-          } else if (s.idle && !prev) {
-            currentBlock = [s];
-          } else if (s.idle && !isContiguous) {
-            // End of a non-contiguous idle block
-            if (currentBlock.length >= idleLimit) {
-              currentBlock.forEach(b => countedAsIdle.add(b.recorded_at));
-            }
-            currentBlock = [s];
-          } else {
-            // Non-idle sample encountered
-            if (currentBlock.length >= idleLimit) {
-              currentBlock.forEach(b => countedAsIdle.add(b.recorded_at));
-            }
-            currentBlock = [];
-          }
-        }
-        // Final block check
-        if (currentBlock.length >= idleLimit) {
-          currentBlock.forEach(b => countedAsIdle.add(b.recorded_at));
-        }
-
-        sorted.forEach(samp => {
-          const dateStr = fmt.format(new Date(samp.recorded_at));
-          const isIdle = countedAsIdle.has(samp.recorded_at);
-
-          // Every sample represents 1 minute (60s) of tracked time
-          statsMap[pid].weeklySeconds += 60;
-          if (isIdle) {
-            statsMap[pid].weeklyIdleSeconds += 60;
-          }
-          if (dateStr === todayStr) {
-            statsMap[pid].todaySeconds += 60;
-            if (isIdle) {
-              statsMap[pid].keptIdleSeconds += 60;
-            }
-          }
-
-          statsMap[pid].totalActivity += (samp.activity_percent ?? 0);
+          // Each block = 10 minutes (600 seconds)
+          statsMap[pid].weeklySeconds += 600;
+          statsMap[pid].totalActivity += (b.activity_percent ?? 0);
           statsMap[pid].sampleCount++;
+
+          if (!b.credited) {
+            statsMap[pid].weeklyIdleSeconds += 600;
+          }
+
+          if (b.business_date === todayStr) {
+            statsMap[pid].todaySeconds += 600;
+            if (!b.credited) {
+              statsMap[pid].keptIdleSeconds += 600;
+            }
+          }
         });
-      });
+
+      } else {
+        // ── Fallback: activity_samples (historical data before migration) ──────
+        let allSamples: any[] = [];
+        const PAGE_SIZE = 1000;
+        let hasMore = true;
+        let page = 0;
+
+        if (sessionIds.length > 0) {
+          while (hasMore && page < 50) {
+            const { data: _samples, error: _sampleError } = await sb
+              .from('activity_samples')
+              .select(`recorded_at, idle, activity_percent, session_id`)
+              .in('session_id', sessionIds)
+              .gte('recorded_at', weekStartIso)
+              .order('recorded_at', { ascending: true })
+              .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+
+            if (_sampleError) throw _sampleError;
+            if (_samples && _samples.length > 0) {
+              allSamples.push(..._samples.map((s: any) => ({
+                ...s,
+                sessions: { project_id: sessionMap.get(s.session_id) }
+              })));
+            }
+            if (!_samples || _samples.length < PAGE_SIZE) hasMore = false;
+            page++;
+          }
+        }
+
+        // Minute dedup + per-project aggregation (legacy path, unchanged)
+        const minuteMap = new Map<string, any>();
+        (allSamples || []).forEach(s => {
+          const minute = s.recorded_at ? s.recorded_at.substring(0, 16) : '';
+          if (!minute) return;
+          const key = `${s.session_id}_${minute}`;
+          const existing = minuteMap.get(key);
+          if (!existing) {
+            minuteMap.set(key, s);
+          } else {
+            const isIdle = existing.idle === true || s.idle === true;
+            const activity = isIdle ? 0 : Math.max(existing.activity_percent ?? 0, s.activity_percent ?? 0);
+            minuteMap.set(key, { ...existing, ...s, idle: isIdle, activity_percent: activity });
+          }
+        });
+        const dedupedSamples = Array.from(minuteMap.values());
+        const idleLimit = user?.idle_limit ?? 10;
+        const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: orgTimezone, year: 'numeric', month: '2-digit', day: '2-digit' });
+
+        const samplesByProject = new Map<string, any[]>();
+        dedupedSamples.forEach(s => {
+          const pid = s.sessions?.project_id;
+          if (!pid || !statsMap[pid]) return;
+          if (!samplesByProject.has(pid)) samplesByProject.set(pid, []);
+          samplesByProject.get(pid)!.push(s);
+        });
+
+        samplesByProject.forEach((projectSamples, pid) => {
+          const sorted = projectSamples.sort((a, b) => new Date(a.recorded_at).getTime() - new Date(b.recorded_at).getTime());
+          let currentBlock: any[] = [];
+          const countedAsIdle = new Set<string>();
+          for (let i = 0; i < sorted.length; i++) {
+            const s = sorted[i]; const prev = i > 0 ? sorted[i - 1] : null;
+            const gapMs = prev ? (new Date(s.recorded_at).getTime() - new Date(prev.recorded_at).getTime()) : 0;
+            const isContiguous = prev && gapMs <= 125000;
+            if (s.idle && isContiguous) { currentBlock.push(s); }
+            else if (s.idle && !prev) { currentBlock = [s]; }
+            else if (s.idle && !isContiguous) {
+              if (currentBlock.length >= idleLimit) currentBlock.forEach(b => countedAsIdle.add(b.recorded_at));
+              currentBlock = [s];
+            } else {
+              if (currentBlock.length >= idleLimit) currentBlock.forEach(b => countedAsIdle.add(b.recorded_at));
+              currentBlock = [];
+            }
+          }
+          if (currentBlock.length >= idleLimit) currentBlock.forEach(b => countedAsIdle.add(b.recorded_at));
+          sorted.forEach(samp => {
+            const dateStr = fmt.format(new Date(samp.recorded_at));
+            const isIdle = countedAsIdle.has(samp.recorded_at);
+            statsMap[pid].weeklySeconds += 60;
+            if (isIdle) statsMap[pid].weeklyIdleSeconds += 60;
+            if (dateStr === todayStr) {
+              statsMap[pid].todaySeconds += 60;
+              if (isIdle) statsMap[pid].keptIdleSeconds += 60;
+            }
+            statsMap[pid].totalActivity += (samp.activity_percent ?? 0);
+            statsMap[pid].sampleCount++;
+          });
+        });
+      }
 
       // Apply limit floor: after a limit-triggered stop, DB may lag 1-2 min.
       // Floor todaySeconds to the snapped value so the UI never drops below it.

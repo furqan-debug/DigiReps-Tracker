@@ -4,6 +4,7 @@
 
 mod tracker;
 mod cache;
+mod block_accumulator;
 #[cfg(not(feature = "app-store"))]
 mod updater;
 
@@ -300,11 +301,11 @@ fn start_tracking(
     // ─── Phase 1: Clean/Start Session Atomic ─────────────────────────────────────
     // We now use an RPC function to ensure atomicity (closes old sessions and starts new one)
 
-    // Fetch organization_id and plan_type
-    let (org_id, plan_type): (Option<String>, String) = match crate::supabase_get(
+    // Fetch organization_id, plan_type, org_timezone, and idle_policy in one call
+    let (org_id, plan_type, org_timezone, idle_policy): (Option<String>, String, String, String) = match crate::supabase_get(
         &cfg,
         "projects",
-        &format!("id=eq.{}&select=organization_id,organizations(plan_type)", project_id),
+        &format!("id=eq.{}&select=organization_id,organizations(plan_type,settings)", project_id),
         Some(&token),
     ) {
         Ok(resp_body) => {
@@ -312,13 +313,36 @@ fn start_tracking(
             let first = json_rows.get(0);
             let id = first.and_then(|r| r.get("organization_id")).and_then(|v| v.as_str()).map(|s| s.to_string());
             let plan = first.and_then(|r| r.get("organizations")).and_then(|v| v.get("plan_type")).and_then(|v| v.as_str()).unwrap_or("Basic").to_string();
-            println!("[lib] 🔍 Organization lookup for project {}: {:?}, Plan: {}", project_id, id, plan);
-            (id, plan)
+            let tz = first.and_then(|r| r.get("organizations")).and_then(|v| v.get("settings")).and_then(|s| s.get("orgTimezone")).and_then(|v| v.as_str()).unwrap_or("UTC").to_string();
+            println!("[lib] 🔍 Organization lookup for project {}: {:?}, Plan: {}, TZ: {}", project_id, id, plan, tz);
+            (id, plan, tz, "never".to_string()) // idle_policy fetched below
         }
         Err(e) => {
             println!("[lib] ❌ Organization lookup FAILED for project {}: {}", project_id, e);
-            (None, "Basic".to_string())
+            (None, "Basic".to_string(), "UTC".to_string(), "never".to_string())
         }
+    };
+
+    // Fetch member-level idle policy (keep_idle_mode: "always" | "prompt" | "never")
+    let idle_policy = if let Some(ref oid) = org_id {
+        match crate::supabase_get(
+            &cfg,
+            "members",
+            &format!("auth_user_id=eq.{}&organization_id=eq.{}&select=keep_idle_mode&limit=1", user_id, oid),
+            Some(&token),
+        ) {
+            Ok(body) => {
+                let rows: serde_json::Value = serde_json::from_str(&body).unwrap_or(serde_json::json!([]));
+                rows.get(0)
+                    .and_then(|r| r.get("keep_idle_mode"))
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("never")
+                    .to_string()
+            }
+            Err(_) => idle_policy,
+        }
+    } else {
+        idle_policy
     };
 
     // Guard: org_id must be present — sessions.organization_id is NOT NULL
@@ -370,11 +394,13 @@ fn start_tracking(
                     tracker::spawn_input_listener(Arc::clone(&counts));
 
                     // Start native trackers
-                    tracker::start_sample_loop(
+                    tracker::start_sample_loop_inner(
                         app.clone(), Arc::clone(&counts), session_id.clone(),
                         cfg.clone(), Arc::clone(&running), 60_000,
                         Arc::clone(&db_arc), Arc::clone(&auth_arc),
                         plan_type.clone(),
+                        org_timezone.clone(),
+                        idle_policy.clone(),
                     );
                     tracker::start_screenshot_loop(
                         app.clone(), session_id.clone(), cfg.clone(), Arc::clone(&running), 

@@ -373,7 +373,9 @@ fn regex_domain(s: &str) -> Option<String> {
 
 // ─── 60-second sample loop ────────────────────────────────────────────────────
 /// Emits "tracking-sample" Tauri events every `interval_ms`.
-/// Writes to SQLite cache first, then syncs to Supabase /rest/v1/activity_samples.
+/// Writes raw ActivitySamples to SQLite + Supabase for screenshot correlation.
+/// Every 10 samples (10 minutes) also closes a BlockRecord and uploads to
+/// block_records — the single source of truth for all time aggregations.
 pub fn start_sample_loop(
     app: AppHandle,
     counts: Arc<TrackerCounts>,
@@ -385,6 +387,28 @@ pub fn start_sample_loop(
     auth_token: Arc<Mutex<Option<String>>>,
     plan_type: String,
 ) {
+    // Public wrapper keeps the existing call signature for lib.rs compatibility.
+    // Defaults to UTC timezone / "never" discard — overridden by start_sample_loop_inner
+    // when lib.rs has fetched the org timezone and idle policy.
+    start_sample_loop_inner(app, counts, session_id, cfg, running, interval_ms,
+        db, auth_token, plan_type, "UTC".to_string(), "never".to_string())
+}
+
+/// The real loop — accepts org_timezone and idle_policy.
+/// Called by start_sample_loop (wrapper) and directly by lib.rs when org settings are known.
+pub fn start_sample_loop_inner(
+    app: AppHandle,
+    counts: Arc<TrackerCounts>,
+    session_id: String,
+    cfg: crate::SupabaseConfig,
+    running: Arc<Mutex<bool>>,
+    interval_ms: u64,
+    db: Arc<Mutex<Option<rusqlite::Connection>>>,
+    auth_token: Arc<Mutex<Option<String>>>,
+    plan_type: String,
+    org_timezone: String,
+    idle_policy: String,
+) {
     thread::spawn(move || {
         let mut last_title: Option<String> = None;
         let mut last_domain: Option<String> = None;
@@ -392,6 +416,21 @@ pub fn start_sample_loop(
         let tick_ms: u64 = 1000;
         let ticks_per_sample = (interval_ms / tick_ms) as u32;
         let mut ticks_elapsed: u32 = 0;
+
+        // Block accumulator — groups 10 × 60s samples into one 10-minute BlockRecord
+        let mut accumulator = crate::block_accumulator::BlockAccumulator::new(
+            org_timezone, idle_policy,
+        );
+
+        // Initialize local SQLite block_records cache table
+        {
+            let db_guard = db.lock().unwrap();
+            if let Some(conn) = db_guard.as_ref() {
+                if let Err(e) = crate::block_accumulator::init_block_cache(conn) {
+                    eprintln!("[tracker] block cache init error: {}", e);
+                }
+            }
+        }
 
         loop {
             thread::sleep(Duration::from_millis(tick_ms));
@@ -437,15 +476,11 @@ pub fn start_sample_loop(
             } else {
                 String::new()
             };
-            // A minute is idle only when NOTHING happened in it. Mouse movement
-            // and scrolling count as activity, same as clicks and keystrokes —
-            // reading and reviewing are work. `active_seconds` already counts
-            // movement (see spawn_input_listener), so this is simply a matter of
-            // no longer discarding it.
+
+            // A minute is idle only when NOTHING happened in it.
             let idle = active_secs == 0;
 
-            // Activity = active seconds / seconds in the window. Averaged across
-            // the ten samples in a 10-minute block this equals active_seconds/600.
+            // Per-sample activity percent (over 60s window)
             let interval_secs = (interval_ms / 1000) as f32;
             let activity_percent =
                 ((active_secs as f32 / interval_secs) * 100.0).min(100.0) as i32;
@@ -464,10 +499,10 @@ pub fn start_sample_loop(
                 is_offline: false,
             };
 
-            // Emit to React UI
+            // Emit to React UI (live 60s tick — provisional display only)
             let _ = app.emit("tracking-sample", &sample);
 
-            // Cache first, then sync to Supabase
+            // ── 1. Write raw sample to activity_samples (for screenshot correlation) ──
             let mut db_exists = false;
             {
                 let db_guard = db.lock().unwrap();
@@ -477,12 +512,11 @@ pub fn start_sample_loop(
                         eprintln!("[tracker] cache write error: {}", e);
                     }
                 }
-            } // Lock is dropped here
+            }
 
             if db_exists {
                 crate::cache::sync_from_arc(&db, &cfg, &auth_token);
             } else {
-                // No DB — post the single sample directly to Supabase REST
                 let body = serde_json::json!([{
                     "session_id":      sample.session_id,
                     "recorded_at":     sample.recorded_at,
@@ -499,8 +533,59 @@ pub fn start_sample_loop(
                 let token = auth_token.lock().unwrap().clone();
                 let _ = crate::supabase_post(&cfg, "activity_samples", &body, token.as_deref(), Some("resolution=ignore-duplicates"));
             }
+
+            // ── 2. Feed sample into 10-minute block accumulator ───────────────
+            if let Some(block) = accumulator.push(sample) {
+                println!("[tracker] 📦 Block closed: {} active_secs={} activity={}% credited={}",
+                    block.business_date, block.active_seconds, block.activity_percent, block.credited);
+                flush_block_record(&block, &db, &cfg, &auth_token);
+            }
+        }
+
+        // ── Loop exited — flush any partial block (< 10 samples) ─────────────
+        if let Some(partial) = accumulator.flush_partial() {
+            println!("[tracker] 📦 Partial block on stop: {} active_secs={} activity={}%",
+                partial.business_date, partial.active_seconds, partial.activity_percent);
+            flush_block_record(&partial, &db, &cfg, &auth_token);
         }
     });
+}
+
+/// Persist a completed/partial BlockRecord to local SQLite and sync to Supabase.
+fn flush_block_record(
+    block: &crate::block_accumulator::BlockRecord,
+    db: &Arc<Mutex<Option<rusqlite::Connection>>>,
+    cfg: &crate::SupabaseConfig,
+    auth_token: &Arc<Mutex<Option<String>>>,
+) {
+    let db_guard = db.lock().unwrap();
+    if let Some(conn) = db_guard.as_ref() {
+        if let Err(e) = crate::block_accumulator::cache_block(conn, block) {
+            eprintln!("[tracker] block cache error: {}", e);
+        } else {
+            let token = auth_token.lock().unwrap().clone().unwrap_or_default();
+            crate::block_accumulator::sync_blocks(conn, cfg, &token);
+        }
+    } else {
+        // No local DB — upload directly
+        let body = serde_json::json!([{
+            "session_id":       block.session_id,
+            "block_start":      block.block_start,
+            "block_end":        block.block_end,
+            "active_seconds":   block.active_seconds,
+            "activity_percent": block.activity_percent,
+            "is_productive":    block.is_productive,
+            "credited":         block.credited,
+            "mouse_clicks":     block.mouse_clicks,
+            "key_presses":      block.key_presses,
+            "app_name":         block.app_name,
+            "domain":           block.domain,
+            "is_offline":       block.is_offline,
+            "business_date":    block.business_date,
+        }]).to_string();
+        let token = auth_token.lock().unwrap().clone();
+        let _ = crate::supabase_post(cfg, "block_records", &body, token.as_deref(), Some("resolution=ignore-duplicates"));
+    }
 }
 
 // ─── Screenshot loop ───────────────────────────────────────────────────────────
