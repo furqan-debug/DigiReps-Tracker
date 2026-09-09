@@ -843,6 +843,7 @@ export default function App() {
   }, [isTracking, isPaused]);
   const [sessionId, _setSessionId] = useState<string | null>(null);
   const sessionIdRef = useRef<string | null>(null);
+  const lastIdleSessionIdRef = useRef<string | null>(null);
   const setSessionId = (id: string | null) => {
     sessionIdRef.current = id;
     _setSessionId(id);
@@ -1404,7 +1405,7 @@ export default function App() {
     cutoffIso?: string,
   ): Promise<void> => {
     const promise = (async () => {
-      const activeSessionId = sid || sessionIdRef.current || sessionId;
+      const activeSessionId = sid || sessionIdRef.current || sessionId || lastIdleSessionIdRef.current;
       console.log('[App] discardIdleTime called:', { minutes, shouldResume, activeSessionId, cutoffIso, userId: user?.id });
       if (!user || !activeSessionId) {
         console.warn('[App] discardIdleTime ABORTED: Missing user or activeSessionId', { user: !!user, activeSessionId });
@@ -1430,6 +1431,10 @@ export default function App() {
           .delete()
           .eq('session_id', activeSessionId)
           .gte('recorded_at', startTime),
+        sb.from('block_records')
+          .update({ credited: false })
+          .eq('session_id', activeSessionId)
+          .gte('block_start', startTime),
         trackerAPI.discardIdleCache(activeSessionId, startTime),
       ]);
 
@@ -2285,6 +2290,9 @@ export default function App() {
   // of the last block that was actually worked, so its span matches what it earns.
   const closeSessionForIdle = async (cutoffIso: string, sid?: string) => {
     const activeSessionId = sid || sessionIdRef.current || sessionId;
+    if (activeSessionId) {
+      lastIdleSessionIdRef.current = activeSessionId;
+    }
     try {
       await trackerAPI.stopTracking();
     } catch (err) {
