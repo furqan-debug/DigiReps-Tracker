@@ -432,22 +432,20 @@ pub fn start_sample_loop_inner(
             }
         }
 
-        let mut last_tick_instant = std::time::Instant::now();
         loop {
+            let sleep_start = std::time::Instant::now();
             thread::sleep(Duration::from_millis(tick_ms));
 
             // Check running on every tick — pause takes effect within 1 second
             if !*running.lock().unwrap() { break; }
 
-            let now_instant = std::time::Instant::now();
-            let real_tick_elapsed = now_instant.duration_since(last_tick_instant).as_millis() as u64;
-            last_tick_instant = now_instant;
+            let sleep_actual_elapsed = sleep_start.elapsed().as_millis() as u64;
 
             // System sleep / hibernation / power-loss gap detection
-            // If the real wall-clock elapsed time between 1s ticks exceeded 15 seconds,
+            // If the actual time suspended in thread::sleep(1s) exceeded 60 seconds,
             // the operating system was suspended or put to sleep.
-            if real_tick_elapsed > 15_000 {
-                eprintln!("[tracker] ⚠️ System sleep/hibernation detected (gap: {}ms). Auto-terminating interrupted session.", real_tick_elapsed);
+            if sleep_actual_elapsed > 60_000 {
+                eprintln!("[tracker] ⚠️ System sleep/hibernation detected (sleep gap: {}ms). Auto-terminating interrupted session.", sleep_actual_elapsed);
                 
                 // Flush accumulator before exiting to preserve active work prior to sleep
                 if let Some(partial) = accumulator.flush_partial() {
