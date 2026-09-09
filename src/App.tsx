@@ -1943,17 +1943,18 @@ export default function App() {
             .reduce((s, p) => s + (p.stats?.weeklySeconds || 0), 0);
           // For weekly: sessionElapsedRef is seeded with todaySeconds (not weeklySeconds),
           // so we need to add the active project's weekly total minus today to get full week.
-          const activeProjectWeeklyPrior = (activeProject.stats?.weeklySeconds || 0) - (activeProject.stats?.todaySeconds || 0);
+          const activeProjectWeeklyPrior = Math.max(0, (activeProject.stats?.weeklySeconds || 0) - (activeProject.stats?.todaySeconds || 0));
           const currentWeek = otherProjectsWeek + activeProjectWeeklyPrior + sessionElapsedRef.current;
 
-          const weeklyLimitSecs = (user.weekly_limit || 40) * 3600;
-          const dailyLimitSecs = (user.daily_limit || 8) * 3600;
+          const weeklyLimitSecs = (user.weekly_limit ?? 40) * 3600;
+          const dailyLimitSecs = (user.daily_limit ?? 8) * 3600;
 
           if (currentToday >= dailyLimitSecs || currentWeek >= weeklyLimitSecs) {
+            const isDaily = currentToday >= dailyLimitSecs;
             // Snap the display to the exact limit value before stopping
-            const snappedElapsed = currentToday >= dailyLimitSecs
-              ? dailyLimitSecs - otherProjectsToday
-              : weeklyLimitSecs - otherProjectsWeek;
+            const snappedElapsed = isDaily
+              ? Math.max(0, dailyLimitSecs - otherProjectsToday)
+              : Math.max(0, weeklyLimitSecs - otherProjectsWeek - activeProjectWeeklyPrior);
             sessionElapsedRef.current = snappedElapsed;
             setLiveElapsed(snappedElapsed);
             if (timerRef.current) clearInterval(timerRef.current); // stop ticking immediately
@@ -1968,9 +1969,13 @@ export default function App() {
               };
             }
 
-            trackerAPI.showNotification('Tracking Limit Reached', 'Your session has been automatically stopped because you reached your daily or weekly time limit.');
+            const limitMsg = isDaily
+              ? `Daily limit (${user.daily_limit ?? 8}h) reached. Session stopped.`
+              : `Weekly limit (${user.weekly_limit ?? 40}h) reached. Session stopped.`;
+
+            trackerAPI.showNotification('Tracking Limit Reached', limitMsg);
             handleStop();
-            setTrackingError('Session stopped due to reaching tracking limit.');
+            setTrackingError(limitMsg);
           }
         }
       }, 1000);
@@ -2107,6 +2112,32 @@ export default function App() {
   }
 
   async function startTracking(project: Project) {
+    if (!isOnline) {
+      setTrackingError('You are currently offline. Please check your internet connection to start tracking.');
+      return;
+    }
+
+    if (user?.tracking_enabled === false) {
+      console.log('TRACKING BLOCKED: tracking_enabled is false');
+      setTrackingError('Tracking has been disabled for your account by an administrator.');
+      return;
+    }
+
+    // Enforcement: Daily & Weekly Limits (based on productive tracked time to match billing limits)
+    const totalToday = projects.reduce((s, p) => s + (p.stats?.todaySeconds || 0), 0);
+    const totalWeek = projects.reduce((s, p) => s + (p.stats?.weeklySeconds || 0), 0);
+    const dailyLimitSecs = (user?.daily_limit ?? 8) * 3600;
+    const weeklyLimitSecs = (user?.weekly_limit ?? 40) * 3600;
+
+    if (totalToday >= dailyLimitSecs) {
+      setTrackingError(`Daily limit (${user?.daily_limit ?? 8}h) reached. Please contact your manager.`);
+      return;
+    }
+    if (totalWeek >= weeklyLimitSecs) {
+      setTrackingError(`Weekly limit (${user?.weekly_limit ?? 40}h) reached. Please contact your manager.`);
+      return;
+    }
+
     // Seed the timer with the authoritative todaySeconds calculated by fetchDashboardStats
     const currentProj = projects.find(p => p.id === project.id) || project;
     const todaySecs = currentProj.stats?.todaySeconds ?? project.stats?.todaySeconds ?? 0;
@@ -2129,44 +2160,7 @@ export default function App() {
     setScreen('tracker');
 
     try {
-      if (!isOnline) {
-        setTrackingError('You are currently offline. Please check your internet connection to start tracking.');
-        setIsTracking(false);
-        setActiveProject(null);
-        setScreen('projects');
-        return;
-      }
       const sb = await getSupabase();
-
-      if (user?.tracking_enabled === false) {
-        console.log('TRACKING BLOCKED: tracking_enabled is false');
-        setTrackingError('Tracking has been disabled for your account by an administrator.');
-        setIsTracking(false);
-        setActiveProject(null);
-        setScreen('projects');
-        return;
-      }
-
-      // Enforcement: Daily & Weekly Limits (still based on productive tracked time to match billing limits)
-      const totalToday = projects.reduce((s, p) => s + (p.stats?.todaySeconds || 0), 0);
-      const totalWeek = projects.reduce((s, p) => s + (p.stats?.weeklySeconds || 0), 0);
-      const dailyLimitSecs = (user?.daily_limit || 8) * 3600;
-      const weeklyLimitSecs = (user?.weekly_limit || 40) * 3600;
-
-      if (totalToday >= dailyLimitSecs) {
-        setTrackingError(`Daily limit (${user?.daily_limit || 8}h) reached. Please contact your manager.`);
-        setIsTracking(false);
-        setActiveProject(null);
-        setScreen('projects');
-        return;
-      }
-      if (totalWeek >= weeklyLimitSecs) {
-        setTrackingError(`Weekly limit (${user?.weekly_limit || 40}h) reached. Please contact your manager.`);
-        setIsTracking(false);
-        setActiveProject(null);
-        setScreen('projects');
-        return;
-      }
 
       console.log('TRACKING ALLOWED: tracking_enabled is', user?.tracking_enabled);
 
@@ -2956,8 +2950,8 @@ function ProjectsScreen({ user, projects, onSelect, onLogout, onSettings, tracki
     ? Math.round(tracked.reduce((s, p) => s + (p.stats?.activityPercent || 0), 0) / tracked.length)
     : 0;
 
-  const weeklyLimitSecs = (user.weekly_limit || 40) * 3600;
-  const dailyLimitSecs = (user.daily_limit || 8) * 3600;
+  const weeklyLimitSecs = (user.weekly_limit ?? 40) * 3600;
+  const dailyLimitSecs = (user.daily_limit ?? 8) * 3600;
 
   const isWeeklyLimitReached = totalWeek >= weeklyLimitSecs;
   const isDailyLimitReached = totalToday >= dailyLimitSecs;
@@ -3064,11 +3058,11 @@ function ProjectsScreen({ user, projects, onSelect, onLogout, onSettings, tracki
                     onClick={() => {
                       if (user.tracking_enabled === false) return;
                       if (isWeeklyLimitReached) {
-                        setTrackingError(`Weekly limit (${user.weekly_limit}h) reached. Please contact your manager.`);
+                        setTrackingError(`Weekly limit (${user.weekly_limit ?? 40}h) reached. Please contact your manager.`);
                         return;
                       }
                       if (isDailyLimitReached) {
-                        setTrackingError(`Daily limit (${user.daily_limit}h) reached. Please contact your manager.`);
+                        setTrackingError(`Daily limit (${user.daily_limit ?? 8}h) reached. Please contact your manager.`);
                         return;
                       }
                       onSelect(p);
