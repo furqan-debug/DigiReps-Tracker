@@ -209,6 +209,54 @@ function formatTime(seconds: number): string {
   return `${m}m`;
 }
 
+// ── 10-Minute Block Progress Bar (Hubstaff-style) ───────────────────────────
+function BlockProgressBar({ elapsedSeconds, isDark = false }: { elapsedSeconds: number; isDark?: boolean }) {
+  const blockSecs = Math.max(0, elapsedSeconds % 600);
+  const blockMins = Math.floor(blockSecs / 60);
+  const blockRemainderSecs = blockSecs % 60;
+  const pad = (n: number) => String(n).padStart(2, '0');
+
+  return (
+    <div style={{ width: '100%', marginTop: isDark ? '0' : '0.75rem', paddingTop: isDark ? '0' : '0.625rem', borderTop: isDark ? 'none' : '1px solid rgba(15, 23, 42, 0.06)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.375rem' }}>
+        <span style={{ fontSize: '0.6875rem', fontWeight: 600, color: isDark ? 'rgba(255, 255, 255, 0.7)' : 'var(--text-muted, #64748B)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+          <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: isDark ? 'var(--accent, #D4AF37)' : '#10B981', display: 'inline-block' }} />
+          Current 10-min Block
+        </span>
+        <span style={{ fontSize: '0.6875rem', fontWeight: 700, color: isDark ? '#fff' : '#0F172A', fontVariantNumeric: 'tabular-nums' }}>
+          {pad(blockMins)}:{pad(blockRemainderSecs)} / 10:00
+        </span>
+      </div>
+      <div style={{ display: 'flex', gap: '3px', height: isDark ? '6px' : '5px', width: '100%' }}>
+        {Array.from({ length: 10 }).map((_, i) => {
+          const segProgress = Math.max(0, Math.min(1, (blockSecs - i * 60) / 60));
+          return (
+            <div
+              key={i}
+              style={{
+                flex: 1,
+                height: '100%',
+                backgroundColor: isDark ? 'rgba(255, 255, 255, 0.12)' : '#E2E8F0',
+                borderRadius: '2px',
+                overflow: 'hidden'
+              }}
+            >
+              <div
+                style={{
+                  width: `${segProgress * 100}%`,
+                  height: '100%',
+                  backgroundColor: isDark ? 'var(--accent, #D4AF37)' : '#10B981',
+                  transition: 'width 0.3s ease'
+                }}
+              />
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ── Clock & Local Context ──────────────────────────────────────────────────
 function tzToCity(tz: string): string {
   // Extract city from IANA timezone, e.g. "America/Los_Angeles" -> "Los Angeles"
@@ -2917,6 +2965,10 @@ function ProjectsScreen({ user, projects, onSelect, onLogout, onSettings, tracki
                 style={{ width: `${Math.max(displayTotalToday > 0 ? 3 : 0, todayProgressPct)}%` }}
               />
             </div>
+
+            {isTracking && (
+              <BlockProgressBar elapsedSeconds={localElapsed || 0} isDark={false} />
+            )}
           </div>
 
           <div className="stats-secondary-grid">
@@ -3300,13 +3352,17 @@ function TrackerScreen({ user, project, idlePaused = false, onResumeFromIdle, li
             </div>
           </div>
 
-          <div className="timer-section" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', margin: '1.25rem 0 2rem 0' }}>
+          <div className="timer-section" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', margin: '1.25rem 0 1.25rem 0' }}>
             <span style={{ fontSize: '0.6875rem', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#666', marginBottom: '0.375rem' }}>
               Active Time
             </span>
             <div className="timer-display">
               {fmt(hrsActive)}:{fmt(minsActive)}:{fmt(secsActive)}
             </div>
+          </div>
+
+          <div style={{ width: '100%', background: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '10px', padding: '0.75rem 1rem', marginBottom: '1.25rem' }}>
+            <BlockProgressBar elapsedSeconds={localElapsed || 0} isDark={true} />
           </div>
 
           <div className="stats-dashboard">
