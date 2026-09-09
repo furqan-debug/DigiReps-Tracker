@@ -1510,11 +1510,24 @@ export default function App() {
   // Attach to window for the child components to call easily
   // Manual "Discard idle" from the away popup. Rolls back to the end of the last
   // block that had activity, so a block the user partly worked is never clipped.
-  const discardIdleFromLastBlock = (shouldResume: boolean = true): Promise<void> => {
+  const discardIdleFromLastBlock = async (shouldResume: boolean = true): Promise<void> => {
     const cutoffMs = lastActiveBlockEndRef.current;
-    if (cutoffMs == null) return discardIdleTime(user?.idle_limit || 10, shouldResume);
-    const mins = Math.max(0, Math.round((Date.now() - cutoffMs) / 60000));
-    return discardIdleTime(mins, shouldResume, undefined, new Date(cutoffMs).toISOString());
+    const cutoffIso = cutoffMs ? new Date(cutoffMs).toISOString() : new Date().toISOString();
+    const mins = cutoffMs ? Math.max(0, Math.round((Date.now() - cutoffMs) / 60000)) : (user?.idle_limit || 10);
+
+    // 1. Discard idle samples and un-credit idle blocks
+    await discardIdleTime(mins, false, undefined, cutoffIso);
+
+    // 2. Truncate previous session to the active block boundary
+    await closeSessionForIdle(cutoffIso);
+
+    // 3. Clear away popup and resume fresh if requested
+    trackerAPI.setAlwaysOnTop?.(false);
+    setIdlePaused(false);
+    (trackerAPI as any).stopIdleMonitoring();
+    if (shouldResume && activeProject) {
+      startTracking(activeProject);
+    }
   };
 
   (window as any).discardIdleTime = discardIdleFromLastBlock;
@@ -1625,8 +1638,8 @@ export default function App() {
 
         // Default: 'prompt'
         setIdlePaused(true);
-        closeSessionForIdle(cutoffIso, sample.session_id)
-          .finally(() => { isHandlingIdleRef.current = false; });
+        setIsPaused(true);
+        trackerAPI.pauseTracking().finally(() => { isHandlingIdleRef.current = false; });
         (trackerAPI as any).startIdleMonitoring(limit);
       });
     };
@@ -2313,20 +2326,28 @@ export default function App() {
     sessionIdRef.current = null;
   };
 
-  // Leaving the away popup. If idle closed the session, open a fresh one for the
-  // same project rather than resuming the dead one.
-  const resumeFromIdle = () => {
+  // Leaving the away popup by choosing to KEEP the away time (e.g. offline work, call, meeting)
+  const resumeFromIdle = async () => {
     trackerAPI.setAlwaysOnTop?.(false);
     setIdlePaused(false);
     (trackerAPI as any).stopIdleMonitoring();
-    if (idleClosedSessionRef.current) {
-      idleClosedSessionRef.current = false;
-      if (activeProject) {
-        startTracking(activeProject);
-        return;
+
+    // Mark any blocks in the session as credited=true (since user kept the time)
+    const activeSessionId = sessionIdRef.current || sessionId || lastIdleSessionIdRef.current;
+    if (activeSessionId) {
+      try {
+        const sb = await getSupabase();
+        await sb.from('block_records')
+          .update({ credited: true })
+          .eq('session_id', activeSessionId);
+      } catch (e) {
+        console.error('[App] Failed to credit block_records on resume:', e);
       }
     }
-    handleResume();
+
+    setLiveIdleSeconds(0);
+    idleMinutesRef.current = 0;
+    await handleResume();
   };
 
   async function handleResume() {
