@@ -1291,7 +1291,9 @@ export default function App() {
   async function reconcileOrphanedSessions(userId: string) {
     try {
       const sb = await getSupabase();
-      await sb.rpc('rpc_auto_terminate_inactive_sessions').catch(() => {});
+      try {
+        await sb.rpc('rpc_auto_terminate_inactive_sessions');
+      } catch (_) {}
 
       const { data: openSessions } = await sb
         .from('sessions')
