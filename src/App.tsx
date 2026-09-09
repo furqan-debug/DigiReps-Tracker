@@ -210,24 +210,24 @@ function formatTime(seconds: number): string {
 }
 
 // ── 10-Minute Block Progress Bar (Hubstaff-style) ───────────────────────────
-function BlockProgressBar({ elapsedSeconds, isDark = false }: { elapsedSeconds: number; isDark?: boolean }) {
+function BlockProgressBar({ elapsedSeconds }: { elapsedSeconds: number }) {
   const blockSecs = Math.max(0, elapsedSeconds % 600);
   const blockMins = Math.floor(blockSecs / 60);
   const blockRemainderSecs = blockSecs % 60;
   const pad = (n: number) => String(n).padStart(2, '0');
 
   return (
-    <div style={{ width: '100%', marginTop: isDark ? '0' : '0.75rem', paddingTop: isDark ? '0' : '0.625rem', borderTop: isDark ? 'none' : '1px solid rgba(15, 23, 42, 0.06)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.375rem' }}>
-        <span style={{ fontSize: '0.6875rem', fontWeight: 600, color: isDark ? 'rgba(255, 255, 255, 0.7)' : 'var(--text-muted, #64748B)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-          <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: isDark ? 'var(--accent, #D4AF37)' : '#10B981', display: 'inline-block' }} />
+    <div style={{ width: '100%' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.45rem' }}>
+        <span style={{ fontSize: '0.7rem', fontWeight: 600, color: '#64748B', display: 'flex', alignItems: 'center', gap: '0.35rem', letterSpacing: '0.01em' }}>
+          <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#10B981', display: 'inline-block' }} />
           Current 10-min Block
         </span>
-        <span style={{ fontSize: '0.6875rem', fontWeight: 700, color: isDark ? '#fff' : '#0F172A', fontVariantNumeric: 'tabular-nums' }}>
-          {pad(blockMins)}:{pad(blockRemainderSecs)} / 10:00
+        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#0F172A', fontVariantNumeric: 'tabular-nums' }}>
+          {pad(blockMins)}:{pad(blockRemainderSecs)} <span style={{ color: '#94A3B8', fontWeight: 500 }}>/ 10:00</span>
         </span>
       </div>
-      <div style={{ display: 'flex', gap: '3px', height: isDark ? '6px' : '5px', width: '100%' }}>
+      <div style={{ display: 'flex', gap: '3px', height: '6px', width: '100%' }}>
         {Array.from({ length: 10 }).map((_, i) => {
           const segProgress = Math.max(0, Math.min(1, (blockSecs - i * 60) / 60));
           return (
@@ -236,7 +236,7 @@ function BlockProgressBar({ elapsedSeconds, isDark = false }: { elapsedSeconds: 
               style={{
                 flex: 1,
                 height: '100%',
-                backgroundColor: isDark ? 'rgba(255, 255, 255, 0.12)' : '#E2E8F0',
+                backgroundColor: '#E2E8F0',
                 borderRadius: '2px',
                 overflow: 'hidden'
               }}
@@ -245,7 +245,7 @@ function BlockProgressBar({ elapsedSeconds, isDark = false }: { elapsedSeconds: 
                 style={{
                   width: `${segProgress * 100}%`,
                   height: '100%',
-                  backgroundColor: isDark ? 'var(--accent, #D4AF37)' : '#10B981',
+                  backgroundColor: '#10B981',
                   transition: 'width 0.3s ease'
                 }}
               />
@@ -2967,7 +2967,9 @@ function ProjectsScreen({ user, projects, onSelect, onLogout, onSettings, tracki
             </div>
 
             {isTracking && (
-              <BlockProgressBar elapsedSeconds={localElapsed || 0} isDark={false} />
+              <div style={{ marginTop: '0.75rem', paddingTop: '0.625rem', borderTop: '1px solid rgba(15, 23, 42, 0.06)' }}>
+                <BlockProgressBar elapsedSeconds={localElapsed || 0} />
+              </div>
             )}
           </div>
 
@@ -3361,8 +3363,8 @@ function TrackerScreen({ user, project, idlePaused = false, onResumeFromIdle, li
             </div>
           </div>
 
-          <div style={{ width: '100%', background: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '10px', padding: '0.75rem 1rem', marginBottom: '1.25rem' }}>
-            <BlockProgressBar elapsedSeconds={localElapsed || 0} isDark={true} />
+          <div style={{ width: '100%', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '0.75rem 1rem', marginBottom: '1.25rem' }}>
+            <BlockProgressBar elapsedSeconds={localElapsed || 0} />
           </div>
 
           <div className="stats-dashboard">
