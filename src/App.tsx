@@ -1931,6 +1931,12 @@ export default function App() {
         
         // Limit check inside interval to avoid React re-renders
         if (user && activeProject) {
+          const dailyLimitHours = user.daily_limit ?? user.organization_settings?.dailyHoursLimit;
+          const weeklyLimitHours = user.weekly_limit ?? user.organization_settings?.weeklyHoursLimit;
+
+          const dailyLimitSecs = (typeof dailyLimitHours === 'number' && dailyLimitHours > 0) ? dailyLimitHours * 3600 : null;
+          const weeklyLimitSecs = (typeof weeklyLimitHours === 'number' && weeklyLimitHours > 0) ? weeklyLimitHours * 3600 : null;
+
           // sessionElapsedRef is pre-seeded with activeProject.todaySeconds at session start,
           // so we only need to add OTHER projects' totals to avoid double-counting.
           const otherProjectsToday = projects
@@ -1946,15 +1952,15 @@ export default function App() {
           const activeProjectWeeklyPrior = Math.max(0, (activeProject.stats?.weeklySeconds || 0) - (activeProject.stats?.todaySeconds || 0));
           const currentWeek = otherProjectsWeek + activeProjectWeeklyPrior + sessionElapsedRef.current;
 
-          const weeklyLimitSecs = (user.weekly_limit ?? 40) * 3600;
-          const dailyLimitSecs = (user.daily_limit ?? 8) * 3600;
+          const isDailyReached = dailyLimitSecs !== null && currentToday >= dailyLimitSecs;
+          const isWeeklyReached = weeklyLimitSecs !== null && currentWeek >= weeklyLimitSecs;
 
-          if (currentToday >= dailyLimitSecs || currentWeek >= weeklyLimitSecs) {
-            const isDaily = currentToday >= dailyLimitSecs;
+          if (isDailyReached || isWeeklyReached) {
+            const isDaily = isDailyReached;
             // Snap the display to the exact limit value before stopping
             const snappedElapsed = isDaily
-              ? Math.max(0, dailyLimitSecs - otherProjectsToday)
-              : Math.max(0, weeklyLimitSecs - otherProjectsWeek - activeProjectWeeklyPrior);
+              ? Math.max(0, (dailyLimitSecs!) - otherProjectsToday)
+              : Math.max(0, (weeklyLimitSecs!) - otherProjectsWeek - activeProjectWeeklyPrior);
             sessionElapsedRef.current = snappedElapsed;
             setLiveElapsed(snappedElapsed);
             if (timerRef.current) clearInterval(timerRef.current); // stop ticking immediately
@@ -1970,8 +1976,8 @@ export default function App() {
             }
 
             const limitMsg = isDaily
-              ? `Daily limit (${user.daily_limit ?? 8}h) reached. Session stopped.`
-              : `Weekly limit (${user.weekly_limit ?? 40}h) reached. Session stopped.`;
+              ? `Daily limit (${dailyLimitHours}h) reached. Session stopped.`
+              : `Weekly limit (${weeklyLimitHours}h) reached. Session stopped.`;
 
             trackerAPI.showNotification('Tracking Limit Reached', limitMsg);
             handleStop();
@@ -2123,18 +2129,22 @@ export default function App() {
       return;
     }
 
-    // Enforcement: Daily & Weekly Limits (based on productive tracked time to match billing limits)
+    // Enforcement: Daily & Weekly Limits (based on exact limits set by organization)
+    const dailyLimitHours = user?.daily_limit ?? user?.organization_settings?.dailyHoursLimit;
+    const weeklyLimitHours = user?.weekly_limit ?? user?.organization_settings?.weeklyHoursLimit;
+
+    const dailyLimitSecs = (typeof dailyLimitHours === 'number' && dailyLimitHours > 0) ? dailyLimitHours * 3600 : null;
+    const weeklyLimitSecs = (typeof weeklyLimitHours === 'number' && weeklyLimitHours > 0) ? weeklyLimitHours * 3600 : null;
+
     const totalToday = projects.reduce((s, p) => s + (p.stats?.todaySeconds || 0), 0);
     const totalWeek = projects.reduce((s, p) => s + (p.stats?.weeklySeconds || 0), 0);
-    const dailyLimitSecs = (user?.daily_limit ?? 8) * 3600;
-    const weeklyLimitSecs = (user?.weekly_limit ?? 40) * 3600;
 
-    if (totalToday >= dailyLimitSecs) {
-      setTrackingError(`Daily limit (${user?.daily_limit ?? 8}h) reached. Please contact your manager.`);
+    if (dailyLimitSecs !== null && totalToday >= dailyLimitSecs) {
+      setTrackingError(`Daily limit (${dailyLimitHours}h) reached. Please contact your manager.`);
       return;
     }
-    if (totalWeek >= weeklyLimitSecs) {
-      setTrackingError(`Weekly limit (${user?.weekly_limit ?? 40}h) reached. Please contact your manager.`);
+    if (weeklyLimitSecs !== null && totalWeek >= weeklyLimitSecs) {
+      setTrackingError(`Weekly limit (${weeklyLimitHours}h) reached. Please contact your manager.`);
       return;
     }
 
@@ -2950,13 +2960,18 @@ function ProjectsScreen({ user, projects, onSelect, onLogout, onSettings, tracki
     ? Math.round(tracked.reduce((s, p) => s + (p.stats?.activityPercent || 0), 0) / tracked.length)
     : 0;
 
-  const weeklyLimitSecs = (user.weekly_limit ?? 40) * 3600;
-  const dailyLimitSecs = (user.daily_limit ?? 8) * 3600;
+  const dailyLimitHours = user.daily_limit ?? user.organization_settings?.dailyHoursLimit;
+  const weeklyLimitHours = user.weekly_limit ?? user.organization_settings?.weeklyHoursLimit;
 
-  const isWeeklyLimitReached = totalWeek >= weeklyLimitSecs;
-  const isDailyLimitReached = totalToday >= dailyLimitSecs;
+  const dailyLimitSecs = (typeof dailyLimitHours === 'number' && dailyLimitHours > 0) ? dailyLimitHours * 3600 : null;
+  const weeklyLimitSecs = (typeof weeklyLimitHours === 'number' && weeklyLimitHours > 0) ? weeklyLimitHours * 3600 : null;
 
-  const todayProgressPct = Math.min(100, Math.round((displayTotalToday / (dailyLimitSecs || 1)) * 100));
+  const isWeeklyLimitReached = weeklyLimitSecs !== null && totalWeek >= weeklyLimitSecs;
+  const isDailyLimitReached = dailyLimitSecs !== null && totalToday >= dailyLimitSecs;
+
+  const todayProgressPct = dailyLimitSecs
+    ? Math.min(100, Math.round((displayTotalToday / dailyLimitSecs) * 100))
+    : 0;
 
   const itemVariants = {
     hidden: { opacity: 0, y: 10 },
@@ -2979,27 +2994,31 @@ function ProjectsScreen({ user, projects, onSelect, onLogout, onSettings, tracki
                   <span>Live</span>
                 </div>
               ) : (
-                <span className="stats-hero-target-pill">
-                  {todayProgressPct}% of {user.daily_limit || 8}h goal
-                </span>
+                dailyLimitHours ? (
+                  <span className="stats-hero-target-pill">
+                    {todayProgressPct}% of {dailyLimitHours}h goal
+                  </span>
+                ) : null
               )}
             </div>
 
             <div className="stats-hero-body">
               <div className="stats-hero-value">{formatTime(displayTotalToday)}</div>
-              {isTracking && (
+              {isTracking && dailyLimitHours && (
                 <span className="stats-hero-target-pill">
-                  {todayProgressPct}% of {user.daily_limit || 8}h goal
+                  {todayProgressPct}% of {dailyLimitHours}h goal
                 </span>
               )}
             </div>
 
-            <div className="stats-progress-track" title={`${todayProgressPct}% of daily limit`}>
-              <div
-                className="stats-progress-fill"
-                style={{ width: `${Math.max(displayTotalToday > 0 ? 3 : 0, todayProgressPct)}%` }}
-              />
-            </div>
+            {dailyLimitSecs && (
+              <div className="stats-progress-track" title={`${todayProgressPct}% of daily limit`}>
+                <div
+                  className="stats-progress-fill"
+                  style={{ width: `${Math.max(displayTotalToday > 0 ? 3 : 0, todayProgressPct)}%` }}
+                />
+              </div>
+            )}
 
             {isTracking && (
               <div style={{ marginTop: '0.75rem', paddingTop: '0.625rem', borderTop: '1px solid rgba(15, 23, 42, 0.06)' }}>
@@ -3058,11 +3077,11 @@ function ProjectsScreen({ user, projects, onSelect, onLogout, onSettings, tracki
                     onClick={() => {
                       if (user.tracking_enabled === false) return;
                       if (isWeeklyLimitReached) {
-                        setTrackingError(`Weekly limit (${user.weekly_limit ?? 40}h) reached. Please contact your manager.`);
+                        setTrackingError(`Weekly limit (${weeklyLimitHours}h) reached. Please contact your manager.`);
                         return;
                       }
                       if (isDailyLimitReached) {
-                        setTrackingError(`Daily limit (${user.daily_limit ?? 8}h) reached. Please contact your manager.`);
+                        setTrackingError(`Daily limit (${dailyLimitHours}h) reached. Please contact your manager.`);
                         return;
                       }
                       onSelect(p);
@@ -3109,7 +3128,7 @@ function ProjectsScreen({ user, projects, onSelect, onLogout, onSettings, tracki
             <div className="breakdown-header">
               <span className="breakdown-title">This Week's Breakdown</span>
               <span className="breakdown-metric">
-                {formatTime(displayTotalWeek)} {user.weekly_limit ? `/ ${user.weekly_limit}h goal` : ''}
+                {formatTime(displayTotalWeek)} {weeklyLimitHours ? `/ ${weeklyLimitHours}h goal` : ''}
               </span>
             </div>
 
