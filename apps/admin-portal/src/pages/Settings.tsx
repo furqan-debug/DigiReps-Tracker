@@ -12,8 +12,6 @@ interface AppSettings {
     screenshotIntervalMin: number;
     screenshotIntervalMax: number;
     idleThresholdSeconds: number;
-    dailyHoursLimit: number;
-    weeklyHoursLimit: number;
     screenshotBlur: boolean;
     trackUrls: boolean;
     trackApps: boolean;
@@ -28,8 +26,6 @@ const DEFAULTS: AppSettings = {
     screenshotIntervalMin: 3,
     screenshotIntervalMax: 10,
     idleThresholdSeconds: 300,
-    dailyHoursLimit: 8,
-    weeklyHoursLimit: 40,
     screenshotBlur: false,
     trackUrls: true,
     trackApps: true,
@@ -104,13 +100,10 @@ export function SettingsPage() {
             if (orgError) throw orgError;
             if (count === 0) throw new Error("Target organization not found or access denied.");
 
-            // 2. Propagate Governance Policies to Members
-            // We sync Daily Limit, Weekly Limit, and Idle Threshold
+            // 2. Propagate Governance Policies to Members (idle threshold & idle tracking)
             const { error: memberError } = await supabase
                 .from('members')
                 .update({
-                    daily_limit: settings.dailyHoursLimit,
-                    weekly_limit: settings.weeklyHoursLimit,
                     idle_limit: Math.floor(settings.idleThresholdSeconds / 60), // Convert sec to min
                     idle_enabled: true // Ensure idle tracking is enabled if threshold is set
                 })
@@ -250,24 +243,8 @@ export function SettingsPage() {
                     {/* Governance Section */}
                     {activeCategory === 'governance' && (
                         <div className="space-y-10 animate-in fade-in slide-in-from-bottom-2">
-                            <SectionHeading title="Work Governance" subtitle="Policies for time tracking and member activity." />
+                            <SectionHeading title="Work Governance" subtitle="Policies for time tracking and organization defaults." />
                             <div className="space-y-8">
-                                <RangeControl
-                                    label="Daily Hours Cap"
-                                    description="Maximum hours a member can track in a 24-hour period."
-                                    value={settings.dailyHoursLimit}
-                                    unit="hrs" min={1} max={24}
-                                    onChange={v => update('dailyHoursLimit', v)}
-                                />
-                                <div className="h-px bg-white/5" />
-                                <RangeControl
-                                    label="Weekly Hours Cap"
-                                    description="Maximum cumulative hours per week."
-                                    value={settings.weeklyHoursLimit}
-                                    unit="hrs" min={1} max={168}
-                                    onChange={v => update('weeklyHoursLimit', v)}
-                                />
-                                <div className="h-px bg-white/5" />
                                 <SelectControl
                                     label="Organization Timezone"
                                     description="The default timezone for reports and timesheets if no other is selected."

@@ -1931,8 +1931,8 @@ export default function App() {
         
         // Limit check inside interval to avoid React re-renders
         if (user && activeProject) {
-          const dailyLimitHours = user.daily_limit ?? user.organization_settings?.dailyHoursLimit;
-          const weeklyLimitHours = user.weekly_limit ?? user.organization_settings?.weeklyHoursLimit;
+          const dailyLimitHours = user.daily_limit;
+          const weeklyLimitHours = user.weekly_limit;
 
           const dailyLimitSecs = (typeof dailyLimitHours === 'number' && dailyLimitHours > 0) ? dailyLimitHours * 3600 : null;
           const weeklyLimitSecs = (typeof weeklyLimitHours === 'number' && weeklyLimitHours > 0) ? weeklyLimitHours * 3600 : null;
@@ -2129,9 +2129,9 @@ export default function App() {
       return;
     }
 
-    // Enforcement: Daily & Weekly Limits (based on exact limits set by organization)
-    const dailyLimitHours = user?.daily_limit ?? user?.organization_settings?.dailyHoursLimit;
-    const weeklyLimitHours = user?.weekly_limit ?? user?.organization_settings?.weeklyHoursLimit;
+    // Enforcement: Daily & Weekly Limits (based on user's personal limits)
+    const dailyLimitHours = user?.daily_limit;
+    const weeklyLimitHours = user?.weekly_limit;
 
     const dailyLimitSecs = (typeof dailyLimitHours === 'number' && dailyLimitHours > 0) ? dailyLimitHours * 3600 : null;
     const weeklyLimitSecs = (typeof weeklyLimitHours === 'number' && weeklyLimitHours > 0) ? weeklyLimitHours * 3600 : null;
@@ -2960,8 +2960,8 @@ function ProjectsScreen({ user, projects, onSelect, onLogout, onSettings, tracki
     ? Math.round(tracked.reduce((s, p) => s + (p.stats?.activityPercent || 0), 0) / tracked.length)
     : 0;
 
-  const dailyLimitHours = user.daily_limit ?? user.organization_settings?.dailyHoursLimit;
-  const weeklyLimitHours = user.weekly_limit ?? user.organization_settings?.weeklyHoursLimit;
+  const dailyLimitHours = user.daily_limit;
+  const weeklyLimitHours = user.weekly_limit;
 
   const dailyLimitSecs = (typeof dailyLimitHours === 'number' && dailyLimitHours > 0) ? dailyLimitHours * 3600 : null;
   const weeklyLimitSecs = (typeof weeklyLimitHours === 'number' && weeklyLimitHours > 0) ? weeklyLimitHours * 3600 : null;
