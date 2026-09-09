@@ -1,6 +1,6 @@
 -- ==============================================================
--- Align get_sessions_activity_stats to read strictly from block_records
--- so Timesheets, Dashboard, and Reports all display matching 10-minute block totals
+-- Align get_sessions_activity_stats to return exact numeric duration
+-- so sum of sessions matches Dashboard and Reports exact totals
 -- ==============================================================
 
 DROP FUNCTION IF EXISTS public.get_sessions_activity_stats(uuid[]);
@@ -9,7 +9,7 @@ DROP FUNCTION IF EXISTS public.get_sessions_activity_stats(text[]);
 CREATE OR REPLACE FUNCTION public.get_sessions_activity_stats(p_session_ids text[])
 RETURNS TABLE(
   session_id       uuid,
-  duration_mins    bigint,
+  duration_mins    numeric,
   sample_count     bigint,
   activity_sum     numeric,
   activity_percent numeric,
@@ -27,8 +27,8 @@ BEGIN
   )
   SELECT
     br.session_id,
-    COALESCE(ROUND(SUM(EXTRACT(EPOCH FROM (br.block_end - br.block_start))) FILTER (WHERE br.credited = true) / 60), 0)::bigint AS duration_mins,
-    COALESCE(ROUND(SUM(EXTRACT(EPOCH FROM (br.block_end - br.block_start))) FILTER (WHERE br.credited = true) / 60), 0)::bigint AS sample_count,
+    COALESCE(SUM(EXTRACT(EPOCH FROM (br.block_end - br.block_start))) FILTER (WHERE br.credited = true) / 60.0, 0)::numeric AS duration_mins,
+    COALESCE(ROUND(SUM(EXTRACT(EPOCH FROM (br.block_end - br.block_start))) FILTER (WHERE br.credited = true) / 60.0), 0)::bigint AS sample_count,
     COALESCE(SUM(br.activity_percent) FILTER (WHERE br.credited = true), 0)::numeric AS activity_sum,
     COALESCE(AVG(br.activity_percent) FILTER (WHERE br.credited = true), 0)::numeric AS activity_percent,
     MAX(br.block_end) AS last_sample_at,
