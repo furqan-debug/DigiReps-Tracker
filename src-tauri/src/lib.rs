@@ -328,16 +328,18 @@ fn start_tracking(
         match crate::supabase_get(
             &cfg,
             "members",
-            &format!("auth_user_id=eq.{}&organization_id=eq.{}&select=keep_idle_mode&limit=1", user_id, oid),
+            &format!("or=(id.eq.{},auth_user_id.eq.{})&organization_id=eq.{}&select=keep_idle_mode&limit=1", user_id, user_id, oid),
             Some(&token),
         ) {
             Ok(body) => {
                 let rows: serde_json::Value = serde_json::from_str(&body).unwrap_or(serde_json::json!([]));
-                rows.get(0)
+                let policy = rows.get(0)
                     .and_then(|r| r.get("keep_idle_mode"))
                     .and_then(|v| v.as_str())
-                    .unwrap_or("never")
-                    .to_string()
+                    .unwrap_or("prompt")
+                    .to_string();
+                println!("[lib] 🔍 Member idle policy: {}", policy);
+                policy
             }
             Err(_) => idle_policy,
         }

@@ -1,4 +1,4 @@
-﻿// block_accumulator.rs
+// block_accumulator.rs
 // Accumulates 10 × 60-second activity samples into a single 10-minute BlockRecord.
 // This is the Hubstaff-equivalent primitive:
 //   activity_percent = active_seconds / 600 * 100
@@ -94,16 +94,15 @@ impl BlockAccumulator {
 
         // Aggregate active_seconds across all samples in the block
         let active_seconds: u32 = samples.iter().map(|s| s.active_seconds).sum();
-        let activity_percent = ((active_seconds as f32 / BLOCK_WINDOW_SECS) * 100.0)
-            .min(100.0) as i32;
-        let is_productive = activity_percent > 0;
+        let activity_percent = ((active_seconds as f32 / BLOCK_WINDOW_SECS) * 100.0).min(100.0) as i32;
+        let is_productive = active_seconds > 0;
 
         // Apply idle policy at block close time
         let credited = match self.idle_policy.as_str() {
             "always" => true,          // always keep — idle time is credited
             "never"  => is_productive, // always discard idle blocks
-            "prompt" => true,          // user will decide; default credit=true until discard action
-            _        => is_productive,
+            "prompt" => true,          // user will decide via popup; default credit=true until discard action
+            _        => true,
         };
 
         // Aggregate clicks/keypresses
