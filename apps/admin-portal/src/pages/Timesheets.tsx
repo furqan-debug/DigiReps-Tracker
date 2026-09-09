@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { LoadingState, Modal, EmptyState, FilterSelect, DatePicker } from '../components/ui';
 import clsx from 'clsx';
-import { getGroupingDateInTz, formatDuration, STALE_THRESHOLD_MS } from '../lib/dataUtils';
+import { getGroupingDateInTz, formatDuration } from '../lib/dataUtils';
 import { useAuth } from '../context/AuthContext';
 
 interface Session {
@@ -366,7 +366,7 @@ export function Timesheets() {
                 const isManual = s.manual === true;
 
                 const nowMs = new Date().getTime();
-                const isTrulyActive = !isManual && !s.ended_at && (nowMs - lastSampleTime < STALE_THRESHOLD_MS);
+                const isTrulyActive = !isManual && !s.ended_at;
 
                 let effectiveEndMs = nowMs;
                 if (s.ended_at) {
@@ -1047,7 +1047,7 @@ function DailyView({ entries, selectedMember, toProperCase, onEditSession, onDel
                                 <td className="py-8 px-6 text-center tabular-nums">
                                     <div className="flex flex-col items-center justify-center">
                                         <span className="text-[18px] font-bold text-text-main">{formatDuration(s.duration_mins || 0)}</span>
-                                        {((s.activity_percent === 0 && s.idle_percent === 0) || s.manual === true) && (
+                                        {s.manual === true && (
                                             <span className="text-[11px] text-[var(--chart-gold)] font-bold mt-0.5 tracking-tight">(manual)</span>
                                         )}
                                     </div>
